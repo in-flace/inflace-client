@@ -9,7 +9,8 @@ import IconYoutube from '@/shared/assets/youtube-disable.svg'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
 import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
 
-import IconLock from '@/shared/assets/unlock-filled-bold.svg'
+// 젝트 광고 기간 동안 플랜 업그레이드 버튼 노출 중단 — 임시 주석 처리
+// import IconLock from '@/shared/assets/unlock-filled-bold.svg'
 
 /* 사이드바에 표시되는 유저의 상태 (유튜브 채널 정보, 현재 플랜 등) */
 export const ChannelStatusCard = () => {
@@ -52,7 +53,7 @@ export const ChannelStatusCard = () => {
           </div>
         </div>
 
-        {/* 플랜 업그레이드 버튼 */}
+        {/* 플랜 업그레이드 버튼 — 젝트 광고 기간 동안 노출 중단
         {plan !== 'GROWTH' && (
           <Button
             color='primary'
@@ -63,6 +64,7 @@ export const ChannelStatusCard = () => {
             플랜 업그레이드
           </Button>
         )}
+        */}
       </div>
     )
   }
