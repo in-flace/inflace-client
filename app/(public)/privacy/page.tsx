@@ -7,6 +7,7 @@ const description = '인플레이스의 개인정보처리방침을 확인하세
 export const metadata: Metadata = {
   title,
   description,
+  alternates: { canonical: '/privacy' },
   openGraph: {
     title,
     description,
