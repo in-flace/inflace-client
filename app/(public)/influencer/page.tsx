@@ -8,6 +8,10 @@ const description =
 export const metadata: Metadata = {
   title,
   description,
+  /* 필터가 쿼리 파라미터로 붙어도 정본은 항상 /influencer —
+   * 필터 조합마다 중복 URL이 색인되는 것을 막는다.
+   */
+  alternates: { canonical: '/influencer' },
   openGraph: {
     title,
     description,

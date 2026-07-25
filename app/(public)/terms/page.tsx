@@ -7,6 +7,7 @@ const description = '인플레이스 서비스 이용 전 꼭 확인해야 할 �
 export const metadata: Metadata = {
   title,
   description,
+  alternates: { canonical: '/terms' },
   openGraph: {
     title,
     description,
