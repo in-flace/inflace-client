@@ -1,10 +1,20 @@
+'use client'
+
 import Link from 'next/link'
+import { useAuth } from '@/features/auth/model/useAuth'
 import { Logo } from '@/shared/ui/logo'
 
 export const FooterInfo = () => {
+  const { isLoggedIn } = useAuth()
+
   return (
     <div className='flex flex-col self-stretch'>
-      <Logo variant='footer' />
+      {/* 로그인 상태에서는 랜딩(/)을 경유하지 않도록 /main으로 직접 보낸다 */}
+      <Logo
+        variant='footer'
+        href={isLoggedIn ? '/main' : '/'}
+        ariaLabel={isLoggedIn ? 'inflace 메인으로 이동' : 'inflace 홈으로 이동'}
+      />
       <div className='flex-1' />
       <div className='flex flex-col gap-y-xs'>
         <ul className='flex gap-sm'>

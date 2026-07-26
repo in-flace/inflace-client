@@ -5,14 +5,21 @@ import { cn } from '@/shared/lib/utils'
 interface LogoProps {
   variant?: 'header' | 'footer'
   className?: string
+  href?: string
+  ariaLabel?: string
 }
 
-export const Logo = ({ variant = 'header', className }: LogoProps) => {
+export const Logo = ({
+  variant = 'header',
+  className,
+  href = '/',
+  ariaLabel = 'inflace 홈으로 이동',
+}: LogoProps) => {
   return (
     <Link
-      href={'/'}
+      href={href}
       className={cn('inline-flex items-center', className)}
-      aria-label='inflace 홈으로 이동'>
+      aria-label={ariaLabel}>
       <LogoSvg
         className={cn(
           variant === 'header' && 'h-header-logo w-header-logo',
