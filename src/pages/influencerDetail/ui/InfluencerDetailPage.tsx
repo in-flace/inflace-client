@@ -88,8 +88,11 @@ export function InfluencerDetailPage() {
                 data={brandAnalysisData}
                 isLoading={isBrandAnalysisLoading}
               />
-              {/* 검색 결과 영역 */}
-              <AdvertisementList channelId={channelId} />
+              {/* 검색 결과 영역 — 지표와 동일한 검색 조건으로 조회 */}
+              <AdvertisementList
+                channelId={channelId}
+                filter={committedFilter}
+              />
             </>
           )}
         </>
