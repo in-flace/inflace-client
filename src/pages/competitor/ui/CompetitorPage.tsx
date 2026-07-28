@@ -17,12 +17,15 @@ import {
   type CompetitorFilterState,
   type SortCriteria,
 } from '@/features/competitor'
+import { useAuth, useLoginModal } from '@/features/auth'
 import { ScrollToTopButton } from '@/shared/ui/scroll-to-top'
 
 const MAX_SELECTED = 10
 
 export function CompetitorPage() {
   const queryClient = useQueryClient()
+  const { isLoggedIn, isInitializing } = useAuth()
+  const openLoginModal = useLoginModal((s) => s.open)
 
   /* 사용자가 입력 중인 필터 (편집 상태) */
   const [draftFilter, setDraftFilter] = useState<CompetitorFilterState>(
@@ -68,6 +71,7 @@ export function CompetitorPage() {
 
   /* 검색: 편집 필터를 확정. 동일 조건 재검색 시에도 강제 refetch */
   function handleSearch() {
+    if (blockIfGuest()) return
     setAppliedFilter(draftFilter)
     setSelectedVideoIds(new Set())
     setAnalyzedVideoIds([])
@@ -103,8 +107,22 @@ export function CompetitorPage() {
 
   /* '영상 분석하기' — 현재 선택 영상으로 trends 분석 트리거 */
   function handleAnalyze() {
+    if (blockIfGuest()) return
     if (selectedVideoIds.size === 0) return
     setAnalyzedVideoIds(Array.from(selectedVideoIds))
+  }
+
+  /* '결과 더보기' — 다음 페이지 누적 */
+  function handleLoadMore() {
+    if (blockIfGuest()) return
+    fetchNextPage()
+  }
+
+  /* 초기화 중 클릭은 통과 — 미로그인이면 axiosInstance의 401 인터셉터가 모달을 띄운다 */
+  function blockIfGuest() {
+    if (isInitializing || isLoggedIn) return false
+    openLoginModal()
+    return true
   }
 
   return (
@@ -143,7 +161,7 @@ export function CompetitorPage() {
           onSortChange={handleSortChange}
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
-          onLoadMore={() => fetchNextPage()}
+          onLoadMore={handleLoadMore}
         />
       </div>
 
