@@ -1,19 +1,20 @@
-import Link from 'next/link'
+import Link, { type LinkProps } from 'next/link'
 import LogoSvg from '@/shared/assets/logo.svg'
 import { cn } from '@/shared/lib/utils'
 
 interface LogoProps {
   variant?: 'header' | 'footer'
   className?: string
-  href?: string
-  ariaLabel?: string
+  /** 이동 경로. 어디로 보낼지에 대한 정책은 상위 레이어가 결정한다 */
+  href: LinkProps['href']
+  ariaLabel: string
 }
 
 export const Logo = ({
   variant = 'header',
   className,
-  href = '/',
-  ariaLabel = 'inflace 홈으로 이동',
+  href,
+  ariaLabel,
 }: LogoProps) => {
   return (
     <Link
