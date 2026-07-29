@@ -69,10 +69,10 @@ export function AdvertisementCard({
             </span>
           </div>
         </div>
-        {/* PPL 브랜드 */}
+        {/* 협찬 브랜드 */}
         <div className='flex gap-12 border-t border-stroke-border-gray-default pt-16'>
           <span className='text-noto-label-md-normal text-text-and-icon-secondary'>
-            PPL 브랜드
+            협찬 브랜드
           </span>
           {brands.map((brand) => (
             <span
