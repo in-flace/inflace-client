@@ -9,6 +9,9 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:e2e": "playwright test",
     "build:tokens": "node scripts/sd.config.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -42,6 +45,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",
+    "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.2.19",
     "@storybook/addon-docs": "^10.2.19",
     "@storybook/addon-onboarding": "^10.2.19",
