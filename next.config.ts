@@ -21,6 +21,26 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'i.pinimg.com' },
     ],
   },
+  /* Turbopack 설정 — webpack() 블록과 동일한 동작을 재현한다.
+   * next dev / next build의 기본 번들러이며, webpack 대비 컴파일이 크게 빠르다.
+   * webpack() 블록은 build:analyze(--webpack)용으로 유지한다. */
+  turbopack: {
+    rules: {
+      /* SVG를 React 컴포넌트로 변환 (@svgr/webpack과 동일)
+       * 프로젝트 내 121건의 SVG import가 모두 컴포넌트 방식이며,
+       * ?url 쿼리 사용처는 없다. */
+      '*.svg': {
+        loaders: [{ loader: '@svgr/webpack', options: { icon: true } }],
+        as: '*.js',
+      },
+    },
+    /* mock이 꺼진 빌드에서 MSW 트리를 번들에서 제외한다.
+     * webpack() 블록의 resolve.alias와 동일한 목적이다. */
+    resolveAlias:
+      process.env.NEXT_PUBLIC_MOCK_ENABLED !== 'true'
+        ? { '@/shared/api/msw/browser': './src/shared/api/msw/browser.stub.ts' }
+        : {},
+  },
   /* Cross-Origin-Opener-Policy로 인해 팝업이 닫히지 않는 문제 해결 */
   async headers() {
     return [
