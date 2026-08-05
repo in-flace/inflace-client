@@ -7,6 +7,7 @@
     "prebuild": "node scripts/sd.config.mjs",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "build:analyze": "node -e \"process.env.ANALYZE='true';require('child_process').execSync('next build --webpack',{stdio:'inherit',env:process.env})\"",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --project unit",
@@ -42,6 +43,7 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.1",
+    "@next/bundle-analyzer": "^16.3.0",
     "@playwright/test": "^1.62.1",
     "@storybook/addon-a11y": "^10.5.5",
     "@storybook/addon-docs": "^10.5.5",

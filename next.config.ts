@@ -1,4 +1,11 @@
+import bundleAnalyzer from '@next/bundle-analyzer'
 import type { NextConfig } from 'next'
+
+/* ANALYZE=true 로 빌드하면 번들 구성 리포트를 생성한다.
+ * 사용: npm run build:analyze */
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === 'true',
+})
 
 const nextConfig: NextConfig = {
   images: {
@@ -50,4 +57,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withBundleAnalyzer(nextConfig)
