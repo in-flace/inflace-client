@@ -50,3 +50,13 @@ src/shared/tokens/tokens.generated.ts
 #claude
 .claude
 .agents
+
+# 문서
+docs/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
