@@ -18,16 +18,24 @@ import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/shared/config/site'
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID
 
+/* 한글 폰트는 유니코드 범위별로 수백 개 파일로 분할된다.
+ * preload를 켜두면 실제 사용 여부와 무관하게 전부 선다운로드되어
+ * (랜딩 기준 281개 / 2.5MB) 초기 로딩을 크게 지연시킨다.
+ * preload: false로 브라우저가 필요한 조각만 받도록 한다. */
 const notoSansKr = Noto_Sans_KR({
   subsets: ['latin'],
   weight: ['400', '500', '700'],
   variable: '--font-noto',
+  display: 'swap',
+  preload: false,
 })
 
 const ibmPlexSansKr = IBM_Plex_Sans_KR({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-ibm',
+  display: 'swap',
+  preload: false,
 })
 
 /* metadata를 선언하지 않은 라우트가 상속하는 기본값.
