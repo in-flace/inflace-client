@@ -54,6 +54,9 @@ src/shared/tokens/tokens.generated.ts
 # 문서
 docs/
 
+# 번들 분석 리포트
+/.next/analyze/
+
 # Playwright
 /test-results/
 /playwright-report/
