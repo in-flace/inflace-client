@@ -34,6 +34,7 @@ export function AdvertisementCard({
           src={videoThumbnailUrl ?? ''}
           alt={videoTitle ?? ''}
           fill
+          sizes='520px'
           className='object-cover'
         />
         <span className='absolute top-16 left-16 rounded-4 bg-primitive-brand-clear-200 p-12 py-4 text-noto-caption-sm-bold text-text-and-icon-primary'>

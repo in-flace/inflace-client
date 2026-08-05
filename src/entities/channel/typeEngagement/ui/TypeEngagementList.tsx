@@ -34,6 +34,7 @@ export function TypeEngagementList({ data }: Props) {
                   src={item.thumbnailUrl}
                   alt={item.title}
                   fill
+                  sizes='156px'
                   className='object-cover'
                 />
               </div>

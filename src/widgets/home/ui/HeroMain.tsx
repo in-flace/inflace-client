@@ -61,7 +61,6 @@ export function HeroMain() {
             <Image
               src={heroSection02Item}
               alt='인플루언서 영상 성과 분석'
-              quality={90}
               sizes='(min-width: 1024px) 40vw, 90vw'
               className='h-auto w-full'
             />
@@ -98,7 +97,6 @@ export function HeroMain() {
             <Image
               src={heroSection03Item}
               alt='인플루언서 영상 성과 분석'
-              quality={90}
               sizes='(min-width: 1024px) 40vw, 90vw'
               className='h-auto w-full'
             />

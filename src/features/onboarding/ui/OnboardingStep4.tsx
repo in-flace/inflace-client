@@ -27,6 +27,7 @@ export function OnboardingStep4() {
                   src={ImageYoutube.src}
                   alt='채널분석 화면 미리보기'
                   fill
+                  sizes='392px'
                 />
               </div>
               <div>
@@ -50,6 +51,7 @@ export function OnboardingStep4() {
                   src={ImageDefualt.src}
                   alt='경쟁 채널 분석 미리보기'
                   fill
+                  sizes='392px'
                 />
               </div>
               <div>
