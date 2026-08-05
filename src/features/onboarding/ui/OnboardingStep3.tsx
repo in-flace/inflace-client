@@ -13,7 +13,12 @@ export function OnboardingStep3() {
     <div className='grid grid-cols-2'>
       <div className='w-[39.2rem]'>
         <div className='relative h-[27.8rem] w-full'>
-          <Image src={slide.image.src} alt='기능 소개 이미지' fill />
+          <Image
+            src={slide.image.src}
+            alt='기능 소개 이미지'
+            fill
+            sizes='392px'
+          />
         </div>
         <div className='mt-12 flex justify-center gap-2xs'>
           {FEATURE_SLIDES.map((_, i) => (

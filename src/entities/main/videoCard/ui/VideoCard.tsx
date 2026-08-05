@@ -34,6 +34,7 @@ export function VideoCard({
           src={thumbnailUrl}
           alt={title}
           fill
+          sizes='208px'
           className='rounded-6 object-cover'
         />
         {/* 영상 길이 */}

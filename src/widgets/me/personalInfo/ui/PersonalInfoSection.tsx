@@ -43,6 +43,7 @@ export function PersonalInfoSection() {
                   src={account.profileImageUrl}
                   alt='프로필 사진'
                   fill
+                  sizes='92px'
                   className='rounded-full object-cover'
                 />
               ) : (

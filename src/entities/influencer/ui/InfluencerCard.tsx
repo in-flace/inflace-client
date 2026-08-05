@@ -35,7 +35,7 @@ export function InfluencerCard({ influencer, onBookmarkToggle }: InfluencerCardP
         <div className='relative flex h-fit w-full items-center gap-16'>
           {/* 채널 아이콘 */}
           <div className='relative size-[7.2rem] shrink-0 overflow-hidden rounded-full'>
-            <Image src={thumbnailUrl} alt={channelName} fill />
+            <Image src={thumbnailUrl} alt={channelName} fill sizes='72px' />
           </div>
 
           {/* 채널 이름, 해시태그, 좋아요 버튼 */}

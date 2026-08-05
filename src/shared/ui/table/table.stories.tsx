@@ -51,6 +51,7 @@ export const WithThumbnail: Story = {
                   src={mockImage.src}
                   alt={data.title}
                   fill
+                  sizes='156px'
                   className='object-cover'
                 />
               </div>
@@ -123,6 +124,7 @@ export const SidebarCollapsed: Story = {
                     src={mockImage.src}
                     alt={data.title}
                     fill
+                    sizes='156px'
                     className='object-cover'
                   />
                 </div>
