@@ -4,7 +4,7 @@ import { Suspense, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/model/useAuth'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
-import { useGoogleAuthNoticeAutoOpen } from '@/features/googleAuthNotice'
+// import { useGoogleAuthNoticeAutoOpen } from '@/features/googleAuthNotice'
 
 function SearchParamsHandler({
   isInitializing,
@@ -44,9 +44,13 @@ export function HomeAuthGate() {
     }
   }, [isInitializing, isLoggedIn, router])
 
-  useGoogleAuthNoticeAutoOpen({
-    isReady: !isInitializing && !isLoggedIn,
-  })
+  /* Google OAuth 앱 검수가 승인되어 미인증 앱 경고 화면이 더 이상 노출되지 않으므로
+   * 사전 안내 모달의 자동 노출을 중단한다.
+   * 재심사 등으로 경고가 다시 노출되면 아래 호출만 되살리면 된다.
+   * 모달 컴포넌트(widgets/googleAuthNotice)와 스토어는 그대로 유지한다. */
+  // useGoogleAuthNoticeAutoOpen({
+  //   isReady: !isInitializing && !isLoggedIn,
+  // })
 
   /* auth 초기화 완료 후 snap 클래스를 추가하도록 함
    * isInitializing 중에 snap을 활성화하면 컨텐츠 렌더 시점에 snap-start로 강제 스크롤됨
