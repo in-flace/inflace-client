@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 import bundleAnalyzer from '@next/bundle-analyzer'
 import type { NextConfig } from 'next'
 
@@ -52,6 +54,27 @@ const nextConfig: NextConfig = {
     )
 
     fileLoaderRule.exclude = /\.svg$/i
+
+    /* mock이 꺼진 빌드에서는 MSW 트리 전체를 번들에서 제외한다.
+     * MSWProvider가 동적 import를 호출하지 않더라도 별도 청크는 생성되어
+     * msw + 핸들러 26개 + db.json이 그대로 남는다(gzip 약 119KB). */
+    if (process.env.NEXT_PUBLIC_MOCK_ENABLED !== 'true') {
+      /* '@/...' 별칭은 tsconfig paths가 먼저 해석하므로,
+       * alias 키도 해석 결과와 같은 실제 파일 경로로 지정해야 한다.
+       * $ 접미사로 정확히 이 경로만 치환한다. */
+      const mswBrowser = path.resolve(__dirname, 'src/shared/api/msw/browser')
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        [`${mswBrowser}$`]: path.resolve(
+          __dirname,
+          'src/shared/api/msw/browser.stub.ts'
+        ),
+        [`${mswBrowser}.ts$`]: path.resolve(
+          __dirname,
+          'src/shared/api/msw/browser.stub.ts'
+        ),
+      }
+    }
 
     return config
   },
