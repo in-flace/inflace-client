@@ -9,12 +9,20 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   // Override default ignores of eslint-config-next.
+  // globalIgnores가 기본 ignore를 덮어쓰므로, 새 산출물 디렉토리가 생기면 여기에 추가해야 한다.
+  // ESLint 9 flat config는 .gitignore를 자동으로 읽지 않는다.
   globalIgnores([
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 빌드 · 테스트 산출물
+    "storybook-static/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    "blob-report/**",
   ]),
   ...storybook.configs["flat/recommended"],
   {
