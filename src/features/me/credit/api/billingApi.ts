@@ -2,6 +2,7 @@ import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
 import type {
   BillingSummary,
+  CancelSubscriptionPayload,
   CreditBatchActionPayload,
   PurchaseCreditsPayload,
   RegisterBillingMethodPayload,
@@ -24,9 +25,12 @@ export async function startSubscription(
   return response.data.responseDto
 }
 
-export async function cancelSubscription(): Promise<BillingSummary> {
+export async function cancelSubscription(
+  payload: CancelSubscriptionPayload
+): Promise<BillingSummary> {
   const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    '/billing/subscription/cancel'
+    '/billing/subscription/cancel',
+    payload
   )
   return response.data.responseDto
 }

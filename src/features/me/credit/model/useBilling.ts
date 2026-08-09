@@ -15,16 +15,21 @@ import {
 import type { BillingSummary } from '../types'
 
 export const billingQueryKeys = {
-  summary: ['billing', 'summary'] as const,
+  summary: (userId: string | null) => ['billing', 'summary', userId] as const,
+}
+
+function useBillingUserId() {
+  return useAuthStore((state) => state.user?.userDetails.id ?? null)
 }
 
 export function useBillingSummary() {
   const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
 
   return useQuery({
-    queryKey: billingQueryKeys.summary,
+    queryKey: billingQueryKeys.summary(userId),
     queryFn: fetchBillingSummary,
-    enabled: !!accessToken,
+    enabled: !!accessToken && !!userId,
   })
 }
 
@@ -32,11 +37,12 @@ function useBillingMutation<TVariables = void>(
   mutationFn: (variables: TVariables) => Promise<BillingSummary>
 ) {
   const queryClient = useQueryClient()
+  const userId = useBillingUserId()
 
   return useMutation({
     mutationFn,
     onSuccess: (summary) => {
-      queryClient.setQueryData(billingQueryKeys.summary, summary)
+      queryClient.setQueryData(billingQueryKeys.summary(userId), summary)
     },
   })
 }
@@ -46,7 +52,7 @@ export function useStartSubscription() {
 }
 
 export function useCancelSubscription() {
-  return useBillingMutation(() => cancelSubscription())
+  return useBillingMutation(cancelSubscription)
 }
 
 export function useRetrySubscriptionPayment() {

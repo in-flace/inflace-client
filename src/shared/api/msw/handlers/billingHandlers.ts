@@ -4,7 +4,9 @@ import { mockBillingSummary } from '@/features/me/credit/mock/mockBilling'
 import type {
   BillingPlanCode,
   BillingSummary,
+  CancelSubscriptionPayload,
   PurchaseCreditsPayload,
+  RegisterBillingMethodPayload,
   StartSubscriptionPayload,
 } from '@/features/me/credit/types'
 
@@ -53,6 +55,20 @@ export const billingHandlers = [
         )
       }
 
+      if (currentSummary.billingMethod.status !== 'registered') {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'BILLING_METHOD_REQUIRED',
+              message: '구독을 시작하려면 결제수단을 등록해주세요.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
       currentSummary = {
         ...currentSummary,
         subscription: {
@@ -73,6 +89,7 @@ export const billingHandlers = [
             type: 'subscription',
             purchasedCredits: 3,
             usedCredits: 0,
+            purchaseAmount: 0,
             extendable: false,
             refundable: false,
             extendedAt: null,
@@ -101,7 +118,23 @@ export const billingHandlers = [
 
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/billing/subscription/cancel`,
-    () => {
+    async ({ request }) => {
+      const body = (await request.json()) as CancelSubscriptionPayload
+
+      if (!body.reason.trim()) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'CANCEL_REASON_REQUIRED',
+              message: '해지 사유를 선택해주세요.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
       currentSummary = {
         ...currentSummary,
         subscription: {
@@ -134,20 +167,39 @@ export const billingHandlers = [
     }
   ),
 
-  http.post(`${process.env.NEXT_PUBLIC_API_URL}/billing/method`, () => {
-    currentSummary = {
-      ...currentSummary,
-      billingMethod: {
-        status: 'registered',
-        id: `billing-method-${Date.now()}`,
-        brand: 'Visa',
-        last4: '5588',
-        updatedAt: new Date().toISOString().slice(0, 10),
-      },
-    }
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/billing/method`,
+    async ({ request }) => {
+      const body = (await request.json()) as RegisterBillingMethodPayload
 
-    return jsonResponse()
-  }),
+      if (!body.billingKey) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'BILLING_KEY_REQUIRED',
+              message: '발급된 빌링키가 필요합니다.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
+      currentSummary = {
+        ...currentSummary,
+        billingMethod: {
+          status: 'registered',
+          id: `billing-method-${Date.now()}`,
+          brand: 'Visa',
+          last4: '5588',
+          updatedAt: new Date().toISOString().slice(0, 10),
+        },
+      }
+
+      return jsonResponse()
+    }
+  ),
 
   http.delete(`${process.env.NEXT_PUBLIC_API_URL}/billing/method`, () => {
     currentSummary = {
@@ -186,6 +238,37 @@ export const billingHandlers = [
         )
       }
 
+      if (body.paymentMethod === 'oneTime' && !body.paymentId) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'PAYMENT_ID_REQUIRED',
+              message: '1회성 결제 식별자가 필요합니다.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
+      if (
+        body.paymentMethod === 'registeredCard' &&
+        currentSummary.billingMethod.status !== 'registered'
+      ) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'BILLING_METHOD_REQUIRED',
+              message: '등록된 결제수단을 확인해주세요.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
       const today = new Date()
       const expiryDate = new Date(today)
       expiryDate.setMonth(expiryDate.getMonth() + 3)
@@ -200,6 +283,7 @@ export const billingHandlers = [
             type: 'purchase',
             purchasedCredits: option.credits,
             usedCredits: 0,
+            purchaseAmount: option.price,
             extendable: true,
             refundable: true,
             extendedAt: null,
@@ -260,6 +344,32 @@ export const billingHandlers = [
     ({ params }) => {
       const batchId = String(params.batchId)
       const today = new Date().toISOString().slice(0, 10)
+      const targetBatch = currentSummary.creditBatches.find(
+        (batch) => batch.id === batchId
+      )
+
+      if (!targetBatch?.refundable || targetBatch.refundedAt) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'CREDIT_BATCH_NOT_REFUNDABLE',
+              message: '환불할 수 없는 크레딧입니다.',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
+      const remainingCredits = Math.max(
+        targetBatch.purchasedCredits - targetBatch.usedCredits,
+        0
+      )
+      const refundAmount = Math.round(
+        targetBatch.purchaseAmount *
+          (remainingCredits / targetBatch.purchasedCredits)
+      )
 
       currentSummary = {
         ...currentSummary,
@@ -274,7 +384,7 @@ export const billingHandlers = [
             date: today,
             title: '크레딧 구매 환불',
             type: 'creditRefund',
-            amount: -12000,
+            amount: -refundAmount,
             status: 'refunded',
             receiptAvailable: false,
             taxInvoiceAvailable: false,

@@ -51,6 +51,7 @@ export interface CreditBatch {
   type: CreditBatchType
   purchasedCredits: number
   usedCredits: number
+  purchaseAmount: number
   extendable: boolean
   refundable: boolean
   extendedAt: string | null
@@ -73,6 +74,7 @@ export interface CreditPurchaseOption {
   credits: number
   price: number
   pricePerCredit: number
+  originalPrice?: number
   badge?: string
 }
 
@@ -89,13 +91,18 @@ export interface StartSubscriptionPayload {
   planCode: BillingPlanCode
 }
 
+export interface CancelSubscriptionPayload {
+  reason: string
+}
+
 export interface RegisterBillingMethodPayload {
-  billingKey?: string
+  billingKey: string
 }
 
 export interface PurchaseCreditsPayload {
   optionId: string
   paymentMethod: 'registeredCard' | 'oneTime'
+  paymentId?: string
 }
 
 export interface CreditBatchActionPayload {
