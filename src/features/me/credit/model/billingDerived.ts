@@ -2,8 +2,8 @@ import type { BillingTab, CreditBatch } from '../types'
 
 export const BILLING_TABS = [
   { id: 'subscription', label: '플랜 구독' },
-  { id: 'billing-method', label: '결제수단 관리' },
   { id: 'credit', label: '크레딧' },
+  { id: 'billing-method', label: '결제수단 관리' },
   { id: 'history', label: '결제·환불 내역' },
 ] as const satisfies readonly { id: BillingTab; label: string }[]
 
@@ -47,4 +47,20 @@ export function getExpiringCredits(
 
     return total + getRemainingCredits(batch)
   }, 0)
+}
+
+export function getNearestExpiryDate(batches: CreditBatch[]) {
+  let nearest: string | null = null
+
+  for (const batch of batches) {
+    if (batch.refundedAt || getRemainingCredits(batch) === 0) {
+      continue
+    }
+
+    if (!nearest || batch.expiryDate < nearest) {
+      nearest = batch.expiryDate
+    }
+  }
+
+  return nearest
 }

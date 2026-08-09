@@ -23,8 +23,8 @@ export function TabGroup<T extends string>({
   return (
     <div
       className={cn(
-        'flex h-fit rounded-12 bg-background-gray-stronger p-2',
-        type === 'fill' ? 'w-full' : 'w-fit'
+        'flex h-fit overflow-x-auto rounded-12 bg-background-gray-stronger p-2',
+        type === 'fill' ? 'w-full' : 'w-fit max-w-full'
       )}>
       {tabs.map((tab) => (
         <button
@@ -32,7 +32,7 @@ export function TabGroup<T extends string>({
           type='button'
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            'rounded-12 py-16 text-noto-label-lg-bold',
+            'min-w-[14rem] shrink-0 rounded-12 py-16 text-noto-label-md-bold sm:text-noto-label-lg-bold',
             type === 'fill' ? 'flex-1' : 'w-fit px-16',
             activeTab === tab.id
               ? 'border-1 border-brand-primary bg-white text-brand-primary'

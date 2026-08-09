@@ -4,6 +4,7 @@ import {
   formatDate,
   formatWon,
   getExpiringCredits,
+  getNearestExpiryDate,
   getRemainingCredits,
   getTotalCredits,
   isBillingTab,
@@ -18,6 +19,7 @@ const creditBatches: CreditBatch[] = [
     type: 'purchase',
     purchasedCredits: 5,
     usedCredits: 2,
+    purchaseAmount: 24000,
     extendable: true,
     refundable: true,
     extendedAt: null,
@@ -30,6 +32,7 @@ const creditBatches: CreditBatch[] = [
     type: 'purchase',
     purchasedCredits: 3,
     usedCredits: 1,
+    purchaseAmount: 15000,
     extendable: true,
     refundable: false,
     extendedAt: null,
@@ -42,6 +45,7 @@ const creditBatches: CreditBatch[] = [
     type: 'subscription',
     purchasedCredits: 3,
     usedCredits: 0,
+    purchaseAmount: 0,
     extendable: false,
     refundable: false,
     extendedAt: null,
@@ -73,5 +77,14 @@ describe('billingDerived', () => {
   it('지정한 만료 월에 해당하는 크레딧만 합산한다', () => {
     expect(getExpiringCredits(creditBatches, '2026-09')).toBe(3)
     expect(getExpiringCredits(creditBatches, '2026-10')).toBe(3)
+  })
+
+  it('환불됐거나 소진된 배치를 제외하고 가장 빠른 만료일을 찾는다', () => {
+    expect(getNearestExpiryDate(creditBatches)).toBe('2026-09-01')
+    expect(
+      getNearestExpiryDate(
+        creditBatches.map((batch) => ({ ...batch, usedCredits: 99 }))
+      )
+    ).toBeNull()
   })
 })

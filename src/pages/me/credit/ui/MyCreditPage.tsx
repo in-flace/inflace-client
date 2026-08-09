@@ -2,15 +2,17 @@
 
 import { useEffect, useState, useTransition, type ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { toast } from 'sonner'
 
 import {
   BILLING_TABS,
   formatDate,
   formatWon,
-  getExpiringCredits,
+  getNearestExpiryDate,
   getTotalCredits,
+  issueCardBillingKey,
   isBillingTab,
+  requestOneTimeCardPayment,
   useBillingSummary,
   useCancelSubscription,
   useDeleteBillingMethod,
@@ -58,6 +60,12 @@ type ModalState =
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | null
 
+function getErrorMessage(error: unknown) {
+  return error instanceof Error
+    ? error.message
+    : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.'
+}
+
 function StatusBadge({
   children,
   tone = 'neutral',
@@ -92,7 +100,7 @@ function SectionCard({
   return (
     <section
       className={cn(
-        'rounded-16 bg-white p-32 shadow-[0px_2px_6px_0px_#0D0D0D0A]',
+        'rounded-16 bg-white p-20 shadow-[0px_2px_6px_0px_#0D0D0D0A] sm:p-32',
         className
       )}>
       {children}
@@ -115,14 +123,14 @@ function ModalContent({
     <DialogContent
       showCloseButton={false}
       overlayClassName='bg-background-dim-default'
-      className={cn('rounded-16 bg-white p-40 shadow-none', className)}>
-      <VisuallyHidden>
-        <DialogTitle>{title}</DialogTitle>
-      </VisuallyHidden>
+      className={cn(
+        'max-h-[calc(100dvh-3.2rem)] w-[calc(100vw-3.2rem)] max-w-none overflow-y-auto rounded-16 bg-white p-24 shadow-none sm:p-40',
+        className
+      )}>
       <div className='flex flex-col gap-8'>
-        <h2 className='text-noto-title-sm-bold text-text-and-icon-default'>
+        <DialogTitle className='text-noto-title-sm-bold text-text-and-icon-default'>
           {title}
-        </h2>
+        </DialogTitle>
         {description && (
           <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
             {description}
@@ -176,9 +184,9 @@ function PlanCard({
   onSubscribe: () => void
 }) {
   return (
-    <article className='relative flex h-[36.8rem] flex-1 flex-col rounded-16 border border-stroke-border-gray-default bg-white p-32'>
+    <article className='relative flex min-h-[32rem] flex-1 flex-col rounded-16 border border-stroke-border-gray-default bg-white p-24 sm:min-h-[36.8rem] sm:p-32'>
       {plan.badge && (
-        <span className='absolute top-[-2.4rem] right-0 rounded-t-12 rounded-br-0 rounded-bl-12 bg-brand-primary px-24 py-[1.3rem] text-noto-label-md-bold text-white'>
+        <span className='absolute top-[-2.4rem] right-0 rounded-t-12 rounded-br-0 rounded-bl-12 bg-[#FFF0F0] px-16 py-[1.3rem] text-noto-label-sm-bold text-feedback-error sm:px-24 sm:text-noto-label-md-bold'>
           {plan.badge}
         </span>
       )}
@@ -214,13 +222,13 @@ function PlanCard({
       </div>
       <Button
         type='button'
-        color='primary'
+        color={plan.code === 'PRO_EARLY_BIRD' ? 'primary' : 'gray'}
         size='lg'
         variant='filled'
         disabled={disabled}
         onClick={onSubscribe}
         className='h-44 w-full'>
-        구독 시작하기
+        선택하기
       </Button>
     </article>
   )
@@ -245,8 +253,8 @@ function SubscriptionTab({
 
   if (!isSubscribed) {
     return (
-      <SectionCard className='flex min-h-[64.2rem] flex-col gap-40 px-32 py-48'>
-        <div className='grid grid-cols-2 gap-16'>
+      <SectionCard className='flex min-h-[64.2rem] flex-col gap-40 px-20 py-32 sm:px-32 sm:py-48'>
+        <div className='grid grid-cols-1 gap-40 lg:grid-cols-2 lg:gap-16'>
           {plans.map((plan) => (
             <PlanCard
               key={plan.code}
@@ -258,18 +266,18 @@ function SubscriptionTab({
         </div>
         <div className='flex flex-col gap-20'>
           <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
-            플랜과 크레딧은 이렇게 운영됩니다
+            플랜 구독과 크레딧, 무엇이 다른가요?
           </h3>
           <div className='flex flex-col gap-12 text-noto-body-sm-normal text-text-and-icon-secondary'>
-            <p>
+            <p className='before:mr-8 before:content-["·"]'>
               최대한 예산 낭비없이 필요하신 만큼만 사용하실 수 있도록 플랜
               구독과 크레딧제를 별도로 운영하고 있습니다.
             </p>
-            <p>
+            <p className='before:mr-8 before:content-["·"]'>
               플랜을 구독하실 경우, 인플루언서 검색 탭 내에서 사용할 수 있는
               검색, 성과 분석, 광고 분석 기능을 무제한으로 사용할 수 있습니다.
             </p>
-            <p>
+            <p className='before:mr-8 before:content-["·"]'>
               크레딧은 경쟁 채널 분석을 할 수 있는 별도의 이용권입니다. 1크레딧
               당 1회의 분석을 진행할 수 있습니다.
             </p>
@@ -283,7 +291,7 @@ function SubscriptionTab({
     <div className='flex flex-col gap-24'>
       {subscription.status === 'paymentFailed' && (
         <SectionCard className='border border-feedback-error bg-[rgba(224,47,82,0.05)]'>
-          <div className='flex items-center justify-between gap-24'>
+          <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
             <div className='flex flex-col gap-8'>
               <div className='flex items-center gap-8'>
                 <StatusBadge tone='error'>결제 실패</StatusBadge>
@@ -324,7 +332,7 @@ function SubscriptionTab({
           </div>
         </SectionCard>
       )}
-      <div className='grid grid-cols-4 gap-24'>
+      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 xl:grid-cols-4 xl:gap-24'>
         <MetricCard
           label='현재 플랜'
           value={subscription.planName ?? '-'}
@@ -382,7 +390,7 @@ function MetricCard({
   suffix?: string
 }) {
   return (
-    <SectionCard className='h-[13.4rem] p-32'>
+    <SectionCard className='h-[13rem] p-24 sm:h-[13.4rem] sm:p-32'>
       <div className='flex h-full flex-col justify-between'>
         <span className='text-noto-body-sm-bold text-text-and-icon-secondary'>
           {label}
@@ -413,7 +421,7 @@ function BillingMethodTab({
 
   if (billingMethod.status === 'none') {
     return (
-      <SectionCard className='flex h-[17.8rem] flex-col items-center justify-center gap-20'>
+      <SectionCard className='flex min-h-[17.8rem] flex-col items-center justify-center gap-20'>
         <div className='flex flex-col items-center gap-8'>
           <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
             등록된 결제수단이 없습니다
@@ -435,42 +443,41 @@ function BillingMethodTab({
   }
 
   return (
-    <SectionCard className='flex min-h-[17.8rem] flex-col gap-24'>
-      <div className='flex items-start justify-between gap-24'>
-        <div className='flex flex-col gap-16'>
-          <div className='flex items-center gap-8'>
-            <PaymentIcon className='size-24 text-text-and-icon-primary' />
-            <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
-              결제 수단
-            </h3>
+    <div className='flex flex-col gap-12'>
+      <SectionCard className='flex min-h-[9rem] flex-col gap-24 p-24'>
+        <div className='flex flex-col items-start justify-between gap-24 sm:flex-row'>
+          <div className='flex flex-col gap-16'>
+            <div className='flex items-center gap-8'>
+              <PaymentIcon className='size-24 text-text-and-icon-primary' />
+              <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+                결제 수단
+              </h3>
+            </div>
+            <p className='pl-32 text-noto-body-sm-normal text-text-and-icon-primary'>
+              {billingMethod.brand} ···· {billingMethod.last4}
+            </p>
           </div>
-          <p className='pl-32 text-noto-body-sm-normal text-text-and-icon-primary'>
-            {billingMethod.brand} ···· {billingMethod.last4}
-          </p>
-          <p className='pl-32 text-noto-body-xs-normal text-text-and-icon-secondary'>
-            다음 결제부터 이 카드로 자동 결제됩니다.
-          </p>
         </div>
-        <div className='flex gap-8'>
-          <Button
-            type='button'
-            color='gray'
-            size='md'
-            variant='filled'
-            onClick={() => onOpenModal({ type: 'billingRegister' })}>
-            변경
-          </Button>
-          <Button
-            type='button'
-            color='gray'
-            size='md'
-            variant='filled'
-            onClick={() => onOpenModal({ type: 'billingDelete' })}>
-            삭제
-          </Button>
-        </div>
+      </SectionCard>
+      <div className='flex justify-end gap-8'>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='filled'
+          onClick={() => onOpenModal({ type: 'billingRegister' })}>
+          변경하기
+        </Button>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='outlined'
+          onClick={() => onOpenModal({ type: 'billingDelete' })}>
+          삭제하기
+        </Button>
       </div>
-    </SectionCard>
+    </div>
   )
 }
 
@@ -481,23 +488,7 @@ function CreditTab({
   summary: BillingSummary
   onOpenModal: (modal: ModalState) => void
 }) {
-  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(
-    () => new Set()
-  )
   const isSubscribed = summary.subscription.status !== 'none'
-  const selectedCount = selectedBatchIds.size
-
-  const toggleBatch = (batchId: string) => {
-    setSelectedBatchIds((current) => {
-      const next = new Set(current)
-      if (next.has(batchId)) {
-        next.delete(batchId)
-      } else {
-        next.add(batchId)
-      }
-      return next
-    })
-  }
 
   return (
     <div className='flex flex-col gap-24'>
@@ -517,25 +508,20 @@ function CreditTab({
           크레딧은 플랜 구독 후 구매할 수 있습니다.
         </p>
       )}
-      <div className='grid grid-cols-2 gap-24'>
+      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
         <MetricCard
           label='보유 크레딧'
           value={`${getTotalCredits(summary.creditBatches)}개`}
-          suffix='사용 가능'
         />
         <MetricCard
-          label='만료 예정 크레딧'
-          value={`${getExpiringCredits(summary.creditBatches, '2026-09')}개`}
-          suffix='2026.09 기준'
+          label='가장 빠른 만료일'
+          value={formatDate(getNearestExpiryDate(summary.creditBatches))}
         />
       </div>
       <SectionCard className='min-h-[44.8rem] p-24'>
-        <Table>
+        <Table className='min-w-[100rem] table-fixed'>
           <TableHeader>
             <TableRow>
-              <TableHead className='w-44 bg-transparent'>
-                <span className='sr-only'>선택</span>
-              </TableHead>
               <TableHead>결제 날짜</TableHead>
               <TableHead>만료 일자</TableHead>
               <TableHead>유형</TableHead>
@@ -548,25 +534,10 @@ function CreditTab({
           <TableBody>
             {summary.creditBatches.map((batch) => (
               <TableRow key={batch.id}>
-                <TableCell>
-                  <button
-                    type='button'
-                    role='checkbox'
-                    aria-checked={selectedBatchIds.has(batch.id)}
-                    onClick={() => toggleBatch(batch.id)}
-                    className={cn(
-                      'flex size-20 items-center justify-center rounded-4 border',
-                      selectedBatchIds.has(batch.id)
-                        ? 'border-brand-primary bg-brand-primary text-white'
-                        : 'border-stroke-border-gray-stronger bg-white text-transparent'
-                    )}>
-                    <CheckIcon className='size-14' />
-                  </button>
-                </TableCell>
                 <TableCell>{formatDate(batch.paymentDate)}</TableCell>
                 <TableCell>{formatDate(batch.expiryDate)}</TableCell>
                 <TableCell>
-                  {batch.type === 'subscription' ? '구독 지급' : '구매'}
+                  {batch.type === 'subscription' ? '월 제공' : '구매'}
                 </TableCell>
                 <TableCell>{batch.purchasedCredits}개</TableCell>
                 <TableCell>{batch.usedCredits}개</TableCell>
@@ -600,13 +571,26 @@ function CreditTab({
         </Table>
         <div className='mt-32 flex items-center justify-between'>
           <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-            {selectedCount}개 선택
+            <strong className='mr-8 text-brand-primary'>
+              {summary.creditBatches.length}
+            </strong>
+            결과
           </span>
           <div className='flex gap-12'>
-            <Button type='button' color='gray' size='md' variant='filled'>
+            <Button
+              type='button'
+              color='gray'
+              size='md'
+              variant='filled'
+              disabled>
               이전
             </Button>
-            <Button type='button' color='gray' size='md' variant='filled'>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              disabled>
               다음
             </Button>
           </div>
@@ -623,86 +607,144 @@ function HistoryTab({
   history: BillingHistoryItem[]
   onOpenModal: (modal: ModalState) => void
 }) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const selectedItem = history.find((item) => selectedIds.has(item.id))
+  const allSelected = history.length > 0 && selectedIds.size === history.length
+
+  const toggleItem = (itemId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+  }
+
+  const openDocumentModal = (documentType: string) => {
+    if (!selectedItem) return
+    onOpenModal({ type: 'document', item: selectedItem, documentType })
+  }
+
   return (
-    <SectionCard className='min-h-[44.8rem] p-24'>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>결제 날짜</TableHead>
-            <TableHead>내역</TableHead>
-            <TableHead>구분</TableHead>
-            <TableHead>금액</TableHead>
-            <TableHead>상태</TableHead>
-            <TableHead>현금영수증</TableHead>
-            <TableHead>세금계산서</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {history.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>{formatDate(item.date)}</TableCell>
-              <TableCell className='text-left'>{item.title}</TableCell>
-              <TableCell>{getHistoryTypeLabel(item.type)}</TableCell>
-              <TableCell>{formatWon(item.amount)}</TableCell>
-              <TableCell>
-                <HistoryStatusBadge status={item.status} />
-              </TableCell>
-              <TableCell>
-                <Button
-                  type='button'
-                  color='gray'
-                  size='xs'
-                  variant='filled'
-                  disabled={!item.receiptAvailable}
-                  onClick={() =>
-                    onOpenModal({
-                      type: 'document',
-                      item,
-                      documentType: '현금영수증',
-                    })
-                  }
-                  className='h-28 w-full'>
-                  조회
-                </Button>
-              </TableCell>
-              <TableCell>
-                <Button
-                  type='button'
-                  color='gray'
-                  size='xs'
-                  variant='filled'
-                  disabled={!item.taxInvoiceAvailable}
-                  onClick={() =>
-                    onOpenModal({
-                      type: 'document',
-                      item,
-                      documentType: '세금계산서',
-                    })
-                  }
-                  className='h-28 w-full'>
-                  조회
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <div className='mt-32 flex justify-end gap-12'>
-        <Button type='button' color='gray' size='md' variant='filled'>
-          이전
+    <div className='flex flex-col gap-24'>
+      <div className='flex flex-wrap gap-12'>
+        <Button
+          type='button'
+          color='gray'
+          size='lg'
+          variant='filled'
+          disabled={!selectedItem?.taxInvoiceAvailable}
+          onClick={() => openDocumentModal('세금계산서')}>
+          세금계산서 신청
         </Button>
-        <Button type='button' color='gray' size='md' variant='filled'>
-          다음
+        <Button
+          type='button'
+          color='gray'
+          size='lg'
+          variant='filled'
+          disabled={!selectedItem?.receiptAvailable}
+          onClick={() => openDocumentModal('현금영수증')}>
+          현금영수증 신청
         </Button>
       </div>
-    </SectionCard>
+      <SectionCard className='min-h-[44.8rem] p-24'>
+        <Table className='min-w-[90rem] table-fixed'>
+          <TableHeader>
+            <TableRow>
+              <TableHead className='w-44 bg-transparent'>
+                <button
+                  type='button'
+                  role='checkbox'
+                  aria-label='전체 결제 내역 선택'
+                  aria-checked={allSelected}
+                  onClick={() =>
+                    setSelectedIds(
+                      allSelected
+                        ? new Set()
+                        : new Set(history.map((item) => item.id))
+                    )
+                  }
+                  className={cn(
+                    'mx-auto flex size-20 items-center justify-center rounded-4 border',
+                    allSelected
+                      ? 'border-brand-primary bg-brand-primary text-white'
+                      : 'border-stroke-border-gray-stronger text-transparent'
+                  )}>
+                  <CheckIcon className='size-14' />
+                </button>
+              </TableHead>
+              <TableHead>결제 날짜</TableHead>
+              <TableHead>유형</TableHead>
+              <TableHead>내용</TableHead>
+              <TableHead>금액</TableHead>
+              <TableHead>상태</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {history.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <button
+                    type='button'
+                    role='checkbox'
+                    aria-label={`${item.title} 선택`}
+                    aria-checked={selectedIds.has(item.id)}
+                    onClick={() => toggleItem(item.id)}
+                    className={cn(
+                      'mx-auto flex size-20 items-center justify-center rounded-4 border',
+                      selectedIds.has(item.id)
+                        ? 'border-brand-primary bg-brand-primary text-white'
+                        : 'border-stroke-border-gray-stronger text-transparent'
+                    )}>
+                    <CheckIcon className='size-14' />
+                  </button>
+                </TableCell>
+                <TableCell>{formatDate(item.date)}</TableCell>
+                <TableCell>{getHistoryTypeLabel(item.type)}</TableCell>
+                <TableCell className='text-left'>{item.title}</TableCell>
+                <TableCell>{formatWon(item.amount)}</TableCell>
+                <TableCell>
+                  <HistoryStatusBadge status={item.status} />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <div className='mt-32 flex items-center justify-between gap-12'>
+          <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+            <strong className='mr-8 text-brand-primary'>
+              {history.length}
+            </strong>
+            결과
+          </span>
+          <div className='flex gap-12'>
+            <Button
+              type='button'
+              color='gray'
+              size='md'
+              variant='filled'
+              disabled>
+              이전
+            </Button>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              disabled>
+              다음
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
   )
 }
 
 function getHistoryTypeLabel(type: BillingHistoryItem['type']) {
   switch (type) {
     case 'subscription':
-      return '구독'
+      return '구독 결제'
     case 'creditPurchase':
       return '크레딧 구매'
     case 'creditRefund':
@@ -736,9 +778,16 @@ function BillingModals({
 }) {
   const [agreedAutoPay, setAgreedAutoPay] = useState(false)
   const [agreedWithdrawalLimit, setAgreedWithdrawalLimit] = useState(false)
+  const [cancelReason, setCancelReason] = useState('사용 빈도가 낮아요')
   const [selectedOptionId, setSelectedOptionId] = useState(
     summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
   )
+  const [paymentMethod, setPaymentMethod] = useState<
+    'registeredCard' | 'oneTime'
+  >(() =>
+    summary.billingMethod.status === 'registered' ? 'registeredCard' : 'oneTime'
+  )
+  const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
@@ -750,6 +799,12 @@ function BillingModals({
   const handleClose = () => {
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
+    setCancelReason('사용 빈도가 낮아요')
+    setPaymentMethod(
+      summary.billingMethod.status === 'registered'
+        ? 'registeredCard'
+        : 'oneTime'
+    )
     onClose()
   }
 
@@ -760,7 +815,7 @@ function BillingModals({
   return (
     <Dialog open={!!modal} onOpenChange={(open) => !open && handleClose()}>
       {modal?.type === 'subscribe' && (
-        <ModalContent title='구독 시작하기' className='w-[67.8rem] max-w-none'>
+        <ModalContent title='구독 시작하기' className='sm:w-[67.8rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='rounded-12 border border-stroke-border-gray-default bg-background-gray-default p-20'>
               <strong className='block text-noto-title-sm-bold text-text-and-icon-default'>
@@ -793,16 +848,37 @@ function BillingModals({
                 disabled={
                   !agreedAutoPay ||
                   !agreedWithdrawalLimit ||
-                  startSubscriptionMutation.isPending
+                  startSubscriptionMutation.isPending ||
+                  registerBillingMethodMutation.isPending ||
+                  isPaymentWindowPending
                 }
                 onClick={async () => {
-                  await startSubscriptionMutation.mutateAsync({
-                    planCode: modal.plan.code,
-                  })
-                  handleClose()
+                  setIsPaymentWindowPending(true)
+                  try {
+                    if (summary.billingMethod.status === 'none') {
+                      const { billingKey } = await issueCardBillingKey({
+                        issueName: `${modal.plan.name} 정기결제 카드 등록`,
+                        displayAmount: modal.plan.price,
+                      })
+                      await registerBillingMethodMutation.mutateAsync({
+                        billingKey,
+                      })
+                    }
+                    await startSubscriptionMutation.mutateAsync({
+                      planCode: modal.plan.code,
+                    })
+                    toast.success('구독이 시작되었습니다.')
+                    handleClose()
+                  } catch (error) {
+                    toast.error(getErrorMessage(error))
+                  } finally {
+                    setIsPaymentWindowPending(false)
+                  }
                 }}
                 className='h-44 w-full'>
-                결제하고 구독 시작
+                {summary.billingMethod.status === 'none'
+                  ? '카드 등록하고 결제하기'
+                  : '결제하고 구독 시작'}
               </Button>
               <p className='text-center text-noto-body-xs-normal text-text-and-icon-secondary'>
                 회원 본인은 주문내용을 확인했으며, 이용약관 및
@@ -816,13 +892,16 @@ function BillingModals({
         <ModalContent
           title='구독을 해지하시겠어요?'
           description='해지해도 결제 완료 기간까지 플랜을 이용할 수 있습니다.'
-          className='w-[50rem] max-w-none'>
+          className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <label className='flex flex-col gap-8'>
               <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
                 해지 사유
               </span>
-              <select className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-body-sm-normal text-text-and-icon-primary outline-none'>
+              <select
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value)}
+                className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-body-sm-normal text-text-and-icon-primary outline-none'>
                 <option>사용 빈도가 낮아요</option>
                 <option>가격이 부담돼요</option>
                 <option>원하는 기능이 부족해요</option>
@@ -855,9 +934,7 @@ function BillingModals({
         </ModalContent>
       )}
       {modal?.type === 'cancelNotice' && (
-        <ModalContent
-          title='해지 전 확인해주세요'
-          className='w-[50rem] max-w-none'>
+        <ModalContent title='해지 전 확인해주세요' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
               해지 후 재가입하면 얼리버드 혜택이 종료되고 정상가 29,000원이
@@ -880,8 +957,14 @@ function BillingModals({
                 variant='filled'
                 disabled={cancelSubscriptionMutation.isPending}
                 onClick={async () => {
-                  await cancelSubscriptionMutation.mutateAsync()
-                  onOpenModal({ type: 'cancelDone' })
+                  try {
+                    await cancelSubscriptionMutation.mutateAsync({
+                      reason: cancelReason,
+                    })
+                    onOpenModal({ type: 'cancelDone' })
+                  } catch (error) {
+                    toast.error(getErrorMessage(error))
+                  }
                 }}
                 className='h-44 w-full'>
                 해지 예약
@@ -901,10 +984,11 @@ function BillingModals({
         <ModalContent
           title='결제수단 등록하기'
           description='포트원 결제창을 호출해 카드를 등록하고 빌링키를 발급합니다.'
-          className='w-[50rem] max-w-none'>
+          className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='rounded-12 border border-stroke-border-gray-default bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
-              카드 등록 시뮬레이션: ···· ···· ···· 5588
+              안전한 카드 등록창에서 카드 정보를 입력합니다. 카드 정보는
+              인플레이스 서버에 저장되지 않습니다.
             </div>
             <div className='grid grid-cols-2 gap-12'>
               <Button
@@ -921,12 +1005,25 @@ function BillingModals({
                 color='primary'
                 size='lg'
                 variant='filled'
-                disabled={registerBillingMethodMutation.isPending}
+                disabled={
+                  registerBillingMethodMutation.isPending ||
+                  isPaymentWindowPending
+                }
                 onClick={async () => {
-                  await registerBillingMethodMutation.mutateAsync({
-                    billingKey: 'mock-billing-key',
-                  })
-                  onOpenModal({ type: 'billingRegistered' })
+                  setIsPaymentWindowPending(true)
+                  try {
+                    const { billingKey } = await issueCardBillingKey({
+                      issueName: '인플레이스 결제수단 등록',
+                    })
+                    await registerBillingMethodMutation.mutateAsync({
+                      billingKey,
+                    })
+                    onOpenModal({ type: 'billingRegistered' })
+                  } catch (error) {
+                    toast.error(getErrorMessage(error))
+                  } finally {
+                    setIsPaymentWindowPending(false)
+                  }
                 }}
                 className='h-44 w-full'>
                 등록하기
@@ -944,9 +1041,7 @@ function BillingModals({
         />
       )}
       {modal?.type === 'billingDelete' && (
-        <ModalContent
-          title='결제수단을 삭제할까요?'
-          className='w-[50rem] max-w-none'>
+        <ModalContent title='결제수단을 삭제할까요?' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
               삭제 후에는 다음 결제 전 새 결제수단을 등록해야 합니다.
@@ -968,9 +1063,13 @@ function BillingModals({
                 variant='filled'
                 disabled={deleteBillingMethodMutation.isPending}
                 onClick={async () => {
-                  const last4 = summary.billingMethod.last4
-                  await deleteBillingMethodMutation.mutateAsync()
-                  onOpenModal({ type: 'billingDeleted', last4 })
+                  try {
+                    const last4 = summary.billingMethod.last4
+                    await deleteBillingMethodMutation.mutateAsync()
+                    onOpenModal({ type: 'billingDeleted', last4 })
+                  } catch (error) {
+                    toast.error(getErrorMessage(error))
+                  }
                 }}
                 className='h-44 w-full'>
                 삭제하기
@@ -991,9 +1090,9 @@ function BillingModals({
         <ModalContent
           title='구매할 크레딧을 선택하세요'
           description='1크레딧당 경쟁 채널 분석 1회 제공'
-          className='w-[100rem] max-w-none'>
+          className='sm:w-[min(100rem,calc(100vw-4.8rem))]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <div className='grid grid-cols-3 gap-16'>
+            <div className='grid grid-cols-1 gap-24 md:grid-cols-3 md:gap-16'>
               {summary.creditOptions.map((option) => (
                 <CreditOptionCard
                   key={option.id}
@@ -1007,9 +1106,11 @@ function BillingModals({
               <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
                 결제 수단을 선택하세요
               </span>
-              <div className='grid grid-cols-2 gap-32'>
+              <div className='grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-32'>
                 <PaymentChoice
                   disabled={summary.billingMethod.status === 'none'}
+                  selected={paymentMethod === 'registeredCard'}
+                  onSelect={() => setPaymentMethod('registeredCard')}
                   title={
                     summary.billingMethod.status === 'registered'
                       ? '등록 카드로 즉시 구매'
@@ -1022,6 +1123,8 @@ function BillingModals({
                   }
                 />
                 <PaymentChoice
+                  selected={paymentMethod === 'oneTime'}
+                  onSelect={() => setPaymentMethod('oneTime')}
                   title='다른 결제수단으로 구매'
                   description='인증결제(1회성 결제창) · 매번 카드 정보 입력'
                 />
@@ -1032,19 +1135,35 @@ function BillingModals({
               color='primary'
               size='lg'
               variant='filled'
-              disabled={purchaseCreditsMutation.isPending}
+              disabled={
+                purchaseCreditsMutation.isPending || isPaymentWindowPending
+              }
               onClick={async () => {
-                await purchaseCreditsMutation.mutateAsync({
-                  optionId: selectedOption.id,
-                  paymentMethod:
-                    summary.billingMethod.status === 'registered'
-                      ? 'registeredCard'
-                      : 'oneTime',
-                })
-                handleClose()
+                setIsPaymentWindowPending(true)
+                try {
+                  const payment =
+                    paymentMethod === 'oneTime'
+                      ? await requestOneTimeCardPayment({
+                          orderName: `인플레이스 ${selectedOption.credits} 크레딧`,
+                          totalAmount: selectedOption.price,
+                        })
+                      : null
+
+                  await purchaseCreditsMutation.mutateAsync({
+                    optionId: selectedOption.id,
+                    paymentMethod,
+                    paymentId: payment?.paymentId,
+                  })
+                  toast.success('크레딧 구매가 완료되었습니다.')
+                  handleClose()
+                } catch (error) {
+                  toast.error(getErrorMessage(error))
+                } finally {
+                  setIsPaymentWindowPending(false)
+                }
               }}
               className='h-44 w-full'>
-              {formatWon(selectedOption.price)} 결제하기
+              결제 내역 확인하기
             </Button>
           </div>
         </ModalContent>
@@ -1057,10 +1176,15 @@ function BillingModals({
           isPending={extendCreditBatchMutation.isPending}
           onCancel={handleClose}
           onConfirm={async () => {
-            await extendCreditBatchMutation.mutateAsync({
-              batchId: modal.batch.id,
-            })
-            handleClose()
+            try {
+              await extendCreditBatchMutation.mutateAsync({
+                batchId: modal.batch.id,
+              })
+              toast.success('유효기간 연장이 완료되었습니다.')
+              handleClose()
+            } catch (error) {
+              toast.error(getErrorMessage(error))
+            }
           }}
         />
       )}
@@ -1072,17 +1196,22 @@ function BillingModals({
           isPending={refundCreditBatchMutation.isPending}
           onCancel={handleClose}
           onConfirm={async () => {
-            await refundCreditBatchMutation.mutateAsync({
-              batchId: modal.batch.id,
-            })
-            handleClose()
+            try {
+              await refundCreditBatchMutation.mutateAsync({
+                batchId: modal.batch.id,
+              })
+              toast.success('환불 신청이 접수되었습니다.')
+              handleClose()
+            } catch (error) {
+              toast.error(getErrorMessage(error))
+            }
           }}
         />
       )}
       {modal?.type === 'document' && (
         <NoticeModal
           title={`${modal.documentType} 조회`}
-          description={`${modal.item.title}에 대한 ${modal.documentType} mock 액션입니다. 실제 발급 API는 추후 연결합니다.`}
+          description={`${modal.item.title} 결제 건의 ${modal.documentType} 발급 정보는 결제 대행사 연동 후 제공됩니다.`}
           buttonText='확인'
           onConfirm={onClose}
         />
@@ -1103,7 +1232,10 @@ function NoticeModal({
   onConfirm: () => void
 }) {
   return (
-    <ModalContent title={title} description={description} className='w-[50rem]'>
+    <ModalContent
+      title={title}
+      description={description}
+      className='sm:w-[50rem]'>
       <Button
         type='button'
         color='primary'
@@ -1133,7 +1265,10 @@ function ConfirmModal({
   onConfirm: () => Promise<void>
 }) {
   return (
-    <ModalContent title={title} description={description} className='w-[50rem]'>
+    <ModalContent
+      title={title}
+      description={description}
+      className='sm:w-[50rem]'>
       <div className='mt-32 grid grid-cols-2 gap-12'>
         <Button
           type='button'
@@ -1190,6 +1325,11 @@ function CreditOptionCard({
         <strong className='text-ibm-heading-md-bold text-text-and-icon-default'>
           {formatWon(option.price)}
         </strong>
+        {option.originalPrice && (
+          <span className='text-noto-caption-md-normal text-text-and-icon-disabled line-through'>
+            정가 {formatWon(option.originalPrice)}
+          </span>
+        )}
         <span className='text-noto-caption-md-normal text-text-and-icon-secondary'>
           1크레딧당 {formatWon(option.pricePerCredit)}
         </span>
@@ -1205,24 +1345,34 @@ function PaymentChoice({
   title,
   description,
   disabled,
+  selected,
+  onSelect,
 }: {
   title: string
   description: string
   disabled?: boolean
+  selected: boolean
+  onSelect: () => void
 }) {
   return (
-    <div
+    <button
+      type='button'
+      disabled={disabled}
+      onClick={onSelect}
+      aria-pressed={selected}
       className={cn(
-        'flex h-[9rem] flex-col justify-center gap-4 rounded-12 border p-24',
+        'flex min-h-[9rem] flex-col justify-center gap-4 rounded-12 border p-24 text-left transition-colors',
         disabled
           ? 'border-stroke-border-gray-default bg-background-gray-default text-text-and-icon-disabled'
-          : 'border-stroke-border-gray-default bg-white text-text-and-icon-primary'
+          : selected
+            ? 'border-brand-primary bg-[rgba(90,68,242,0.06)] text-text-and-icon-primary'
+            : 'border-stroke-border-gray-default bg-white text-text-and-icon-primary'
       )}>
       <strong className='text-noto-body-md-bold'>{title}</strong>
       <span className='text-noto-body-xs-normal text-text-and-icon-secondary'>
         {description}
       </span>
-    </div>
+    </button>
   )
 }
 
@@ -1236,12 +1386,35 @@ function LoadingState() {
   )
 }
 
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className='flex min-h-[32rem] flex-col items-center justify-center gap-20 rounded-16 bg-white p-24 text-center shadow-[0px_2px_6px_0px_#0D0D0D0A]'>
+      <div className='flex flex-col gap-8'>
+        <strong className='text-noto-title-sm-bold text-text-and-icon-default'>
+          구독·결제 정보를 불러오지 못했습니다
+        </strong>
+        <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          네트워크 상태를 확인한 뒤 다시 시도해주세요.
+        </p>
+      </div>
+      <Button
+        type='button'
+        color='primary'
+        size='lg'
+        variant='filled'
+        onClick={onRetry}>
+        다시 불러오기
+      </Button>
+    </div>
+  )
+}
+
 export function MyCreditPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
   const [modal, setModal] = useState<ModalState>(null)
-  const { data: summary, isLoading } = useBillingSummary()
+  const { data: summary, isLoading, isError, refetch } = useBillingSummary()
   const retrySubscriptionPaymentMutation = useRetrySubscriptionPayment()
 
   const tabParam = searchParams?.get('tab') ?? null
@@ -1262,7 +1435,7 @@ export function MyCreditPage() {
   }
 
   return (
-    <div className='flex max-w-[118.6rem] flex-1 flex-col gap-32'>
+    <div className='flex w-full max-w-[118.6rem] min-w-0 flex-1 flex-col gap-24 px-16 pb-40 sm:px-24 lg:gap-32 lg:px-0'>
       <header className='flex items-center justify-between'>
         <h1 className='text-noto-title-sm-bold text-text-and-icon-default'>
           구독·결제
@@ -1278,17 +1451,22 @@ export function MyCreditPage() {
         type='fill'
       />
       <div className={cn(isPending && 'opacity-70')}>
-        {isLoading || !summary ? (
+        {isLoading ? (
           <LoadingState />
+        ) : isError || !summary ? (
+          <ErrorState onRetry={() => void refetch()} />
         ) : (
           <>
             {activeTab === 'subscription' && (
               <SubscriptionTab
                 summary={summary}
                 onOpenModal={setModal}
-                onRetryPayment={() =>
-                  retrySubscriptionPaymentMutation.mutateAsync()
-                }
+                onRetryPayment={() => {
+                  retrySubscriptionPaymentMutation
+                    .mutateAsync()
+                    .then(() => toast.success('결제가 완료되었습니다.'))
+                    .catch((error) => toast.error(getErrorMessage(error)))
+                }}
                 isRetrying={retrySubscriptionPaymentMutation.isPending}
               />
             )}
