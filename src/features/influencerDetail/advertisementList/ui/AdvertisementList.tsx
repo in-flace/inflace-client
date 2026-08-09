@@ -5,7 +5,11 @@ import { ContentType, TabGroup } from '@/shared/ui'
 import { InfiniteScrollList } from '@/shared/ui/infinite-scroll-list'
 import { AdvertisementCard } from './AdvertisementCard'
 import { useInfluencerBrand } from '../model/useInfluencerBrand'
-import type { VideoFormat, SortCriteria } from '../model/types'
+import type {
+  VideoFormat,
+  SortCriteria,
+  AdvertisementListParams,
+} from '../model/types'
 
 const AD_FILTER_TABS = [
   { id: 'ALL', label: '전체' },
@@ -22,12 +26,32 @@ const SORT_OPTIONS = [
 type AdFilterTab = (typeof AD_FILTER_TABS)[number]['id']
 type SortOption = (typeof SORT_OPTIONS)[number]['filter']
 
-export function AdvertisementList({ channelId }: { channelId: string }) {
+/* 검색 필터에서 확정된 조회 조건. 지표 패널(/analysis)과 동일한 값을 넘겨야
+ * 두 요청의 대상 기간이 어긋나 결과가 불일치하지 않는다.
+ * videoFormat은 목록 자체 탭이 소유하므로 여기 포함하지 않는다.
+ */
+type AdvertisementListFilter = Pick<
+  AdvertisementListParams,
+  'startDate' | 'endDate' | 'categoryId'
+>
+
+interface AdvertisementListProps {
+  channelId: string
+  filter?: AdvertisementListFilter
+}
+
+export function AdvertisementList({
+  channelId,
+  filter,
+}: AdvertisementListProps) {
   const [videoFormat, setVideoFormat] = useState<AdFilterTab>('ALL')
   const [sortCriteria, setSortCriteria] = useState<SortOption>('LATEST')
 
   const { data, sentinelRef, isFetchingNextPage, hasNextPage } =
     useInfluencerBrand(channelId, {
+      startDate: filter?.startDate,
+      endDate: filter?.endDate,
+      categoryId: filter?.categoryId,
       videoFormat: videoFormat as VideoFormat,
       sortCriteria: sortCriteria as SortCriteria,
       sortOrder: 'DESC',
