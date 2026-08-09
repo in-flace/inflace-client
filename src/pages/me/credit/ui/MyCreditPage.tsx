@@ -5,6 +5,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 import {
+  BILLING_TABS,
+  formatDate,
+  formatWon,
+  getExpiringCredits,
+  getTotalCredits,
+  isBillingTab,
   useBillingSummary,
   useCancelSubscription,
   useDeleteBillingMethod,
@@ -37,13 +43,6 @@ import { TabGroup } from '@/shared/ui/tabGroup'
 import CheckIcon from '@/shared/assets/check-bold.svg'
 import PaymentIcon from '@/shared/assets/payment-bold.svg'
 
-const BILLING_TABS = [
-  { id: 'subscription', label: '플랜 구독' },
-  { id: 'billing-method', label: '결제수단 관리' },
-  { id: 'credit', label: '크레딧' },
-  { id: 'history', label: '결제·환불 내역' },
-] as const satisfies readonly { id: BillingTab; label: string }[]
-
 type ModalState =
   | { type: 'subscribe'; plan: BillingPlan }
   | { type: 'cancelReason' }
@@ -58,45 +57,6 @@ type ModalState =
   | { type: 'creditRefund'; batch: CreditBatch }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | null
-
-function isBillingTab(value: string | null): value is BillingTab {
-  return BILLING_TABS.some((tab) => tab.id === value)
-}
-
-function formatWon(amount: number) {
-  const sign = amount < 0 ? '-' : ''
-  return `${sign}₩${Math.abs(amount).toLocaleString('ko-KR')}`
-}
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return '-'
-  }
-
-  return value.replaceAll('-', '.')
-}
-
-function getRemainingCredits(batch: CreditBatch) {
-  if (batch.refundedAt) {
-    return 0
-  }
-
-  return Math.max(batch.purchasedCredits - batch.usedCredits, 0)
-}
-
-function getTotalCredits(batches: CreditBatch[]) {
-  return batches.reduce((total, batch) => total + getRemainingCredits(batch), 0)
-}
-
-function getExpiringCredits(batches: CreditBatch[]) {
-  return batches.reduce((total, batch) => {
-    if (batch.refundedAt || !batch.expiryDate.startsWith('2026-09')) {
-      return total
-    }
-
-    return total + getRemainingCredits(batch)
-  }, 0)
-}
 
 function StatusBadge({
   children,
@@ -565,7 +525,7 @@ function CreditTab({
         />
         <MetricCard
           label='만료 예정 크레딧'
-          value={`${getExpiringCredits(summary.creditBatches)}개`}
+          value={`${getExpiringCredits(summary.creditBatches, '2026-09')}개`}
           suffix='2026.09 기준'
         />
       </div>
