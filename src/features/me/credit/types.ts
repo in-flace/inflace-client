@@ -1,0 +1,103 @@
+export type BillingTab =
+  'subscription' | 'billing-method' | 'credit' | 'history'
+
+export type BillingPlanCode = 'PRO' | 'PRO_EARLY_BIRD'
+
+export type SubscriptionStatus =
+  'none' | 'active' | 'cancelScheduled' | 'paymentFailed'
+
+export type BillingMethodStatus = 'none' | 'registered'
+
+export type CreditBatchType = 'subscription' | 'purchase'
+
+export type BillingHistoryType =
+  'subscription' | 'creditPurchase' | 'creditRefund'
+
+export type BillingHistoryStatus = 'paid' | 'failed' | 'refunded' | 'scheduled'
+
+export interface BillingPlan {
+  code: BillingPlanCode
+  name: string
+  price: number
+  originalPrice?: number
+  badge?: string
+  description: string
+  features: string[]
+}
+
+export interface Subscription {
+  status: SubscriptionStatus
+  planCode: BillingPlanCode | null
+  planName: string | null
+  monthlyPrice: number
+  nextPaymentDate: string | null
+  cancelScheduledDate: string | null
+  paymentFailedReason: string | null
+  includedMonthlyCredits: number
+}
+
+export interface BillingMethod {
+  status: BillingMethodStatus
+  id: string | null
+  brand: string | null
+  last4: string | null
+  updatedAt: string | null
+}
+
+export interface CreditBatch {
+  id: string
+  paymentDate: string
+  expiryDate: string
+  type: CreditBatchType
+  purchasedCredits: number
+  usedCredits: number
+  extendable: boolean
+  refundable: boolean
+  extendedAt: string | null
+  refundedAt: string | null
+}
+
+export interface BillingHistoryItem {
+  id: string
+  date: string
+  title: string
+  type: BillingHistoryType
+  amount: number
+  status: BillingHistoryStatus
+  receiptAvailable: boolean
+  taxInvoiceAvailable: boolean
+}
+
+export interface CreditPurchaseOption {
+  id: string
+  credits: number
+  price: number
+  pricePerCredit: number
+  badge?: string
+}
+
+export interface BillingSummary {
+  plans: BillingPlan[]
+  subscription: Subscription
+  billingMethod: BillingMethod
+  creditBatches: CreditBatch[]
+  history: BillingHistoryItem[]
+  creditOptions: CreditPurchaseOption[]
+}
+
+export interface StartSubscriptionPayload {
+  planCode: BillingPlanCode
+}
+
+export interface RegisterBillingMethodPayload {
+  billingKey?: string
+}
+
+export interface PurchaseCreditsPayload {
+  optionId: string
+  paymentMethod: 'registeredCard' | 'oneTime'
+}
+
+export interface CreditBatchActionPayload {
+  batchId: string
+}
