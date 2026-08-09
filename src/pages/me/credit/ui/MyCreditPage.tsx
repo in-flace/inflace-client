@@ -124,7 +124,7 @@ function ModalContent({
       showCloseButton={false}
       overlayClassName='bg-background-dim-default'
       className={cn(
-        'max-h-[calc(100dvh-3.2rem)] w-[calc(100vw-3.2rem)] max-w-none overflow-y-auto rounded-16 bg-white p-24 shadow-none sm:p-40',
+        'max-h-[calc(100dvh-3.2rem)] w-[calc(100vw-3.2rem)] max-w-none overflow-y-auto rounded-16 bg-white p-24 shadow-none sm:max-w-none sm:p-40',
         className
       )}>
       <div className='flex flex-col gap-8'>
@@ -815,7 +815,9 @@ function BillingModals({
   return (
     <Dialog open={!!modal} onOpenChange={(open) => !open && handleClose()}>
       {modal?.type === 'subscribe' && (
-        <ModalContent title='구독 시작하기' className='sm:w-[67.8rem]'>
+        <ModalContent
+          title='구독 시작하기'
+          className='sm:w-[min(67.8rem,calc(100vw-4.8rem))]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='rounded-12 border border-stroke-border-gray-default bg-background-gray-default p-20'>
               <strong className='block text-noto-title-sm-bold text-text-and-icon-default'>
