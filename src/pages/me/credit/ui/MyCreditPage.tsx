@@ -1449,6 +1449,7 @@ export function MyCreditPage() {
         activeTab={activeTab}
         onTabChange={handleTabChange}
         type='fill'
+        scrollable
       />
       <div className={cn(isPending && 'opacity-70')}>
         {isLoading ? (
