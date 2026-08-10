@@ -5,7 +5,11 @@ import { ContentType, TabGroup } from '@/shared/ui'
 import { InfiniteScrollList } from '@/shared/ui/infinite-scroll-list'
 import { AdvertisementCard } from './AdvertisementCard'
 import { useInfluencerBrand } from '../model/useInfluencerBrand'
-import type { VideoFormat, SortCriteria } from '../model/types'
+import type {
+  AdvertisementListParams,
+  VideoFormat,
+  SortCriteria,
+} from '../model/types'
 
 const AD_FILTER_TABS = [
   { id: 'ALL', label: '전체' },
@@ -22,12 +26,21 @@ const SORT_OPTIONS = [
 type AdFilterTab = (typeof AD_FILTER_TABS)[number]['id']
 type SortOption = (typeof SORT_OPTIONS)[number]['filter']
 
-export function AdvertisementList({ channelId }: { channelId: string }) {
+interface AdvertisementListProps {
+  channelId: string
+  filter: Pick<AdvertisementListParams, 'categoryId' | 'startDate' | 'endDate'>
+}
+
+export function AdvertisementList({
+  channelId,
+  filter,
+}: AdvertisementListProps) {
   const [videoFormat, setVideoFormat] = useState<AdFilterTab>('ALL')
   const [sortCriteria, setSortCriteria] = useState<SortOption>('LATEST')
 
   const { data, sentinelRef, isFetchingNextPage, hasNextPage } =
     useInfluencerBrand(channelId, {
+      ...filter,
       videoFormat: videoFormat as VideoFormat,
       sortCriteria: sortCriteria as SortCriteria,
       sortOrder: 'DESC',

@@ -89,7 +89,10 @@ export function InfluencerDetailPage() {
                 isLoading={isBrandAnalysisLoading}
               />
               {/* 검색 결과 영역 */}
-              <AdvertisementList channelId={channelId} />
+              <AdvertisementList
+                channelId={channelId}
+                filter={committedFilter}
+              />
             </>
           )}
         </>
