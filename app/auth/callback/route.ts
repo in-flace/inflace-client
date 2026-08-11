@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data: LoginResponse = await backendResponse.json()
-    console.log('[auth/callback] backend data:', JSON.stringify(data))
 
     if (!data.success) {
       throw new Error(
