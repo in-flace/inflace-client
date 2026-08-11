@@ -1,166 +1,49 @@
-# CLAUDE.md — inflace 프로젝트 개발 가이드
+# CLAUDE.md
 
-## 기본 지시사항
+inflace (인플레이스) — YouTube influencer analytics platform. Frontend only.
+Product context: `README.md`. Stack: `package.json`.
 
-- **소통 언어**: 모든 설명, 질문, 답변은 한국어로 진행
-- **코드 작성 금지**: 별도의 명시적 지시가 있을 때까지 코드를 작성하지 않음
-- **CLAUDE.md 우선 참조**: 세션 내 작업 시 전체 파일을 탐색하지 않고, 이 파일을 기반으로 맥락을 파악하여 작업 진행
+## Working agreement
 
----
+- Respond in Korean.
+- Do not write code until explicitly asked. Analyze and propose first.
+- Code comments in Korean, explaining **why** rather than what.
+- Build only what was asked.
 
-## 프로젝트 개요
+## Architecture
 
-- **프로젝트명**: inflace (influencer + place)
-- **미션**: "임팩트 있는 인플루언서를 찾기 + 되기" 두 가지 문제를 동시에 해결
-- **도메인**: 유튜브 중심 데이터 기반 인플루언서 인텔리전스 플랫폼
-- **스코프**: 프론트엔드 전용 프로젝트 (백엔드 로직은 다루지 않음)
-- **배포**: Vercel
+FSD, one-way imports: `app → pages → widgets → features → entities → shared`. Cross-slice only via the
+slice root `index.ts`.
 
-### 타겟 사용자
+`app/` is routing only — metadata plus a re-export of `src/pages/*`. Never put components there.
 
-- **인플루언서**: 채널 성장 인사이트 확보 및 수익화 기회 발굴
-- **브랜드/마케터**: 신뢰 가능한 인플루언서 빠르게 탐색
+## Testing
 
----
+**On Windows, `npm test` silently skips 7 of 25 test files.** Workers time out, the files never run, and the
+summary still prints `Test Files 18 passed (18)`. Always use:
 
-## 핵심 기능
-
-| 기능                    | 설명                                                         |
-| ----------------------- | ------------------------------------------------------------ |
-| 인플루언서 탐색         | 카테고리/구독자/참여율 기반 데이터 검색                      |
-| 채널 성장 인사이트      | 조회수/참여율 시계열 분석                                    |
-| Fraud Detection         | 신뢰도 분석 (가짜 데이터 탐지)                               |
-| Impact Score            | 채널 영향력 지표 산출                                        |
-| 경쟁사 협업 분석        | 경쟁 브랜드가 협업한 인플루언서 분석                         |
-| AI 캠페인 & 콘텐츠 지원 | 브랜드/인플루언서 맞춤 캠페인 기획 및 콘텐츠 제작 (Post-MVP) |
-| 매거진                  | 인플루언서 수익 다각화·팬덤 구축 꿀팁 발행                   |
-
----
-
-## 제품 로드맵
-
-- **Phase 1**: 채널 분석 & 인플루언서 검색
-- **Phase 2**: 영향력 점수 & Fraud Detection
-- **Phase 3**: 결제 시스템
-- **Phase 4**: AI 콘텐츠 지원
-- **Phase 5**: 매거진 & 인사이트 허브
-
----
-
-## 기술 스택
-
-### 코어
-
-- **프레임워크**: Next.js (App Router)
-- **UI**: React 19
-- **타입**: TypeScript 5
-
-### 스타일
-
-- **CSS**: TailwindCSS v4
-- **컴포넌트**: shadcn/ui
-- **문서**: StoryBook
-- **애니메이션**: framer-motion
-
-### 상태 & 데이터
-
-- **서버 상태**: TanStack Query
-- **클라이언트 상태**: Zustand
-- **HTTP**: Axios
-
-### 폼 & 유효성 검사
-
-- react-hook-form
-- zod
-
-### 차트
-
-- recharts
-
-### 테스트
-
-- **모듈 테스트**: vitest, @testing-library/react
-- **E2E 테스트**: playwright
-
----
-
-## FSD 파일 구조
-
-본 프로젝트는 **Feature-Sliced Design(FSD)** 아키텍처를 사용합니다.
-
-```
-Inflace-4th-Client/
-├── app/                    # Next.js App Router (라우팅 re-export 전용)
-│   ├── layout.ts           # src/app/layouts/RootLayout re-export
-│   ├── page.ts             # src/pages/home/HomePage re-export
-│   └── [route]/
-│       └── page.ts         # 각 FSD 페이지 컴포넌트 re-export
-│
-└── src/                    # FSD 소스 코드
-    ├── app/                # App Layer: 공유 레이아웃 & 전역 설정
-    │   ├── layouts/        # RootLayout 등
-    │   └── styles/         # globals.css 등
-    ├── pages/              # Page Layer: 페이지 단위 컴포넌트
-    │   └── [page-name]/
-    │       ├── index.ts    # 공개 API (re-export)
-    │       └── ui/         # 페이지 컴포넌트
-    ├── widgets/            # Widget Layer: 독립적인 복합 블록
-    ├── features/           # Feature Layer: 사용자 인터랙션 기능
-    │   └── [feature-name]/
-    │       ├── index.ts
-    │       └── ui/
-    ├── entities/           # Entity Layer: 비즈니스 엔티티
-    └── shared/             # Shared Layer: 공통 유틸/상수/타입
+```bash
+npx vitest run --project unit --no-file-parallelism
 ```
 
-### FSD + Next.js App Router 충돌 해결 방식
+Vitest has no `coverage.all`/`include` config, so the reported percentage counts only files the tests
+imported — untouched files are excluded from the denominator, not scored as 0.
 
-> FSD 공식 문서 기준
+## Gotchas
 
-Next.js App Router는 파일 시스템 기반 라우팅을 위해 `app/` 폴더를 사용하지만, 이는 FSD의 평탄한 slice 구조와 충돌할 수 있습니다.
-
-**해결 방식:**
-
-- `app/` 폴더는 라우팅 전용 — FSD 컴포넌트를 직접 작성하지 않음
-- `app/[route]/page.ts`에서 `src/pages/[page]/index.ts`를 re-export
-- FSD의 Page Layer 폴더명이 `pages`이며, Next.js `app/` 라우팅과 분리되어 관리됨
-
----
-
-## 제약 사항
-
-- YouTube Data API v3 일일 할당량 제한 고려 필요
-- Fraud Detection AI 모델 정확도는 지속적 개선 필요
-- 초기 인플루언서 DB 구축 필요
-
----
-
-## 코드 컨벤션
-
-- **Path Alias**: `@/*` → `./src/*`
-- **포매팅**: Prettier (semi: false, singleQuote: true, tabWidth: 2)
-- **린팅**: ESLint (Next.js Core Web Vitals + TypeScript)
-- **컴포넌트 파일**: PascalCase (예: `LoginPage.tsx`)
-- **인덱스 파일**: 각 슬라이스의 공개 API는 `index.ts`로 re-export
-
----
-
-## 절대 하지 말아야 할 것
-
-- 말한 것 이상으로 개발하지 않기
-- 기능 추가 시 기존 기능 깨뜨리지 않기
-- .env 파일에 실제 값 넣지 않기
-
----
-
-## 주요 파일 경로
-
-| 역할            | 경로                               |
-| --------------- | ---------------------------------- |
-| 루트 레이아웃   | `src/app/layouts/index.tsx`        |
-| 전역 스타일     | `src/app/styles/globals.css`       |
-| 홈 페이지       | `src/pages/home/ui/HomePage.tsx`   |
-| 로그인 페이지   | `src/pages/login/ui/LoginPage.tsx` |
-| Next.js 설정    | `next.config.ts`                   |
-| TypeScript 설정 | `tsconfig.json`                    |
-| Prettier 설정   | `.prettierrc`                      |
+- **`react-hook-form`, `zod`, and `framer-motion` are not installed.** Propose before adding either forms
+  validation or an animation library.
+- **Never edit `src/app/styles/tokens.generated.css`.** It is generated from `src/shared/tokens/tokens.json`
+  by `scripts/sd.config.mjs` and overwritten on every `dev`/`build`.
+- `next.config.ts` aliases `msw/browser` to a stub when `NEXT_PUBLIC_MOCK_ENABLED !== 'true'`, keeping ~119KB
+  gzip out of the bundle. Changing MSW import paths silently undoes this — update the alias too.
+- SEO canonical host is `SITE_URL` in `src/shared/config/site.ts`, not `NEXT_PUBLIC_APP_URL`
+  (the latter varies per environment).
+- Access tokens live in memory only (`src/shared/api/authStore.ts`); refresh tokens are httpOnly cookies.
+  Do not persist tokens to localStorage.
+- **`src/proxy.ts` has `FORCE_LOGIN = true`, which disables the middleware auth guard entirely** (issue #14).
+  Protected routes are currently gated on the client only.
+- ESLint 9 flat config does not read `.gitignore` — add new build output dirs to `globalIgnores` by hand.
+- Root `pages/` is a README, not the Pages Router. Middleware is `src/proxy.ts` (Next 16 rename).
+- `shared/` and `entities/` currently import from `features/` (issue #16). Known violation — do not extend it.
+- Never put real values in `.env`.
