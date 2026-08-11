@@ -262,8 +262,12 @@ function Calendar({
     props.selected.from != null &&
     props.selected.to != null
 
+  /* 기본 비활성 규칙("범위를 다 고르기 전에는 확정 불가")은 range 모드에만 해당한다.
+   * mode를 보지 않고 !isRangeComplete를 쓰면 isRangeComplete가 range에서만 참이 될 수
+   * 있으므로, range가 아닌 달력에 onConfirm을 넘기면 완료 버튼이 영원히 비활성이었다. */
   const resolvedConfirmDisabled =
-    confirmDisabled ?? (onConfirm != null ? !isRangeComplete : undefined)
+    confirmDisabled ??
+    (onConfirm != null && props.mode === 'range' ? !isRangeComplete : undefined)
 
   if (numberOfMonths === 2) {
     return (
