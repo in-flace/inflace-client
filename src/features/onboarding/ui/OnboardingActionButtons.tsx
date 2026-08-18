@@ -29,7 +29,7 @@ export function OnboardingActionButtons() {
   // 유튜브 연동: 온보딩 완료 + 채널 연동 병렬 호출, 둘 다 끝나면 모달 close (채널 연동 실패는 무시)
   const handleConnectYoutube = async () => {
     await Promise.allSettled([
-      completeOnboarding({ roles, needs }),
+      completeOnboarding({ roles, needs, method: 'youtube_connect' }),
       connectChannel(),
     ])
     close()
@@ -37,7 +37,7 @@ export function OnboardingActionButtons() {
 
   // 나중에 할래요 / 대시보드 둘러보기: 온보딩 완료만 호출
   const handleComplete = () => {
-    completeOnboarding({ roles, needs }).finally(close)
+    completeOnboarding({ roles, needs, method: 'skip' }).finally(close)
   }
 
   return (
