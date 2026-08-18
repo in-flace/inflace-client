@@ -36,8 +36,11 @@ export function PlansCard({
             {planName}
           </span>
 
-          {/* 가격 / 월 */}
-          <div className='flex size-fit items-end gap-4'>
+          {/* 가격 / 월
+           * 글자 크기가 32px 대 14px로 크게 차이나므로 items-end(박스 아래 정렬)로는
+           * 큰 쪽 디센더 공간만큼 작은 쪽 기준선이 7px 내려앉는다.
+           * 한 줄로 읽혀야 하는 문구이므로 기준선을 맞춘다. */}
+          <div className='flex size-fit items-baseline gap-4'>
             <h5 className='text-ibm-heading-lg-normal text-text-and-icon-default'>
               {price}
             </h5>
