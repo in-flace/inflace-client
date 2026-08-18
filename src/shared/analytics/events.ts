@@ -25,6 +25,10 @@ export type LoginModalTrigger =
 
 export type AuthProvider = 'google' | 'youtube'
 
+/* 온보딩을 어떻게 끝냈는지.
+ * youtube_connect는 채널 연동까지 함께 시도한 경로다. */
+export type OnboardingCompletionMethod = 'youtube_connect' | 'skip'
+
 type AnalyticsEvent =
   | { event: 'login_modal_opened'; trigger: LoginModalTrigger }
   | { event: 'login_provider_click'; method: AuthProvider }
@@ -34,6 +38,14 @@ type AnalyticsEvent =
   /* 최초 가입. GA4에서 주요 이벤트(전환)로 표시할 대상이다. */
   | { event: 'sign_up'; method: AuthProvider; user_id: string }
   | { event: 'login'; method: AuthProvider; user_id: string }
+  /* 가입 직후 자동으로 뜬다. 온보딩 완료율의 분모다. */
+  | { event: 'onboarding_started' }
+  /* 어느 단계에서 이탈하는지 보려면 단계별 통과 수가 필요하다.
+   * step은 방금 끝낸 단계 번호다. */
+  | { event: 'onboarding_step_completed'; step: number }
+  /* 서버 저장이 성공한 경우에만 보낸다. 화면은 실패해도 모달을 닫으므로
+   * (OnboardingActionButtons의 .finally(close)) UI 기준으로 세면 부풀려진다. */
+  | { event: 'onboarding_completed'; method: OnboardingCompletionMethod }
 
 /* GTM 컨테이너는 NEXT_PUBLIC_GTM_ID가 있을 때만 로드된다(app/layouts/index.tsx).
  * 없으면 sendGTMEvent가 조용히 아무 일도 하지 않으므로, 로컬에서 "이벤트가 안 뜬다"는
