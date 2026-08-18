@@ -8,7 +8,7 @@ export function FeatureCardCtaButton() {
   const open = useLoginModal((s) => s.open)
   return (
     <Button
-      className='float-right mt-3xl'
+      className='mt-28 ml-auto gap-6 [&>span]:size-12 sm:mt-3xl'
       color='secondary'
       size='sm'
       variant='filled'

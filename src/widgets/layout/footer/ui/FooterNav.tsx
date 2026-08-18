@@ -4,7 +4,7 @@ import { NAV_ITEMS } from '@/features/navigation/model/navItems'
 
 export const FooterNav = () => {
   return (
-    <div className='flex gap-2xl py-sm'>
+    <div className='grid grid-cols-2 gap-x-32 gap-y-24 py-sm sm:flex sm:flex-wrap sm:gap-2xl'>
       {NAV_ITEMS.map((group) => (
         <div key={group.group}>
           <div className='text-noto-label-md-thin text-text-and-icon-tertiary'>

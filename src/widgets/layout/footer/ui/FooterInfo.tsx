@@ -3,11 +3,11 @@ import { AppLogo } from '@/widgets/layout/logo'
 
 export const FooterInfo = () => {
   return (
-    <div className='flex flex-col self-stretch'>
+    <div className='flex flex-col gap-28 self-stretch md:gap-0'>
       <AppLogo variant='footer' />
       <div className='flex-1' />
       <div className='flex flex-col gap-y-xs'>
-        <ul className='flex gap-sm'>
+        <ul className='flex flex-wrap gap-sm'>
           <li className='text-noto-label-md-normal text-text-and-icon-primary'>
             <Link href='/privacy'>개인정보처리방침</Link>
           </li>

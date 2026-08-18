@@ -35,7 +35,7 @@ export const ChannelStatusCard = () => {
   if (isChannelConnected) {
     /* 로그인 상태일 때 랜더링 되는 카드 */
     return (
-      <div className='flex h-fit w-[22rem] flex-col items-center gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
+      <div className='flex h-fit w-full flex-col items-center gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
         <div className='flex h-fit w-full items-center gap-12'>
           {/* 채널 아이콘 */}
           <UserIcon size={38} showBadge />
@@ -71,12 +71,12 @@ export const ChannelStatusCard = () => {
 
   /* 로그인 상태가 아니거나 채널 미연동 상태일 때 랜더링 되는 카드 */
   return (
-    <div className='flex h-fit w-[22rem] items-center justify-center gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
+    <div className='flex h-fit w-full items-center justify-between gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
       <div className='flex h-34 w-34 items-center justify-center rounded-full bg-stroke-border-gray-default'>
         <IconYoutube className='size-sm' />
       </div>
 
-      <div className='flex h-fit w-[15rem] items-center justify-between'>
+      <div className='flex h-fit min-w-0 flex-1 items-center justify-between gap-12'>
         <span className='text-noto-label-sm-normal text-text-and-icon-default'>
           채널 미연동
         </span>

@@ -10,10 +10,8 @@ interface LockedNavItemProps {
 export const NavLockedItem = ({ item }: LockedNavItemProps) => {
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton>
-        <Link
-          href={item.url}
-          className='flex w-full items-center gap-8'>
+      <SidebarMenuButton className='h-[3.6rem] rounded-8 px-[1.2rem] py-0'>
+        <Link href={item.url} className='flex h-full w-full items-center gap-8'>
           {item.icon && (
             <SidebarIcon
               name={item.icon}

@@ -9,16 +9,16 @@ export function FeatureCard({
   imgSrc,
 }: FeatureCardItem) {
   return (
-    <div className='rounded-12 border border-stroke-border-neutral-default bg-background-gray-default p-32 py-40'>
-      <div className='flex flex-col gap-24'>
-        <h4 className='flex items-center gap-8 text-ibm-title-lg-normal text-brand-primary'>
-          <Icon className='size-26' />
+    <div className='flex h-full flex-col rounded-12 border border-stroke-border-neutral-default bg-background-gray-default px-20 py-28 sm:px-28 sm:py-36 lg:px-32 lg:py-40'>
+      <div className='flex flex-1 flex-col gap-20 sm:gap-24'>
+        <h4 className='flex items-center gap-5 font-point text-[2rem] leading-[1.35] font-normal text-brand-primary sm:gap-6 sm:text-ibm-title-lg-normal'>
+          <Icon className='size-14 shrink-0 sm:size-18' />
           {title}
         </h4>
-        <p className='text-noto-body-md-normal text-text-and-icon-primary'>
+        <p className='text-[1.5rem] leading-[1.65] font-normal text-text-and-icon-primary sm:text-noto-body-md-normal'>
           {description}
         </p>
-        <div className='min-h-0 w-full'>
+        <div className='mt-auto min-h-0 w-full'>
           <Image
             src={imgSrc}
             alt={title}

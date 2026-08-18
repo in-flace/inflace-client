@@ -257,7 +257,7 @@ function SidebarTrigger({
       data-slot='sidebar-trigger'
       color='secondary'
       className={cn(
-        'fixed top-2xs left-(--spacing-sm) z-99 flex h-(--spacing-2xl) w-(--spacing-2xl) cursor-pointer items-center justify-center rounded-8 bg-transparent hover:bg-btn-secondary-outlined-hover active:bg-btn-secondary-outlined-pressed',
+        'fixed top-[calc((var(--spacing-header-height)-2.8rem)/2)] left-12 z-99 flex h-(--spacing-2xl) w-(--spacing-2xl) cursor-pointer items-center justify-center rounded-8 bg-transparent hover:bg-btn-secondary-outlined-hover active:bg-btn-secondary-outlined-pressed md:top-2xs md:left-(--spacing-sm)',
         open && 'rotate-180'
       )}
       onClick={(event) => {

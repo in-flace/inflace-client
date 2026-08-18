@@ -15,9 +15,11 @@ export function NavGroupList() {
     <>
       {NAV_ITEMS.map((group) => {
         return (
-          <SidebarGroup key={group.group}>
-            <SidebarGroupLabel>{group.group}</SidebarGroupLabel>
-            <SidebarMenu>
+          <SidebarGroup key={group.group} className='gap-4'>
+            <SidebarGroupLabel className='px-4 py-0'>
+              {group.group}
+            </SidebarGroupLabel>
+            <SidebarMenu className='gap-4'>
               {group.items.map((item) => {
                 const isActive = currentPath
                   ? currentPath === item.url ||
