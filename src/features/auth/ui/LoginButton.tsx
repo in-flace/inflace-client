@@ -37,7 +37,11 @@ export function LoginButton() {
 
   /* 로그아웃 상태일 때 */
   return (
-    <Button color='secondary' size='sm' variant='filled' onClick={openModal}>
+    <Button
+      color='secondary'
+      size='sm'
+      variant='filled'
+      onClick={() => openModal('header')}>
       <span className='text-label-sm'>로그인</span>
     </Button>
   )

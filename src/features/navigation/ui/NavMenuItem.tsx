@@ -25,7 +25,7 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
   const handleClick = (e: React.MouseEvent) => {
     if (item.requiresAuth && !isLoggedIn) {
       e.preventDefault()
-      openLoginModal()
+      openLoginModal('nav_menu')
       return
     }
     if (item.requiresChannel && !isChannelConnected) {
