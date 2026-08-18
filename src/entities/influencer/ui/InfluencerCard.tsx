@@ -13,7 +13,10 @@ interface InfluencerCardProps {
   onBookmarkToggle?: (bookmarked: boolean) => void
 }
 
-export function InfluencerCard({ influencer, onBookmarkToggle }: InfluencerCardProps) {
+export function InfluencerCard({
+  influencer,
+  onBookmarkToggle,
+}: InfluencerCardProps) {
   const {
     channelName,
     thumbnailUrl,
@@ -46,7 +49,7 @@ export function InfluencerCard({ influencer, onBookmarkToggle }: InfluencerCardP
               </span>
 
               <HeartButton
-                initialBookmarked={influencer.bookmarked}
+                bookmarked={influencer.bookmarked}
                 onToggle={onBookmarkToggle ?? (() => {})}
               />
             </div>
