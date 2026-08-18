@@ -28,6 +28,9 @@ export interface FetchInfluencersParams {
   pageSize?: number
   channelName?: string
   categoryIds?: number[]
+  /* 카테고리 미입력 시 기본 카테고리 필터를 쓸지 여부(미입력 시 true).
+   * 보내지 않으면 서버가 기본 카테고리로 좁힌다. */
+  useDefaultCategories?: string
   subscriberFrom?: string
   subscriberTo?: string
   uploadPeriod?: string
