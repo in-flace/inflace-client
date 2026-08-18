@@ -12,6 +12,8 @@ const mockLoginResponseDto = {
   accessToken: mockAccessToken,
   userDetails: mockUserDetails,
   userChannelDetails: mockUserChannelDetails,
+  /* 기존 유저 로그인 시나리오. 신규 가입 경로는 mock-callback이 담당한다. */
+  isNewUser: false,
 }
 
 /* 로그인 응답 */
@@ -22,7 +24,9 @@ export const mockLoginResponse: LoginResponse = {
 }
 
 /* 리프레시 응답 */
-export const mockReissueResponse: ApiResponse<{ accessToken: string } | string> = {
+export const mockReissueResponse: ApiResponse<
+  { accessToken: string } | string
+> = {
   success: true,
   responseDto: { accessToken: mockAccessToken },
   error: null,
