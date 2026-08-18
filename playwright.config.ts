@@ -11,6 +11,21 @@ import { defineConfig, devices } from '@playwright/test'
 const E2E_PORT = 3100
 const E2E_ORIGIN = `http://localhost:${E2E_PORT}`
 
+/* 반응형 기준선을 재는 폭.
+ * 디자인 토큰이 정의한 경계(mobile 375 / tablet 768 / desktop 1024)와
+ * 그 경계 바로 아래·위를 함께 본다. 경계에서만 재면 그 사이 구간이 비고,
+ * 실제로 768px에서 멀쩡하다가 600px에서 깨지는 화면이 있다. */
+const BASELINE_VIEWPORTS = [
+  { name: 'w1440', width: 1440 },
+  { name: 'w1280', width: 1280 },
+  { name: 'w1024', width: 1024 },
+  { name: 'w768', width: 768 },
+  { name: 'w430', width: 430 },
+  { name: 'w375', width: 375 },
+]
+
+const VIEWPORT_BASELINE_SPEC = /viewport-baseline\.spec\.ts/
+
 const MOCK_ENV = {
   NEXT_PUBLIC_MOCK_ENABLED: 'true',
   /* mock-callback 리다이렉트와 postMessage origin이 이 값을 쓴다.
@@ -40,12 +55,22 @@ export default defineConfig({
   },
 
   /* 소규모 팀 기준 유지 비용을 낮추기 위해 chromium만 사용한다.
-   * 크로스 브라우저 검증이 필요해지면 firefox/webkit을 추가한다. */
+   * 크로스 브라우저 검증이 필요해지면 firefox/webkit을 추가한다.
+   *
+   * 뷰포트별 측정은 viewport-baseline.spec.ts 하나만 여러 폭으로 돌린다.
+   * 모든 스펙을 폭마다 돌리면 실행 시간이 폭 수만큼 늘고, 로그인 플로우처럼
+   * 폭과 무관한 검증까지 중복된다. 그래서 프로젝트별로 대상 스펙을 갈라 둔다. */
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: VIEWPORT_BASELINE_SPEC,
     },
+    ...BASELINE_VIEWPORTS.map(({ name, width }) => ({
+      name,
+      use: { ...devices['Desktop Chrome'], viewport: { width, height: 900 } },
+      testMatch: VIEWPORT_BASELINE_SPEC,
+    })),
   ],
 
   /* 테스트 실행 전 목 환경으로 로컬 서버를 띄운다.
