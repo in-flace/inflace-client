@@ -8,7 +8,11 @@ const POPUP_WIDTH = 500
 const POPUP_HEIGHT = 600
 const POPUP_POLL_INTERVAL = 500
 
-export function usePopupOAuth({ apiPath, popupName }: PopupOAuthConfig) {
+export function usePopupOAuth({
+  apiPath,
+  popupName,
+  onSuccess,
+}: PopupOAuthConfig) {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const popupRef = useRef<Window | null>(null)
@@ -40,11 +44,14 @@ export function usePopupOAuth({ apiPath, popupName }: PopupOAuthConfig) {
     (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return
 
-      const { type, error: authError } = event.data
+      const { type, error: authError, isNewUser } = event.data
 
       if (type === 'AUTH_SUCCESS') {
         stopPolling()
         setIsLoading(false)
+        /* 리다이렉트 전에 알린다. window.location.href가 실행되면 페이지가
+         * 통째로 다시 로드되어 이 정보를 다시 얻을 방법이 없다. */
+        onSuccess?.({ isNewUser: Boolean(isNewUser) })
         window.location.href = '/'
       } else if (type === 'AUTH_ERROR') {
         stopPolling()
@@ -52,7 +59,7 @@ export function usePopupOAuth({ apiPath, popupName }: PopupOAuthConfig) {
         setIsLoading(false)
       }
     },
-    [stopPolling]
+    [stopPolling, onSuccess]
   )
 
   useEffect(() => {

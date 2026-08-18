@@ -36,6 +36,9 @@ export async function GET() {
     buildPostMessageHtml('AUTH_SUCCESS', origin, {
       accessToken: mockAccessToken,
       user: mockUser,
+      /* 실제 콜백과 같은 형태를 유지한다. 목 유저는 온보딩 미완 상태라
+       * 신규 가입 직후 시나리오에 해당한다. */
+      isNewUser: true,
     }),
     { headers: { 'Content-Type': 'text/html' } }
   )

@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
       throw new Error(`responseDto 타입 오류: ${typeof data.responseDto}`)
     }
 
-    const { accessToken, userDetails, userChannelDetails } = data.responseDto
+    const { accessToken, userDetails, userChannelDetails, isNewUser } =
+      data.responseDto
 
     // 백엔드가 Set-Cookie 헤더로 refreshToken을 내려주므로 값을 추출하여 재설정
     const setCookieHeader = backendResponse.headers.get('set-cookie')
@@ -92,6 +93,9 @@ export async function GET(request: NextRequest) {
       buildPostMessageHtml('AUTH_SUCCESS', {
         accessToken,
         user,
+        /* 가입 전환 집계에 쓰인다. 이 값은 로그인 응답에만 있고 새로고침 뒤에는
+         * 어디서도 다시 얻을 수 없어 여기서 opener로 넘겨야 한다. */
+        isNewUser: Boolean(isNewUser),
       }),
       {
         headers: {

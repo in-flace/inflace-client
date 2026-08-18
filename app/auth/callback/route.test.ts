@@ -123,6 +123,56 @@ describe('GET /auth/callback', () => {
     expect(text).toContain(mockAccessToken)
   })
 
+  /* isNewUser는 /auth/login 응답에만 담겨 오고 /user/me에는 없다.
+   * 로그인 성공 직후 '/'로 전체 새로고침이 일어나므로, 여기서 opener로
+   * 넘기지 못하면 가입 여부를 다시 알아낼 방법이 없다. */
+  it('AUTH_SUCCESS payload에 isNewUser를 실어 보낸다', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ...mockLoginResponse,
+          responseDto: {
+            ...(mockLoginResponse.responseDto as object),
+            isNewUser: true,
+          },
+        }),
+        { status: 200 }
+      )
+    )
+
+    const { GET } = await import('./route')
+    const request = makeRequest({ code: 'auth-code', state: 'valid-state' })
+    const response = await GET(request)
+
+    const text = await response.text()
+    expect(text).toContain('"isNewUser":true')
+  })
+
+  it('백엔드가 isNewUser를 주지 않아도 false로 채워 보낸다', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          ...mockLoginResponse,
+          responseDto: {
+            accessToken: mockAccessToken,
+            userDetails: (
+              mockLoginResponse.responseDto as { userDetails: unknown }
+            ).userDetails,
+            userChannelDetails: null,
+          },
+        }),
+        { status: 200 }
+      )
+    )
+
+    const { GET } = await import('./route')
+    const request = makeRequest({ code: 'auth-code', state: 'valid-state' })
+    const response = await GET(request)
+
+    const text = await response.text()
+    expect(text).toContain('"isNewUser":false')
+  })
+
   it('백엔드 실패(status not ok) 시 AUTH_ERROR postMessage HTML을 반환한다', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response('Unauthorized', { status: 401 })
