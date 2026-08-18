@@ -18,6 +18,7 @@ import {
   EngagementRateDropdown,
   UPLOAD_PERIOD_OPTIONS,
   OUTLIER_RANGE_OPTIONS,
+  SERVER_FILTER_DEFAULTS,
 } from '@/features/influencer'
 import type { YoutubeCategory } from '@/entities/youtubeCategory'
 
@@ -39,7 +40,8 @@ function deriveCategoryOutput(
   categoryIds: number[],
   categories: YoutubeCategory[]
 ): string {
-  if (categoryIds.length === 0) return '전체'
+  /* 미선택이어도 서버가 기본 카테고리로 좁힌다. '전체'라고 쓰면 거짓말이 된다. */
+  if (categoryIds.length === 0) return '기본 카테고리'
   const labels = categories
     .filter((c) => categoryIds.includes(c.id))
     .map((c) => c.title)
@@ -59,9 +61,12 @@ function deriveSubscriberOutput(from: string, to: string): string {
   return `${from || '0'}명 ~ ${to || ''}명`
 }
 
+/* 비워두면 '전체'가 아니라 서버 기본값(2~3%)이 걸린다.
+ * 실제로 적용되는 값을 그대로 보여준다. */
 function deriveEngagementRateOutput(from: string, to: string): string {
-  if (!from && !to) return '전체'
-  return `${from || '0'}% ~ ${to || ''}%`
+  return `${from || SERVER_FILTER_DEFAULTS.engagementRateFrom}% ~ ${
+    to || SERVER_FILTER_DEFAULTS.engagementRateTo
+  }%`
 }
 
 function deriveHasAdHistoryOutput(value: string): string {
@@ -89,8 +94,11 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
   const subscriberTo = searchParams.get('subscriberTo') ?? ''
   const uploadPeriodValue = searchParams.get('uploadPeriod') ?? ''
   const hasAdHistoryValue = searchParams.get('hasAdHistory') ?? 'true'
-  const engagementRateFrom = searchParams.get('engagementRateFrom') ?? ''
-  const engagementRateTo = searchParams.get('engagementRateTo') ?? ''
+  /* URL에 실제로 있는 값과, 서버가 적용하는 값을 구분한다.
+   * 드롭다운에는 원본을 넘겨야 한다 — 기본값을 넣으면 입력 모드로 인식되어
+   * 프리셋 선택이 통째로 막힌다. */
+  const engagementRateFromParam = searchParams.get('engagementRateFrom') ?? ''
+  const engagementRateToParam = searchParams.get('engagementRateTo') ?? ''
   const outlierRangeValue = searchParams.get('outlierRange') ?? ''
 
   const [query, setQuery] = useState(searchParams.get('channelName') ?? '')
@@ -266,10 +274,12 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
           <DropdownTrigger
             label='참여율'
             output={deriveEngagementRateOutput(
-              engagementRateFrom,
-              engagementRateTo
+              engagementRateFromParam,
+              engagementRateToParam
             )}
-            isModified={Boolean(engagementRateFrom || engagementRateTo)}
+            isModified={Boolean(
+              engagementRateFromParam || engagementRateToParam
+            )}
             onReset={() =>
               updateUrl((params) => {
                 params.delete('engagementRateFrom')
@@ -278,8 +288,8 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             }>
             {(onClose) => (
               <EngagementRateDropdown
-                defaultFrom={engagementRateFrom}
-                defaultTo={engagementRateTo}
+                defaultFrom={engagementRateFromParam}
+                defaultTo={engagementRateToParam}
                 onChange={(_, { from, to }) => {
                   updateUrl((params) => {
                     if (from) params.set('engagementRateFrom', from)
