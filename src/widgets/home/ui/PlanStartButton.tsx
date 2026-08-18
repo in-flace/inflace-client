@@ -24,7 +24,7 @@ export function PlanStartButton({
       className='h-fit w-full gap-10 rounded-6 px-20 py-10'
       color={highlighted ? 'primary' : 'gray'}
       variant='filled'
-      onClick={open}>
+      onClick={() => open('plan_card')}>
       {children}
     </Button>
   )
