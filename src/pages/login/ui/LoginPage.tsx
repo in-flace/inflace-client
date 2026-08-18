@@ -11,7 +11,7 @@ export default function LoginPage() {
   const openModal = useLoginModal((s) => s.open)
 
   useEffect(() => {
-    openModal()
+    openModal('login_page')
     router.replace('/')
   }, [openModal, router])
 

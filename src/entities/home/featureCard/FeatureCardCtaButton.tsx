@@ -13,7 +13,7 @@ export function FeatureCardCtaButton() {
       size='sm'
       variant='filled'
       rightIcon={<IconRightArrow />}
-      onClick={open}>
+      onClick={() => open('feature_card')}>
       바로가기
     </Button>
   )
