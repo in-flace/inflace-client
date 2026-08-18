@@ -94,12 +94,11 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
   const subscriberTo = searchParams.get('subscriberTo') ?? ''
   const uploadPeriodValue = searchParams.get('uploadPeriod') ?? ''
   const hasAdHistoryValue = searchParams.get('hasAdHistory') ?? 'true'
-  const engagementRateFrom =
-    searchParams.get('engagementRateFrom') ??
-    SERVER_FILTER_DEFAULTS.engagementRateFrom
-  const engagementRateTo =
-    searchParams.get('engagementRateTo') ??
-    SERVER_FILTER_DEFAULTS.engagementRateTo
+  /* URL에 실제로 있는 값과, 서버가 적용하는 값을 구분한다.
+   * 드롭다운에는 원본을 넘겨야 한다 — 기본값을 넣으면 입력 모드로 인식되어
+   * 프리셋 선택이 통째로 막힌다. */
+  const engagementRateFromParam = searchParams.get('engagementRateFrom') ?? ''
+  const engagementRateToParam = searchParams.get('engagementRateTo') ?? ''
   const outlierRangeValue = searchParams.get('outlierRange') ?? ''
 
   const [query, setQuery] = useState(searchParams.get('channelName') ?? '')
@@ -275,14 +274,12 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
           <DropdownTrigger
             label='참여율'
             output={deriveEngagementRateOutput(
-              engagementRateFrom,
-              engagementRateTo
+              engagementRateFromParam,
+              engagementRateToParam
             )}
-            isModified={
-              engagementRateFrom !==
-                SERVER_FILTER_DEFAULTS.engagementRateFrom ||
-              engagementRateTo !== SERVER_FILTER_DEFAULTS.engagementRateTo
-            }
+            isModified={Boolean(
+              engagementRateFromParam || engagementRateToParam
+            )}
             onReset={() =>
               updateUrl((params) => {
                 params.delete('engagementRateFrom')
@@ -291,8 +288,8 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             }>
             {(onClose) => (
               <EngagementRateDropdown
-                defaultFrom={engagementRateFrom}
-                defaultTo={engagementRateTo}
+                defaultFrom={engagementRateFromParam}
+                defaultTo={engagementRateToParam}
                 onChange={(_, { from, to }) => {
                   updateUrl((params) => {
                     if (from) params.set('engagementRateFrom', from)
