@@ -19,6 +19,7 @@ export type LoginModalTrigger =
   | 'channel_status'
   | 'competitor_gate'
   | 'login_page'
+  | 'plan_card'
   | 'protected_redirect'
   | 'session_expired'
 
