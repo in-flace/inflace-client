@@ -1,4 +1,5 @@
-import { Button } from '@/shared/ui/button'
+import type { ReactNode } from 'react'
+
 import { cn } from '@/shared/lib/utils'
 import { PlansCardItem } from '@/entities/home/plansCard/config/types'
 
@@ -9,10 +10,14 @@ export function PlansCard({
   price,
   period,
   features,
-  buttonLabel,
   highlighted = false,
   badge,
-}: PlansCardItem) {
+  action,
+}: PlansCardItem & {
+  /* CTA는 클릭 로직이 필요해 클라이언트 컴포넌트여야 한다.
+   * 카드는 entities라 features를 직접 참조할 수 없으므로 슬롯으로 받는다. */
+  action?: ReactNode
+}) {
   return (
     /* 배지가 카드 위쪽으로 걸치므로 기준점이 필요하다.
      * 이 카드는 overflow를 자르지 않아야 배지가 잘리지 않는다. */
@@ -75,13 +80,7 @@ export function PlansCard({
         </ul>
       </div>
 
-      {/* 결제 로직이 아직 없어 동작을 붙이지 않는다 */}
-      <Button
-        className='h-fit w-full gap-10 rounded-6 px-20 py-10'
-        color={highlighted ? 'primary' : 'gray'}
-        variant='filled'>
-        {buttonLabel}
-      </Button>
+      {action}
     </div>
   )
 }

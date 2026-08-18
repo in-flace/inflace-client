@@ -21,14 +21,14 @@ export const PLANS_CARD_ITEM: PlansCardItem[] = [
     price: '₩29,000',
     period: '월',
     features: PRO_FEATURES,
-    buttonLabel: '선택하기',
+    buttonLabel: '시작하기',
   },
   {
     planName: 'PRO 얼리버드',
     price: '₩9,900',
     period: '월',
     features: PRO_FEATURES,
-    buttonLabel: '선택하기',
+    buttonLabel: '시작하기',
     highlighted: true,
     /* 종료일이 정해지면 날짜 기반으로 바꾼다. 당분간 고정 문구로 둔다. */
     badge: '기간한정 66% 할인, 곧 종료!',
