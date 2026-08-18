@@ -1,54 +1,37 @@
-import { useState } from 'react'
-
 import { cn } from '@/shared/lib/utils'
-import { Button } from '@/shared/ui/button'
 import { UPLOAD_PERIOD_OPTIONS } from '../model/filterOptions'
 
-/* 업로드 주기 드롭다운 */
+/* 업로드 주기 드롭다운.
+ *
+ * 서버 스펙상 uploadPeriod는 열거값 하나만 받는다
+ * (7D / 30D / 31_90D / 91_180D / 180D_PLUS).
+ * 이전에는 다중 선택으로 받아 "7D,30D"처럼 콤마로 이어 보냈는데,
+ * 그런 값은 열거에 없어 서버가 처리하지 못한다. UI를 계약에 맞춰 단일 선택으로 둔다.
+ *
+ * 같은 필터 바의 HasAdHistoryDropdown과 동작을 맞춘다 — 확인 버튼 없이 즉시 반영. */
 type UploadPeriodDropdownProps = {
-  defaultValue?: string[]
-  onChange: (output: string, values: string[]) => void
+  defaultValue?: string
+  onChange: (output: string, outputQuery: string) => void
 }
 
 function UploadPeriodDropdown({
-  defaultValue = [],
+  defaultValue = '',
   onChange,
 }: UploadPeriodDropdownProps) {
-  const [selected, setSelected] = useState<string[]>(defaultValue)
-
-  function toggleOption(value: string) {
-    setSelected((prev) =>
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    )
-  }
-
-  /* 완료 버튼 클릭 시 DropdownTrigger로 값 반환 */
-  function handleConfirm() {
-    const selectedLabels = UPLOAD_PERIOD_OPTIONS.filter((o) =>
-      selected.includes(o.value)
-    ).map((o) => o.label)
-
-    const output =
-      selectedLabels.length === 0
-        ? '전체'
-        : selectedLabels.length === 1
-          ? selectedLabels[0]
-          : `${selectedLabels[0]} 외 ${selectedLabels.length - 1}`
-
-    onChange(output, selected)
+  function handleSelect(option: { label: string; value: string }) {
+    onChange(option.label, option.value)
   }
 
   return (
     <div className='flex h-fit w-[22.8rem] flex-col rounded-6 bg-white p-16 shadow-[0px_8px_12px_0px_var(--primitivecolortrasparent-brand-deep-900-transparent-16),0px_4px_6px_0px_var(--primitivecolortrasparent-brand-deep-900-transparent-24)]'>
-      {/* 정렬 조건 */}
       <ul className='flex h-fit w-full flex-col gap-2'>
         {UPLOAD_PERIOD_OPTIONS.map((option) => {
-          const isSelected = selected.includes(option.value)
+          const isSelected = defaultValue === option.value
           return (
             <li key={option.value}>
               <button
                 type='button'
-                onClick={() => toggleOption(option.value)}
+                onClick={() => handleSelect(option)}
                 className={cn(
                   'flex h-fit w-full cursor-pointer items-center gap-10 rounded-6 p-16 text-noto-label-md-normal text-text-and-icon-secondary',
                   isSelected &&
@@ -60,20 +43,6 @@ function UploadPeriodDropdown({
           )
         })}
       </ul>
-
-      <div className='flex justify-end'>
-        <Button
-          color='secondary'
-          variant='filled'
-          size='sm'
-          disabled={
-            selected.length === defaultValue.length &&
-            selected.every((v) => defaultValue.includes(v))
-          }
-          onClick={handleConfirm}>
-          완료
-        </Button>
-      </div>
     </div>
   )
 }

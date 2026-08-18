@@ -27,7 +27,6 @@ export const influencerHandlers = [
     const engagementRateFrom = url.searchParams.get('engagementRateFrom')
     const engagementRateTo = url.searchParams.get('engagementRateTo')
     const outlierRange = url.searchParams.get('outlierRange') ?? ''
-    const language = url.searchParams.get('language') ?? ''
     const sortCriteria = url.searchParams.get('sortCriteria') ?? 'subscriber'
     const sortOrder = url.searchParams.get('sortOrder') ?? 'DESC'
     const cursor = url.searchParams.get('cursor')
@@ -49,7 +48,8 @@ export const influencerHandlers = [
       filtered = filtered.filter((i) =>
         i.categories.some((cat) =>
           categoryIdParams.some(
-            (id) => mockYoutubeCategories.find((mc) => mc.id === id)?.title === cat
+            (id) =>
+              mockYoutubeCategories.find((mc) => mc.id === id)?.title === cat
           )
         )
       )
@@ -78,7 +78,9 @@ export const influencerHandlers = [
     }
 
     const sortKey =
-      sortCriteria === 'engagement_rate' ? 'averageEngagementRate' : 'subscriberCount'
+      sortCriteria === 'engagement_rate'
+        ? 'averageEngagementRate'
+        : 'subscriberCount'
     filtered.sort((a, b) =>
       sortOrder === 'ASC' ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey]
     )
@@ -112,15 +114,28 @@ export const influencerHandlers = [
     `${process.env.NEXT_PUBLIC_API_URL}/influencers/:channelId/bookmark`,
     ({ params }) => {
       const { channelId } = params
-      const influencer = mockInfluencers.find((i) => String(i.channelId) === channelId)
+      const influencer = mockInfluencers.find(
+        (i) => String(i.channelId) === channelId
+      )
       if (!influencer) {
         return HttpResponse.json(
-          { responseDto: '', error: { code: 'NOT_FOUND', message: '인플루언서를 찾을 수 없습니다.' }, success: false },
+          {
+            responseDto: '',
+            error: {
+              code: 'NOT_FOUND',
+              message: '인플루언서를 찾을 수 없습니다.',
+            },
+            success: false,
+          },
           { status: 404 }
         )
       }
       influencer.bookmarked = true
-      return HttpResponse.json({ responseDto: '북마크가 추가되었습니다.', error: null, success: true })
+      return HttpResponse.json({
+        responseDto: '북마크가 추가되었습니다.',
+        error: null,
+        success: true,
+      })
     }
   ),
 
@@ -128,15 +143,28 @@ export const influencerHandlers = [
     `${process.env.NEXT_PUBLIC_API_URL}/influencers/:channelId/bookmark`,
     ({ params }) => {
       const { channelId } = params
-      const influencer = mockInfluencers.find((i) => String(i.channelId) === channelId)
+      const influencer = mockInfluencers.find(
+        (i) => String(i.channelId) === channelId
+      )
       if (!influencer) {
         return HttpResponse.json(
-          { responseDto: '', error: { code: 'NOT_FOUND', message: '인플루언서를 찾을 수 없습니다.' }, success: false },
+          {
+            responseDto: '',
+            error: {
+              code: 'NOT_FOUND',
+              message: '인플루언서를 찾을 수 없습니다.',
+            },
+            success: false,
+          },
           { status: 404 }
         )
       }
       influencer.bookmarked = false
-      return HttpResponse.json({ responseDto: '북마크가 해제되었습니다.', error: null, success: true })
+      return HttpResponse.json({
+        responseDto: '북마크가 해제되었습니다.',
+        error: null,
+        success: true,
+      })
     }
   ),
 ]
