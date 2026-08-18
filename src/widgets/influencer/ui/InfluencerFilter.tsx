@@ -48,12 +48,10 @@ function deriveCategoryOutput(
     : `${labels[0]} 외 ${labels.length - 1}`
 }
 
-function deriveUploadPeriodOutput(values: string[]): string {
-  if (values.length === 0) return '전체'
-  const labels = values.map((v) => UPLOAD_PERIOD_LABELS[v] ?? v)
-  return labels.length === 1
-    ? labels[0]
-    : `${labels[0]} 외 ${labels.length - 1}`
+/* 서버 스펙상 uploadPeriod는 값 하나만 받는다. 다중 선택 표기가 필요 없다. */
+function deriveUploadPeriodOutput(value: string): string {
+  if (!value) return '전체'
+  return UPLOAD_PERIOD_LABELS[value] ?? value
 }
 
 function deriveSubscriberOutput(from: string, to: string): string {
@@ -89,9 +87,7 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
   const categoryIds = searchParams.getAll('categoryIds').map(Number)
   const subscriberFrom = searchParams.get('subscriberFrom') ?? ''
   const subscriberTo = searchParams.get('subscriberTo') ?? ''
-  const uploadPeriodValues = (searchParams.get('uploadPeriod') ?? '')
-    .split(',')
-    .filter(Boolean)
+  const uploadPeriodValue = searchParams.get('uploadPeriod') ?? ''
   const hasAdHistoryValue = searchParams.get('hasAdHistory') ?? 'true'
   const engagementRateFrom = searchParams.get('engagementRateFrom') ?? ''
   const engagementRateTo = searchParams.get('engagementRateTo') ?? ''
@@ -227,16 +223,17 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
 
           <DropdownTrigger
             label='업로드 주기'
-            output={deriveUploadPeriodOutput(uploadPeriodValues)}
-            isModified={uploadPeriodValues.length > 0}
-            onReset={() => updateUrl((params) => params.delete('uploadPeriod'))}>
+            output={deriveUploadPeriodOutput(uploadPeriodValue)}
+            isModified={!!uploadPeriodValue}
+            onReset={() =>
+              updateUrl((params) => params.delete('uploadPeriod'))
+            }>
             {(onClose) => (
               <UploadPeriodDropdown
-                defaultValue={uploadPeriodValues}
-                onChange={(_, values) => {
+                defaultValue={uploadPeriodValue}
+                onChange={(_, value) => {
                   updateUrl((params) => {
-                    if (values.length)
-                      params.set('uploadPeriod', values.join(','))
+                    if (value) params.set('uploadPeriod', value)
                     else params.delete('uploadPeriod')
                   })
                   onClose()
@@ -249,7 +246,9 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             label='광고 이력'
             output={deriveHasAdHistoryOutput(hasAdHistoryValue)}
             isModified={hasAdHistoryValue !== 'true'}
-            onReset={() => updateUrl((params) => params.delete('hasAdHistory'))}>
+            onReset={() =>
+              updateUrl((params) => params.delete('hasAdHistory'))
+            }>
             {(onClose) => (
               <HasAdHistoryDropdown
                 defaultValue={hasAdHistoryValue}
@@ -298,7 +297,9 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             label='Outlier 배수'
             output={OUTLIER_RANGE_LABELS[outlierRangeValue] ?? '전체'}
             isModified={Boolean(outlierRangeValue)}
-            onReset={() => updateUrl((params) => params.delete('outlierRange'))}>
+            onReset={() =>
+              updateUrl((params) => params.delete('outlierRange'))
+            }>
             {(onClose) => (
               <OutlierRangeDropdown
                 defaultValue={outlierRangeValue}

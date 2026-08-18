@@ -2,7 +2,11 @@
 
 import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { InfluencerList, useInfluencers, SORT_OPTIONS } from '@/features/influencer'
+import {
+  InfluencerList,
+  useInfluencers,
+  SORT_OPTIONS,
+} from '@/features/influencer'
 import { useYoutubeCategories } from '@/entities/youtubeCategory'
 import type { SortCriteria, SortOrder } from '@/entities/influencer'
 import { InfluencerFilter } from '@/widgets/influencer'
@@ -41,9 +45,10 @@ function BookmarkedInfluencerListSection() {
     engagementRateFrom: searchParams?.get('engagementRateFrom') ?? undefined,
     engagementRateTo: searchParams?.get('engagementRateTo') ?? undefined,
     outlierRange: searchParams?.get('outlierRange') ?? undefined,
-    language: searchParams?.get('language') ?? undefined,
-    sortCriteria: (searchParams?.get('sortCriteria') ?? undefined) as SortCriteria | undefined,
-    sortOrder: (searchParams?.get('sortOrder') ?? undefined) as SortOrder | undefined,
+    sortCriteria: (searchParams?.get('sortCriteria') ?? undefined) as
+      SortCriteria | undefined,
+    sortOrder: (searchParams?.get('sortOrder') ?? undefined) as
+      SortOrder | undefined,
     bookmarkedOnly: true,
   }
 
@@ -59,7 +64,10 @@ function BookmarkedInfluencerListSection() {
       o.sortCriteria === sortCriteriaParam && o.sortOrder === sortOrderParam
   )
 
-  const handleSortChange = (sortCriteria: SortCriteria, sortOrder: SortOrder) => {
+  const handleSortChange = (
+    sortCriteria: SortCriteria,
+    sortOrder: SortOrder
+  ) => {
     const params = new URLSearchParams(searchParams?.toString())
     params.set('sortCriteria', sortCriteria)
     params.set('sortOrder', sortOrder)

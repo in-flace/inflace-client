@@ -44,13 +44,10 @@ function InfluencerListSection() {
     engagementRateFrom: searchParams?.get('engagementRateFrom') ?? undefined,
     engagementRateTo: searchParams?.get('engagementRateTo') ?? undefined,
     outlierRange: searchParams?.get('outlierRange') ?? undefined,
-    language: searchParams?.get('language') ?? undefined,
     sortCriteria: (searchParams?.get('sortCriteria') ?? undefined) as
-      | SortCriteria
-      | undefined,
+      SortCriteria | undefined,
     sortOrder: (searchParams?.get('sortOrder') ?? undefined) as
-      | SortOrder
-      | undefined,
+      SortOrder | undefined,
   }
 
   const { data, isLoading, sentinelRef, isFetchingNextPage, hasNextPage } =
