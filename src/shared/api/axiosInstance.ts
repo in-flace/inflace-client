@@ -77,7 +77,9 @@ axiosInstance.interceptors.response.use(
       processQueue(refreshError, null)
       useAuthStore.getState().reset()
       // refresh 실패 시 현재 화면 그대로 로그인 모달 오픈
-      useLoginModal.getState().open()
+      /* 사용자가 연 것이 아니라 세션 만료로 강제로 뜬 것이다.
+       * 전환율 분모에서 빼야 하므로 다른 값으로 구분한다. */
+      useLoginModal.getState().open('session_expired')
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

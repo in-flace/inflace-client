@@ -1,3 +1,4 @@
+import type { AuthProvider, LoginModalTrigger } from '@/shared/analytics'
 import type {
   UserDetails,
   UserChannelDetails,
@@ -7,7 +8,9 @@ import type {
 /* 로그인 모달 상태 */
 export interface LoginModalState {
   isOpen: boolean
-  open: () => void
+  /* 진입 경로를 필수로 받는다. 선택으로 두면 새 호출부가 생겼을 때 조용히
+   * 누락되어 전환율 분모가 틀어진다. 타입으로 강제해 컴파일 때 드러나게 한다. */
+  open: (trigger: LoginModalTrigger) => void
   close: () => void
 }
 
@@ -25,17 +28,11 @@ export interface ChannelConnectDto {
   updatedAt: string
 }
 
-/* 팝업 로그인이 성공했을 때 전달되는 결과.
- * 성공 직후 '/'로 전체 새로고침이 일어나 dataLayer가 초기화되므로,
- * 가입/로그인 집계는 리다이렉트 전인 이 시점에 처리해야 한다. */
-export interface PopupOAuthSuccess {
-  isNewUser: boolean
-}
-
 export interface PopupOAuthConfig {
   apiPath: string
   popupName: string
-  onSuccess?: (result: PopupOAuthSuccess) => void
+  /* 어떤 제공자로 로그인했는지. 계측 이벤트에 그대로 실린다. */
+  provider: AuthProvider
 }
 
 /* 로그인 API 응답 DTO */

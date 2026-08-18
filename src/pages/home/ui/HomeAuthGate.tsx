@@ -23,7 +23,7 @@ function SearchParamsHandler({
       !isLoggedIn &&
       searchParams?.get('from') === 'protected'
     ) {
-      openLoginModal()
+      openLoginModal('protected_redirect')
     }
   }, [isInitializing, isLoggedIn, searchParams, openLoginModal])
 
