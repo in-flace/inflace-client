@@ -109,7 +109,7 @@ export const mockInfluencers: Influencer[] = [
     subscriberCount: 6200000,
     averageEngagementRate: 18.9,
     averageViews: 1400000,
-    recentUploadCount30d: 3,
+    recentUploadCount30d: 0,
     bookmarked: false,
     influencerEmail: 'risabae@test.com',
     recentPplBrands: ['나이키', '이케아'],
@@ -123,7 +123,7 @@ export const mockInfluencers: Influencer[] = [
     subscriberCount: 3900000,
     averageEngagementRate: 11.6,
     averageViews: 780000,
-    recentUploadCount30d: 2,
+    recentUploadCount30d: 0,
     bookmarked: true,
     influencerEmail: 'ppanibottle@test.com',
     recentPplBrands: ['아디다스', '이케아'],
@@ -263,7 +263,7 @@ export const mockInfluencers: Influencer[] = [
     subscriberCount: 1420000,
     averageEngagementRate: 17.6,
     averageViews: 410000,
-    recentUploadCount30d: 3,
+    recentUploadCount30d: 0,
     bookmarked: false,
     influencerEmail: 'makrelee@test.com',
     recentPplBrands: ['나이키'],
@@ -291,7 +291,7 @@ export const mockInfluencers: Influencer[] = [
     subscriberCount: 1100000,
     averageEngagementRate: 11.9,
     averageViews: 240000,
-    recentUploadCount30d: 4,
+    recentUploadCount30d: 0,
     bookmarked: false,
     influencerEmail: 'geekble@test.com',
     recentPplBrands: ['아디다스'],
@@ -361,7 +361,7 @@ export const mockInfluencers: Influencer[] = [
     subscriberCount: 730000,
     averageEngagementRate: 9.2,
     averageViews: 130000,
-    recentUploadCount30d: 5,
+    recentUploadCount30d: 0,
     bookmarked: true,
     influencerEmail: 'nayoung@test.com',
     recentPplBrands: ['아디다스'],
@@ -381,3 +381,45 @@ export const mockInfluencers: Influencer[] = [
     recentPplBrands: ['나이키', '이케아'],
   },
 ]
+
+/* 목 전용 필터 메타데이터.
+ *
+ * uploadPeriod(최근 업로드 주기)와 outlierRange(아웃라이어 배수)는 서버가 필터에
+ * 쓰는 값이지만 /influencers 응답에는 들어오지 않는다. 그래서 Influencer 타입에
+ * 넣지 않고 여기 따로 둔다 — 응답 형태는 실제 API와 같아야 한다.
+ *
+ * daysSinceLastUpload는 recentUploadCount30d와 앞뒤가 맞게 정했다.
+ * 30일 내 업로드가 있는 채널이 마지막 업로드 3개월 전일 수는 없으므로,
+ * 장기 버킷에 넣은 채널은 recentUploadCount30d도 0으로 두었다. */
+export const MOCK_INFLUENCER_FILTER_META: Record<
+  number,
+  { daysSinceLastUpload: number; outlierMultiple: number }
+> = {
+  1: { daysSinceLastUpload: 2, outlierMultiple: 1.0 },
+  2: { daysSinceLastUpload: 12, outlierMultiple: 2.0 },
+  3: { daysSinceLastUpload: 20, outlierMultiple: 1.5 },
+  4: { daysSinceLastUpload: 15, outlierMultiple: 1.0 },
+  5: { daysSinceLastUpload: 3, outlierMultiple: 1.0 },
+  6: { daysSinceLastUpload: 18, outlierMultiple: 2.0 },
+  7: { daysSinceLastUpload: 24, outlierMultiple: 1.0 },
+  8: { daysSinceLastUpload: 45, outlierMultiple: 2.0 },
+  9: { daysSinceLastUpload: 70, outlierMultiple: 1.5 },
+  10: { daysSinceLastUpload: 10, outlierMultiple: 1.5 },
+  11: { daysSinceLastUpload: 4, outlierMultiple: 3.0 },
+  12: { daysSinceLastUpload: 2, outlierMultiple: 1.0 },
+  13: { daysSinceLastUpload: 5, outlierMultiple: 1.5 },
+  14: { daysSinceLastUpload: 22, outlierMultiple: 2.0 },
+  15: { daysSinceLastUpload: 26, outlierMultiple: 1.5 },
+  16: { daysSinceLastUpload: 14, outlierMultiple: 2.0 },
+  17: { daysSinceLastUpload: 9, outlierMultiple: 3.0 },
+  18: { daysSinceLastUpload: 6, outlierMultiple: 1.0 },
+  19: { daysSinceLastUpload: 120, outlierMultiple: 2.0 },
+  20: { daysSinceLastUpload: 17, outlierMultiple: 3.0 },
+  21: { daysSinceLastUpload: 150, outlierMultiple: 1.5 },
+  22: { daysSinceLastUpload: 5, outlierMultiple: 1.5 },
+  23: { daysSinceLastUpload: 3, outlierMultiple: 1.0 },
+  24: { daysSinceLastUpload: 28, outlierMultiple: 1.0 },
+  25: { daysSinceLastUpload: 1, outlierMultiple: 1.5 },
+  26: { daysSinceLastUpload: 240, outlierMultiple: 1.0 },
+  27: { daysSinceLastUpload: 21, outlierMultiple: 3.0 },
+}
