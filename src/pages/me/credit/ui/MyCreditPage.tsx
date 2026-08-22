@@ -25,7 +25,6 @@ import {
   usePurchaseCredits,
   useRefundCreditBatch,
   useRegisterBillingMethod,
-  useRetrySubscriptionPayment,
   useStartSubscription,
   type BillingHistoryItem,
   type BillingHistoryStatus,
@@ -50,13 +49,27 @@ import { TabGroup } from '@/shared/ui/tabGroup'
 import CheckIcon from '@/shared/assets/check-bold.svg'
 import PaymentIcon from '@/shared/assets/payment-bold.svg'
 
+type PayerInfo = {
+  name: string
+  phone: string
+  email: string
+}
+
+const emptyPayerInfo: PayerInfo = {
+  name: '',
+  phone: '',
+  email: '',
+}
+
 type ModalState =
   | { type: 'subscribe'; plan: BillingPlan }
   | { type: 'cancelReason' }
   | { type: 'cancelNotice' }
   | { type: 'cancelDone' }
   | { type: 'billingRegister' }
+  | { type: 'billingChange' }
   | { type: 'billingRegistered' }
+  | { type: 'billingChanged' }
   | { type: 'billingDelete' }
   | { type: 'billingDeleted'; last4: string | null }
   | { type: 'creditPurchase' }
@@ -242,13 +255,9 @@ function PlanCard({
 function SubscriptionTab({
   summary,
   onOpenModal,
-  onRetryPayment,
-  isRetrying,
 }: {
   summary: BillingSummary
   onOpenModal: (modal: ModalState) => void
-  onRetryPayment: () => void
-  isRetrying: boolean
 }) {
   const { subscription, plans } = summary
   const isSubscribed =
@@ -301,7 +310,7 @@ function SubscriptionTab({
               <div className='flex items-center gap-8'>
                 <StatusBadge tone='error'>결제 실패</StatusBadge>
                 <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
-                  이번 달 구독 결제가 완료되지 않았습니다
+                  이번 달 구독 결제가 실패했습니다.
                 </h3>
               </div>
               <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
@@ -314,9 +323,8 @@ function SubscriptionTab({
               color='primary'
               size='md'
               variant='filled'
-              disabled={isRetrying}
-              onClick={onRetryPayment}>
-              다시 결제하기
+              onClick={() => onOpenModal({ type: 'billingChange' })}>
+              결제수단 변경
             </Button>
           </div>
         </SectionCard>
@@ -426,13 +434,14 @@ function BillingMethodTab({
 
   if (billingMethod.status === 'none') {
     return (
-      <SectionCard className='flex min-h-[17.8rem] flex-col items-center justify-center gap-20'>
+      <SectionCard className='flex min-h-[17.8rem] flex-col items-center justify-center gap-20 text-center'>
         <div className='flex flex-col items-center gap-8'>
           <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
-            등록된 결제수단이 없습니다
+            등록된 결제수단이 없습니다.
           </h3>
-          <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
-            구독과 크레딧 원클릭 구매를 위해 카드를 등록해주세요.
+          <p className='max-w-[58rem] text-noto-body-xs-normal text-text-and-icon-secondary'>
+            카드를 등록하면 구독 시작, 다음 정기결제, 추가 크레딧 구매를 한
+            곳에서 관리할 수 있습니다.
           </p>
         </div>
         <Button
@@ -441,8 +450,12 @@ function BillingMethodTab({
           size='lg'
           variant='filled'
           onClick={() => onOpenModal({ type: 'billingRegister' })}>
-          결제수단 등록
+          카드 등록하기
         </Button>
+        <p className='text-noto-body-xs-normal text-text-and-icon-tertiary'>
+          카드번호는 인플레이스에 저장되지 않으며 포트원/PG사를 통해 안전하게
+          처리됩니다.
+        </p>
       </SectionCard>
     )
   }
@@ -470,8 +483,8 @@ function BillingMethodTab({
           color='secondary'
           size='md'
           variant='filled'
-          onClick={() => onOpenModal({ type: 'billingRegister' })}>
-          변경하기
+          onClick={() => onOpenModal({ type: 'billingChange' })}>
+          변경
         </Button>
         <Button
           type='button'
@@ -479,7 +492,7 @@ function BillingMethodTab({
           size='md'
           variant='outlined'
           onClick={() => onOpenModal({ type: 'billingDelete' })}>
-          삭제하기
+          삭제
         </Button>
       </div>
     </div>
@@ -489,11 +502,23 @@ function BillingMethodTab({
 function CreditTab({
   summary,
   onOpenModal,
+  onRequestSubscription,
 }: {
   summary: BillingSummary
   onOpenModal: (modal: ModalState) => void
+  onRequestSubscription: () => void
 }) {
   const isSubscribed = summary.subscription.status !== 'none'
+
+  if (!isSubscribed) {
+    return (
+      <EmptyActionCard
+        title='크레딧 구매 및 분석 실행은 구독자 전용 기능입니다.'
+        actionText='구독 탭으로 이동'
+        onAction={onRequestSubscription}
+      />
+    )
+  }
 
   return (
     <div className='flex flex-col gap-24'>
@@ -503,16 +528,10 @@ function CreditTab({
           color='primary'
           size='lg'
           variant='filled'
-          disabled={!isSubscribed}
           onClick={() => onOpenModal({ type: 'creditPurchase' })}>
           크레딧 구매
         </Button>
       </div>
-      {!isSubscribed && (
-        <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
-          크레딧은 플랜 구독 후 구매할 수 있습니다.
-        </p>
-      )}
       <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
         <MetricCard
           label='보유 크레딧'
@@ -555,7 +574,7 @@ function CreditTab({
                     disabled={!batch.extendable || !!batch.refundedAt}
                     onClick={() => onOpenModal({ type: 'creditExtend', batch })}
                     className='h-28 w-full'>
-                    {batch.extendedAt ? '연장 완료' : '연장'}
+                    {getCreditExtendLabel(batch)}
                   </Button>
                 </TableCell>
                 <TableCell>
@@ -567,7 +586,7 @@ function CreditTab({
                     disabled={!batch.refundable || !!batch.refundedAt}
                     onClick={() => onOpenModal({ type: 'creditRefund', batch })}
                     className='h-28 w-full'>
-                    {batch.refundedAt ? '환불 완료' : '환불'}
+                    {getCreditRefundLabel(batch)}
                   </Button>
                 </TableCell>
               </TableRow>
@@ -579,7 +598,7 @@ function CreditTab({
             <strong className='mr-8 text-brand-primary'>
               {summary.creditBatches.length}
             </strong>
-            결과
+            results
           </span>
           <div className='flex gap-12'>
             <Button
@@ -605,12 +624,61 @@ function CreditTab({
   )
 }
 
+function getCreditExtendLabel(batch: CreditBatch) {
+  if (batch.extendedAt) return '연장 완료'
+  if (!batch.extendable || batch.refundedAt) return '연장 불가'
+  return '연장 신청'
+}
+
+function getCreditRefundLabel(batch: CreditBatch) {
+  if (batch.refundedAt) return '환불 완료'
+  if (!batch.refundable) return '환불 불가'
+  return '환불 신청'
+}
+
+function EmptyActionCard({
+  title,
+  description,
+  actionText,
+  onAction,
+}: {
+  title: string
+  description?: string
+  actionText: string
+  onAction: () => void
+}) {
+  return (
+    <SectionCard className='flex min-h-[16.1rem] flex-col items-center justify-center gap-20 text-center'>
+      <div className='flex flex-col items-center gap-8'>
+        <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+          {title}
+        </h3>
+        {description && (
+          <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+            {description}
+          </p>
+        )}
+      </div>
+      <Button
+        type='button'
+        color='primary'
+        size='lg'
+        variant='filled'
+        onClick={onAction}>
+        {actionText}
+      </Button>
+    </SectionCard>
+  )
+}
+
 function HistoryTab({
   history,
   onOpenModal,
+  onRequestSubscription,
 }: {
   history: BillingHistoryItem[]
   onOpenModal: (modal: ModalState) => void
+  onRequestSubscription: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const selectedItem = history.find((item) => selectedIds.has(item.id))
@@ -626,8 +694,22 @@ function HistoryTab({
   }
 
   const openDocumentModal = (documentType: string) => {
-    if (!selectedItem) return
+    if (!selectedItem) {
+      toast.info('내역을 선택해주세요.')
+      return
+    }
     onOpenModal({ type: 'document', item: selectedItem, documentType })
+  }
+
+  if (history.length === 0) {
+    return (
+      <EmptyActionCard
+        title='아직 결제·환불 내역이 없습니다'
+        description='구독을 시작하거나 크레딧을 구매하면 이곳에서 내역을 확인할 수 있습니다.'
+        actionText='구독 탭으로 이동'
+        onAction={onRequestSubscription}
+      />
+    )
   }
 
   return (
@@ -638,7 +720,7 @@ function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={!selectedItem?.taxInvoiceAvailable}
+          disabled={selectedItem ? !selectedItem.taxInvoiceAvailable : false}
           onClick={() => openDocumentModal('세금계산서')}>
           세금계산서 신청
         </Button>
@@ -647,7 +729,7 @@ function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={!selectedItem?.receiptAvailable}
+          disabled={selectedItem ? !selectedItem.receiptAvailable : false}
           onClick={() => openDocumentModal('현금영수증')}>
           현금영수증 신청
         </Button>
@@ -720,7 +802,7 @@ function HistoryTab({
             <strong className='mr-8 text-brand-primary'>
               {history.length}
             </strong>
-            결과
+            results
           </span>
           <div className='flex gap-12'>
             <Button
@@ -754,6 +836,14 @@ function getHistoryTypeLabel(type: BillingHistoryItem['type']) {
       return '크레딧 구매'
     case 'creditRefund':
       return '환불'
+    case 'creditUsage':
+      return '크레딧 사용'
+    case 'creditRestore':
+      return '크레딧 복원'
+    case 'creditExtension':
+      return '크레딧 연장'
+    case 'creditExpiration':
+      return '크레딧 만료'
   }
 }
 
@@ -764,9 +854,9 @@ function HistoryStatusBadge({ status }: { status: BillingHistoryStatus }) {
     case 'failed':
       return <StatusBadge tone='error'>결제 실패</StatusBadge>
     case 'refunded':
-      return <StatusBadge tone='neutral'>환불 완료</StatusBadge>
+      return <StatusBadge tone='warning'>환불 완료</StatusBadge>
     case 'scheduled':
-      return <StatusBadge tone='info'>예정</StatusBadge>
+      return <StatusBadge tone='error'>해지 예약</StatusBadge>
     case 'completed':
       return <StatusBadge tone='neutral'>완료</StatusBadge>
   }
@@ -800,6 +890,7 @@ function BillingModals({
     summary.billingMethod.status === 'registered' ? 'registeredCard' : 'oneTime'
   )
   const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
+  const [payerInfo, setPayerInfo] = useState<PayerInfo>(emptyPayerInfo)
   const registerBillingMethodIdempotencyKeyRef = useRef<string | null>(null)
   const startSubscriptionIdempotencyKeyRef = useRef<string | null>(null)
   const purchaseCreditsIdempotencyKeyRef = useRef<string | null>(null)
@@ -815,6 +906,7 @@ function BillingModals({
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
     setCancelReason('사용 빈도가 낮아요')
+    setPayerInfo(emptyPayerInfo)
     registerBillingMethodIdempotencyKeyRef.current = null
     startSubscriptionIdempotencyKeyRef.current = null
     purchaseCreditsIdempotencyKeyRef.current = null
@@ -1010,13 +1102,23 @@ function BillingModals({
       )}
       {modal?.type === 'billingRegister' && (
         <ModalContent
-          title='결제수단 등록하기'
-          description='포트원 결제창을 호출해 카드를 등록하고 빌링키를 발급합니다.'
+          title='본인 정보를 입력해주세요.'
+          description='입력한 정보를 기반으로 카드 등록을 시작합니다.'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <div className='rounded-12 border border-stroke-border-gray-default bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
-              안전한 카드 등록창에서 카드 정보를 입력합니다. 카드 정보는
-              인플레이스 서버에 저장되지 않습니다.
+            <PayerInfoFields value={payerInfo} onChange={setPayerInfo} />
+            <div className='flex flex-col gap-12'>
+              <div className='flex flex-col gap-4'>
+                <h3 className='text-noto-title-sm-bold text-text-and-icon-default'>
+                  결제수단을 등록하세요.
+                </h3>
+                <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+                  포트원 결제창을 호출해 카드를 등록하고 빌링키를 발급합니다.
+                </p>
+              </div>
+              <div className='rounded-16 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
+                카드 등록 시뮬레이션: •••• •••• •••• 5588
+              </div>
             </div>
             <div className='grid grid-cols-2 gap-12'>
               <Button
@@ -1063,9 +1165,71 @@ function BillingModals({
           </div>
         </ModalContent>
       )}
+      {modal?.type === 'billingChange' && (
+        <ModalContent
+          title='결제수단 변경'
+          description='새 카드로 포트원 결제창을 호출해 빌링키가 재발급됩니다. 기존 빌링키는 교체 후 폐기됩니다.'
+          className='sm:w-[50rem]'>
+          <div className='mt-32 flex flex-col gap-32'>
+            <div className='rounded-16 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
+              새 카드 •••• •••• •••• 5588
+            </div>
+            <div className='grid grid-cols-2 gap-12'>
+              <Button
+                type='button'
+                color='gray'
+                size='lg'
+                variant='filled'
+                onClick={onClose}
+                className='h-44 w-full'>
+                취소
+              </Button>
+              <Button
+                type='button'
+                color='primary'
+                size='lg'
+                variant='filled'
+                disabled={
+                  registerBillingMethodMutation.isPending ||
+                  isPaymentWindowPending
+                }
+                onClick={async () => {
+                  setIsPaymentWindowPending(true)
+                  try {
+                    const { billingKey } = await issueCardBillingKey({
+                      issueName: '인플레이스 결제수단 변경',
+                    })
+                    await registerBillingMethodMutation.mutateAsync({
+                      idempotencyKey: getStableIdempotencyKey(
+                        registerBillingMethodIdempotencyKeyRef
+                      ),
+                      payload: { billingKey },
+                    })
+                    onOpenModal({ type: 'billingChanged' })
+                  } catch (error) {
+                    toast.error(getErrorMessage(error))
+                  } finally {
+                    setIsPaymentWindowPending(false)
+                  }
+                }}
+                className='h-44 w-full'>
+                카드 등록하고 교체하기
+              </Button>
+            </div>
+          </div>
+        </ModalContent>
+      )}
       {modal?.type === 'billingRegistered' && (
         <NoticeModal
           title='결제수단이 등록되었습니다'
+          description='새 카드 ···· ···· ···· 5588가 다음 결제부터 사용됩니다.'
+          buttonText='확인'
+          onConfirm={onClose}
+        />
+      )}
+      {modal?.type === 'billingChanged' && (
+        <NoticeModal
+          title='결제수단이 변경되었습니다'
           description='새 카드 ···· ···· ···· 5588가 다음 결제부터 사용됩니다.'
           buttonText='확인'
           onConfirm={onClose}
@@ -1075,7 +1239,8 @@ function BillingModals({
         <ModalContent title='결제수단을 삭제할까요?' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-              삭제 후에는 다음 결제 전 새 결제수단을 등록해야 합니다.
+              삭제 시 등록된 빌링키가 폐기됩니다. 구독 중이라면 다음 결제 전
+              새 카드를 등록해야 자동결제가 유지됩니다.
             </p>
             <div className='grid grid-cols-2 gap-12'>
               <Button
@@ -1102,7 +1267,7 @@ function BillingModals({
                     toast.error(getErrorMessage(error))
                   }
                 }}
-                className='h-44 w-full'>
+                className='h-44 w-full bg-feedback-error'>
                 삭제하기
               </Button>
             </div>
@@ -1135,12 +1300,25 @@ function BillingModals({
             </div>
             <div className='flex flex-col gap-12'>
               <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
+                본인 정보를 입력해주세요.
+              </span>
+              <PayerInfoFields
+                value={payerInfo}
+                onChange={setPayerInfo}
+                layout='inline'
+              />
+            </div>
+            <div className='flex flex-col gap-12'>
+              <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
                 결제 수단을 선택하세요
               </span>
               <div className='grid grid-cols-1 gap-16 md:grid-cols-2 md:gap-32'>
                 <PaymentChoice
                   disabled={summary.billingMethod.status === 'none'}
-                  selected={paymentMethod === 'registeredCard'}
+                  selected={
+                    summary.billingMethod.status === 'registered' &&
+                    paymentMethod === 'registeredCard'
+                  }
                   onSelect={() => setPaymentMethod('registeredCard')}
                   title={
                     summary.billingMethod.status === 'registered'
@@ -1150,15 +1328,25 @@ function BillingModals({
                   description={
                     summary.billingMethod.status === 'registered'
                       ? `···· ···· ···· ${summary.billingMethod.last4} · 카드 재입력 없음`
-                      : '결제수단 관리 탭에서 카드를 먼저 등록해주세요.'
+                      : '등록된 결제수단이 없어 원클릭 구매를 이용할 수 없습니다.'
+                  }
+                  actionLabel={
+                    summary.billingMethod.status === 'none'
+                      ? '결제수단 등록하러 가기'
+                      : undefined
+                  }
+                  onAction={
+                    summary.billingMethod.status === 'none'
+                      ? () => onOpenModal({ type: 'billingRegister' })
+                      : undefined
                   }
                 />
                 <PaymentChoice
                   disabled
-                  selected={paymentMethod === 'oneTime'}
+                  selected={false}
                   onSelect={() => setPaymentMethod('oneTime')}
                   title='다른 결제수단으로 구매'
-                  description='현재 API 명세에 없는 결제 방식입니다.'
+                  description='인증결제(1회성 결제창) · 매번 카드 정보 입력'
                 />
               </div>
             </div>
@@ -1339,36 +1527,70 @@ function CreditOptionCard({
       type='button'
       onClick={onSelect}
       className={cn(
-        'relative flex h-[15.8rem] flex-col items-start justify-between rounded-12 border p-16 text-left',
+        'relative flex h-[15.8rem] flex-col items-center justify-center gap-12 rounded-6 border p-16 text-center',
         selected
-          ? 'border-brand-primary bg-[rgba(90,68,242,0.06)]'
-          : 'border-stroke-border-gray-default bg-white'
+          ? 'border-stroke-border-gray-default bg-[rgba(90,68,242,0.08)]'
+          : 'border-stroke-border-gray-default bg-background-gray-default'
       )}>
       {option.badge && (
-        <span className='absolute top-[-1.2rem] right-0 rounded-t-8 rounded-bl-8 bg-brand-primary px-12 py-2 text-noto-label-xs-bold text-white'>
+        <span className='absolute top-[-1.3rem] right-0 rounded-4 bg-feedback-error px-12 py-2 text-noto-title-sm-bold text-white'>
           {option.badge}
         </span>
       )}
-      <span className='text-noto-body-md-bold text-text-and-icon-default'>
-        {option.credits} 크레딧
+      <span className='text-ibm-title-md-normal text-text-and-icon-default'>
+        {option.credits}크레딧
       </span>
-      <div className='flex flex-col'>
-        <strong className='text-ibm-heading-md-bold text-text-and-icon-default'>
-          {formatWon(option.price)}
+      <div className='flex flex-col items-center'>
+        <strong className='text-ibm-heading-lg-bold text-brand-primary'>
+          {formatWon(option.price).replace('₩', '')}
         </strong>
         {option.originalPrice && (
           <span className='text-noto-caption-md-normal text-text-and-icon-disabled line-through'>
             정가 {formatWon(option.originalPrice)}
           </span>
         )}
-        <span className='text-noto-caption-md-normal text-text-and-icon-secondary'>
-          1크레딧당 {formatWon(option.pricePerCredit)}
-        </span>
       </div>
-      <span className='w-full text-center text-noto-body-xs-normal text-brand-primary'>
-        경쟁 채널 분석 {option.credits}회
+      <span className='text-noto-label-md-normal text-text-and-icon-secondary'>
+        {formatWon(option.pricePerCredit).replace('₩', '')}/개
       </span>
     </button>
+  )
+}
+
+function PayerInfoFields({
+  value,
+  onChange,
+  layout = 'stack',
+}: {
+  value: PayerInfo
+  onChange: (value: PayerInfo) => void
+  layout?: 'stack' | 'inline'
+}) {
+  const fields: { key: keyof PayerInfo; label: string; autoComplete: string }[] = [
+    { key: 'name', label: '이름', autoComplete: 'name' },
+    { key: 'phone', label: '전화번호', autoComplete: 'tel' },
+    { key: 'email', label: '이메일', autoComplete: 'email' },
+  ]
+
+  return (
+    <div
+      className={cn(
+        'grid gap-12',
+        layout === 'inline' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-1'
+      )}>
+      {fields.map((field) => (
+        <input
+          key={field.key}
+          value={value[field.key]}
+          onChange={(event) =>
+            onChange({ ...value, [field.key]: event.target.value })
+          }
+          placeholder={field.label}
+          autoComplete={field.autoComplete}
+          className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-label-md-normal text-text-and-icon-primary outline-none placeholder:text-text-and-icon-disabled focus:border-brand-primary'
+        />
+      ))}
+    </div>
   )
 }
 
@@ -1378,32 +1600,49 @@ function PaymentChoice({
   disabled,
   selected,
   onSelect,
+  actionLabel,
+  onAction,
 }: {
   title: string
   description: string
   disabled?: boolean
   selected: boolean
   onSelect: () => void
+  actionLabel?: string
+  onAction?: () => void
 }) {
   return (
-    <button
-      type='button'
-      disabled={disabled}
-      onClick={onSelect}
-      aria-pressed={selected}
+    <div
       className={cn(
-        'flex min-h-[9rem] flex-col justify-center gap-4 rounded-12 border p-24 text-left transition-colors',
-        disabled
-          ? 'border-stroke-border-gray-default bg-background-gray-default text-text-and-icon-disabled'
-          : selected
-            ? 'border-brand-primary bg-[rgba(90,68,242,0.06)] text-text-and-icon-primary'
-            : 'border-stroke-border-gray-default bg-white text-text-and-icon-primary'
+        'flex min-h-[11rem] flex-col justify-center gap-12 rounded-12 border p-24 text-left transition-colors',
+        selected
+          ? 'border-brand-primary bg-[rgba(90,68,242,0.06)] text-text-and-icon-primary'
+          : 'border-stroke-border-gray-default bg-white text-text-and-icon-primary',
+        disabled && 'bg-background-gray-default text-text-and-icon-disabled'
       )}>
-      <strong className='text-noto-body-md-bold'>{title}</strong>
-      <span className='text-noto-body-xs-normal text-text-and-icon-secondary'>
-        {description}
-      </span>
-    </button>
+      <button
+        type='button'
+        disabled={disabled}
+        onClick={onSelect}
+        aria-pressed={selected}
+        className='flex flex-col gap-4 text-left disabled:pointer-events-none'>
+        <strong className='text-noto-body-md-bold'>{title}</strong>
+        <span className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+          {description}
+        </span>
+      </button>
+      {actionLabel && onAction && (
+        <Button
+          type='button'
+          color='gray'
+          size='xs'
+          variant='filled'
+          onClick={onAction}
+          className='h-28 w-full'>
+          {actionLabel}
+        </Button>
+      )}
+    </div>
   )
 }
 
@@ -1446,7 +1685,6 @@ export function MyCreditPage() {
   const [isPending, startTransition] = useTransition()
   const [modal, setModal] = useState<ModalState>(null)
   const { data: summary, isLoading, isError, refetch } = useBillingSummary()
-  const retrySubscriptionPaymentMutation = useRetrySubscriptionPayment()
 
   const tabParam = searchParams?.get('tab') ?? null
   const activeTab = isBillingTab(tabParam) ? tabParam : 'subscription'
@@ -1490,26 +1728,24 @@ export function MyCreditPage() {
         ) : (
           <>
             {activeTab === 'subscription' && (
-              <SubscriptionTab
-                summary={summary}
-                onOpenModal={setModal}
-                onRetryPayment={() => {
-                  retrySubscriptionPaymentMutation
-                    .mutateAsync()
-                    .then(() => toast.success('결제가 완료되었습니다.'))
-                    .catch((error) => toast.error(getErrorMessage(error)))
-                }}
-                isRetrying={retrySubscriptionPaymentMutation.isPending}
-              />
+              <SubscriptionTab summary={summary} onOpenModal={setModal} />
             )}
             {activeTab === 'billing-method' && (
               <BillingMethodTab summary={summary} onOpenModal={setModal} />
             )}
             {activeTab === 'credit' && (
-              <CreditTab summary={summary} onOpenModal={setModal} />
+              <CreditTab
+                summary={summary}
+                onOpenModal={setModal}
+                onRequestSubscription={() => handleTabChange('subscription')}
+              />
             )}
             {activeTab === 'history' && (
-              <HistoryTab history={summary.history} onOpenModal={setModal} />
+              <HistoryTab
+                history={summary.history}
+                onOpenModal={setModal}
+                onRequestSubscription={() => handleTabChange('subscription')}
+              />
             )}
             <BillingModals
               modal={modal}

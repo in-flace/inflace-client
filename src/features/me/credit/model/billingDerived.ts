@@ -1,7 +1,7 @@
 import type { BillingTab, CreditBatch } from '../types'
 
 export const BILLING_TABS = [
-  { id: 'subscription', label: '플랜 구독' },
+  { id: 'subscription', label: '구독 현황' },
   { id: 'credit', label: '크레딧' },
   { id: 'billing-method', label: '결제수단 관리' },
   { id: 'history', label: '결제·환불 내역' },
