@@ -64,33 +64,65 @@ describe('fetchBillingSummary', () => {
           })
         )
       }
-      return Promise.resolve(
-        apiResponse({
-          transactions: [
-            {
-              creditTransactionId: 3,
-              userCreditId: 1,
-              transactionType: 'EXTEND',
-              amount: 0,
-              createdAt: '2026-08-20T10:05:00',
+      if (url === '/credits/transactions') {
+        return Promise.resolve(
+          apiResponse({
+            transactions: [
+              {
+                creditTransactionId: 3,
+                userCreditId: 1,
+                transactionType: 'EXTEND',
+                amount: 0,
+                createdAt: '2026-08-20T10:05:00',
+              },
+              {
+                creditTransactionId: 2,
+                userCreditId: 1,
+                transactionType: 'USE',
+                amount: -1,
+                createdAt: '2026-08-19T10:05:00',
+              },
+              {
+                creditTransactionId: 1,
+                userCreditId: 1,
+                transactionType: 'GRANT',
+                amount: 10,
+                createdAt: '2026-08-18T10:05:00',
+              },
+            ],
+          })
+        )
+      }
+      if (url === '/subscriptions/me') {
+        return Promise.resolve(
+          apiResponse({
+            viewStatus: 'ACTIVE',
+            subscription: {
+              planCode: 'EARLY_BIRD',
+              planName: 'PRO 얼리버드',
+              subscribedPrice: 9900,
+              status: 'ACTIVE',
+              paymentStatus: 'PAID',
+              startedAt: '2026-08-01T00:00:00',
+              endedAt: null,
+              nextBillingAt: '2026-09-01T00:00:00',
+              cancelAtPeriodEnd: false,
             },
-            {
-              creditTransactionId: 2,
-              userCreditId: 1,
-              transactionType: 'USE',
-              amount: -1,
-              createdAt: '2026-08-19T10:05:00',
-            },
-            {
-              creditTransactionId: 1,
-              userCreditId: 1,
-              transactionType: 'GRANT',
-              amount: 10,
-              createdAt: '2026-08-18T10:05:00',
-            },
-          ],
-        })
-      )
+          })
+        )
+      }
+      if (url === '/payment-methods/active') {
+        return Promise.resolve(
+          apiResponse({
+            paymentMethodId: 7,
+            methodType: 'CARD',
+            cardIssuer: '현대카드',
+            maskedCardNumber: '****-****-****-5588',
+            issuedAt: '2026-08-02T00:00:00',
+          })
+        )
+      }
+      throw new Error(`Unexpected URL: ${url}`)
     })
 
     const summary = await fetchBillingSummary()
@@ -113,6 +145,18 @@ describe('fetchBillingSummary', () => {
     ])
     expect(summary.creditOptions[0]).toMatchObject({
       originalPrice: 4600,
+    })
+    expect(summary.subscription).toMatchObject({
+      status: 'active',
+      planCode: 'EARLY_BIRD',
+      monthlyPrice: 9900,
+      nextPaymentDate: '2026-09-01',
+    })
+    expect(summary.billingMethod).toMatchObject({
+      status: 'registered',
+      id: '7',
+      brand: '현대카드',
+      last4: '5588',
     })
   })
 })

@@ -1,10 +1,10 @@
 export type BillingTab =
   'subscription' | 'billing-method' | 'credit' | 'history'
 
-export type BillingPlanCode = 'PRO' | 'PRO_EARLY_BIRD'
+export type BillingPlanCode = 'PRO' | 'EARLY_BIRD'
 
 export type SubscriptionStatus =
-  'none' | 'active' | 'cancelScheduled' | 'paymentFailed'
+  'none' | 'paymentPending' | 'active' | 'cancelScheduled' | 'paymentFailed'
 
 export type BillingMethodStatus = 'none' | 'registered'
 

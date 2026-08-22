@@ -1,3 +1,5 @@
+import { isAxiosError } from 'axios'
+
 import { mockBillingSummary } from '@/features/me/credit/mock/mockBilling'
 import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
@@ -11,6 +13,7 @@ import type {
   PurchaseCreditsPayload,
   RegisterBillingMethodPayload,
   StartSubscriptionPayload,
+  Subscription,
 } from '../types'
 
 interface IdempotentMutation<TPayload> {
@@ -75,8 +78,56 @@ interface CreditPurchaseStatusResponse {
   paymentStatus: PaymentStatus
 }
 
+type SubscriptionViewStatus =
+  | 'FREE'
+  | 'PAYMENT_PENDING'
+  | 'ACTIVE'
+  | 'CANCEL_SCHEDULED'
+  | 'PAYMENT_FAILED'
+  | 'PAST_DUE'
+
+type ServerSubscriptionStatus = 'PENDING' | 'ACTIVE' | 'PAST_DUE' | 'ENDED'
+
+interface SubscriptionDetailsDto {
+  planCode: 'PRO' | 'EARLY_BIRD'
+  planName: string
+  subscribedPrice: number
+  status: ServerSubscriptionStatus
+  paymentStatus: PaymentStatus
+  startedAt: string
+  endedAt: string | null
+  nextBillingAt: string | null
+  cancelAtPeriodEnd: boolean
+}
+
+interface SubscriptionOverviewResponse {
+  viewStatus: SubscriptionViewStatus
+  subscription: SubscriptionDetailsDto | null
+}
+
+interface SubscriptionPaymentResponse {
+  orderId: number
+  status: PaymentStatus
+}
+
+interface SubscriptionPaymentStatusResponse {
+  orderId: number
+  viewStatus: SubscriptionViewStatus
+  paymentStatus: PaymentStatus
+  subscriptionStatus: ServerSubscriptionStatus
+}
+
+interface PaymentMethodResponse {
+  paymentMethodId: number
+  methodType: string
+  cardIssuer: string
+  maskedCardNumber: string
+  issuedAt: string
+}
+
 const CREDIT_PURCHASE_POLL_INTERVAL_MS = 1500
 const CREDIT_PURCHASE_MAX_POLL_COUNT = 20
+const SUBSCRIPTION_PAYMENT_MAX_POLL_COUNT = 20
 
 const CREDIT_OPTION_PRESENTATION: Record<
   string,
@@ -207,14 +258,78 @@ function toCreditHistory(
   })
 }
 
+function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
+  const details = overview.subscription
+  if (!details || overview.viewStatus === 'FREE') {
+    return {
+      status: 'none',
+      planCode: null,
+      planName: null,
+      monthlyPrice: 0,
+      nextPaymentDate: null,
+      cancelScheduledDate: null,
+      paymentFailedReason: null,
+      includedMonthlyCredits: 0,
+    }
+  }
+
+  const statusByView = {
+    PAYMENT_PENDING: 'paymentPending',
+    ACTIVE: 'active',
+    CANCEL_SCHEDULED: 'cancelScheduled',
+    PAYMENT_FAILED: 'paymentFailed',
+    PAST_DUE: 'paymentFailed',
+  } as const
+  const status = statusByView[overview.viewStatus]
+
+  return {
+    status,
+    planCode: details.planCode,
+    planName: details.planName,
+    monthlyPrice: details.subscribedPrice,
+    nextPaymentDate: toNullableDate(details.nextBillingAt),
+    cancelScheduledDate: details.cancelAtPeriodEnd
+      ? toNullableDate(details.nextBillingAt ?? details.endedAt)
+      : null,
+    paymentFailedReason:
+      status === 'paymentFailed' ? '등록된 결제수단을 확인해주세요.' : null,
+    includedMonthlyCredits: 3,
+  }
+}
+
+function toBillingMethod(paymentMethod: PaymentMethodResponse | null) {
+  if (!paymentMethod) {
+    return {
+      status: 'none' as const,
+      id: null,
+      brand: null,
+      last4: null,
+      updatedAt: null,
+    }
+  }
+
+  const digits = paymentMethod.maskedCardNumber.replace(/\D/g, '')
+  return {
+    status: 'registered' as const,
+    id: String(paymentMethod.paymentMethodId),
+    brand: paymentMethod.cardIssuer,
+    last4: digits.slice(-4) || paymentMethod.maskedCardNumber.slice(-4),
+    updatedAt: toDate(paymentMethod.issuedAt),
+  }
+}
+
 function composeBillingSummary({
   credits,
   products,
   transactions,
+  subscription,
+  paymentMethod,
 }: {
   credits: GetUserCreditsResponse
   products: GetCreditProductsResponse
   transactions: GetCreditTransactionsResponse
+  subscription: SubscriptionOverviewResponse
+  paymentMethod: PaymentMethodResponse | null
 }): BillingSummary {
   const creditOptions = toCreditOptions(products.products)
   const creditBatches = toCreditBatches(
@@ -224,10 +339,29 @@ function composeBillingSummary({
   )
 
   return {
-    ...mockBillingSummary,
+    plans: mockBillingSummary.plans,
+    subscription: toSubscription(subscription),
+    billingMethod: toBillingMethod(paymentMethod),
     creditOptions,
     creditBatches,
     history: toCreditHistory(transactions.transactions, creditBatches),
+  }
+}
+
+async function fetchActivePaymentMethod() {
+  try {
+    const response = await axiosInstance.get<
+      ApiResponse<PaymentMethodResponse>
+    >('/payment-methods/active')
+    return response.data.responseDto
+  } catch (error) {
+    if (
+      isAxiosError<ApiResponse<never>>(error) &&
+      error.response?.data.error?.code === 'PAYMENT_METHOD_404'
+    ) {
+      return null
+    }
+    throw error
   }
 }
 
@@ -264,67 +398,123 @@ async function waitForCreditPurchase(orderId: number) {
 }
 
 export async function fetchBillingSummary(): Promise<BillingSummary> {
-  const [creditsResponse, productsResponse, transactionsResponse] =
-    await Promise.all([
-      axiosInstance.get<ApiResponse<GetUserCreditsResponse>>('/credits'),
-      axiosInstance.get<ApiResponse<GetCreditProductsResponse>>(
-        '/credit-products'
-      ),
-      axiosInstance.get<ApiResponse<GetCreditTransactionsResponse>>(
-        '/credits/transactions'
-      ),
-    ])
+  const [
+    creditsResponse,
+    productsResponse,
+    transactionsResponse,
+    subscriptionResponse,
+    paymentMethod,
+  ] = await Promise.all([
+    axiosInstance.get<ApiResponse<GetUserCreditsResponse>>('/credits'),
+    axiosInstance.get<ApiResponse<GetCreditProductsResponse>>(
+      '/credit-products'
+    ),
+    axiosInstance.get<ApiResponse<GetCreditTransactionsResponse>>(
+      '/credits/transactions'
+    ),
+    axiosInstance.get<ApiResponse<SubscriptionOverviewResponse>>(
+      '/subscriptions/me'
+    ),
+    fetchActivePaymentMethod(),
+  ])
 
   return composeBillingSummary({
     credits: creditsResponse.data.responseDto,
     products: productsResponse.data.responseDto,
     transactions: transactionsResponse.data.responseDto,
+    subscription: subscriptionResponse.data.responseDto,
+    paymentMethod,
   })
+}
+
+async function waitForSubscriptionPayment(orderId: number) {
+  for (
+    let attempt = 0;
+    attempt < SUBSCRIPTION_PAYMENT_MAX_POLL_COUNT;
+    attempt += 1
+  ) {
+    const response = await axiosInstance.get<
+      ApiResponse<SubscriptionPaymentStatusResponse>
+    >(`/subscriptions/orders/${orderId}/payment-status`)
+    const status = response.data.responseDto
+
+    if (status.paymentStatus === 'PAID' && status.viewStatus === 'ACTIVE') {
+      return status
+    }
+    if (
+      status.paymentStatus === 'FAILED' ||
+      status.viewStatus === 'PAYMENT_FAILED' ||
+      status.viewStatus === 'PAST_DUE'
+    ) {
+      throw new Error('구독 결제에 실패했습니다. 결제수단을 확인해주세요.')
+    }
+    if (attempt < SUBSCRIPTION_PAYMENT_MAX_POLL_COUNT - 1) {
+      await delay(CREDIT_PURCHASE_POLL_INTERVAL_MS)
+    }
+  }
+
+  throw new Error(
+    '구독 결제 확인이 지연되고 있습니다. 잠시 후 다시 확인해주세요.'
+  )
 }
 
 export async function startSubscription(
   request: IdempotentMutation<StartSubscriptionPayload>
 ): Promise<BillingSummary> {
-  const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    '/billing/subscription',
+  const response = await axiosInstance.post<
+    ApiResponse<SubscriptionPaymentResponse>
+  >(
+    '/subscriptions',
     request.payload,
     idempotencyHeaders(request.idempotencyKey)
   )
-  return response.data.responseDto
+  await waitForSubscriptionPayment(response.data.responseDto.orderId)
+  return fetchBillingSummary()
 }
 
 export async function cancelSubscription(
   payload: CancelSubscriptionPayload
 ): Promise<BillingSummary> {
-  const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    '/billing/subscription/cancel',
-    payload
-  )
-  return response.data.responseDto
+  if (!payload.reason.trim()) {
+    throw new Error('해지 사유를 선택해주세요.')
+  }
+  await axiosInstance.patch<ApiResponse<null>>('/subscriptions/me', {
+    cancelAtPeriodEnd: true,
+  })
+  return fetchBillingSummary()
 }
 
-export async function retrySubscriptionPayment(): Promise<BillingSummary> {
-  const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    '/billing/subscription/retry'
-  )
-  return response.data.responseDto
+export async function resumeSubscription(): Promise<BillingSummary> {
+  await axiosInstance.patch<ApiResponse<null>>('/subscriptions/me', {
+    cancelAtPeriodEnd: false,
+  })
+  return fetchBillingSummary()
 }
 
 export async function registerBillingMethod(
   request: IdempotentMutation<RegisterBillingMethodPayload>
 ): Promise<BillingSummary> {
-  const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    '/billing/method',
+  await axiosInstance.post<ApiResponse<PaymentMethodResponse>>(
+    '/payment-methods',
     request.payload,
     idempotencyHeaders(request.idempotencyKey)
   )
-  return response.data.responseDto
+  return fetchBillingSummary()
+}
+
+export async function changeBillingMethod(
+  payload: RegisterBillingMethodPayload
+): Promise<BillingSummary> {
+  await axiosInstance.patch<ApiResponse<PaymentMethodResponse>>(
+    '/payment-methods/active',
+    payload
+  )
+  return fetchBillingSummary()
 }
 
 export async function deleteBillingMethod(): Promise<BillingSummary> {
-  const response =
-    await axiosInstance.delete<ApiResponse<BillingSummary>>('/billing/method')
-  return response.data.responseDto
+  await axiosInstance.delete<ApiResponse<null>>('/payment-methods/active')
+  return fetchBillingSummary()
 }
 
 export async function purchaseCredits(
@@ -354,13 +544,4 @@ export async function extendCreditBatch(
   >(`/credits/${payload.batchId}/extension`)
 
   return fetchBillingSummary()
-}
-
-export async function refundCreditBatch(
-  payload: CreditBatchActionPayload
-): Promise<BillingSummary> {
-  const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
-    `/billing/credits/${payload.batchId}/refund`
-  )
-  return response.data.responseDto
 }

@@ -3,13 +3,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/shared/api/authStore'
 import {
   cancelSubscription,
+  changeBillingMethod,
   deleteBillingMethod,
   extendCreditBatch,
   fetchBillingSummary,
   purchaseCredits,
   registerBillingMethod,
-  refundCreditBatch,
-  retrySubscriptionPayment,
+  resumeSubscription,
   startSubscription,
 } from '../api/billingApi'
 import type { BillingSummary } from '../types'
@@ -55,12 +55,16 @@ export function useCancelSubscription() {
   return useBillingMutation(cancelSubscription)
 }
 
-export function useRetrySubscriptionPayment() {
-  return useBillingMutation(() => retrySubscriptionPayment())
+export function useResumeSubscription() {
+  return useBillingMutation(() => resumeSubscription())
 }
 
 export function useRegisterBillingMethod() {
   return useBillingMutation(registerBillingMethod)
+}
+
+export function useChangeBillingMethod() {
+  return useBillingMutation(changeBillingMethod)
 }
 
 export function useDeleteBillingMethod() {
@@ -73,8 +77,4 @@ export function usePurchaseCredits() {
 
 export function useExtendCreditBatch() {
   return useBillingMutation(extendCreditBatch)
-}
-
-export function useRefundCreditBatch() {
-  return useBillingMutation(refundCreditBatch)
 }

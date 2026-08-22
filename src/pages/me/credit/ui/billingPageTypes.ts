@@ -29,6 +29,5 @@ export type ModalState =
   | { type: 'billingDeleted'; last4: string | null }
   | { type: 'creditPurchase' }
   | { type: 'creditExtend'; batch: CreditBatch }
-  | { type: 'creditRefund'; batch: CreditBatch }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | null

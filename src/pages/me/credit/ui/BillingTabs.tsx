@@ -8,6 +8,7 @@ import {
   formatWon,
   getNearestExpiryDate,
   getTotalCredits,
+  useResumeSubscription,
   type BillingHistoryItem,
   type BillingHistoryStatus,
   type BillingPlan,
@@ -77,7 +78,7 @@ function PlanCard({
       </div>
       <Button
         type='button'
-        color={plan.code === 'PRO_EARLY_BIRD' ? 'primary' : 'gray'}
+        color={plan.code === 'EARLY_BIRD' ? 'primary' : 'gray'}
         size='lg'
         variant='filled'
         disabled={disabled}
@@ -97,7 +98,9 @@ export function SubscriptionTab({
   onOpenModal: (modal: ModalState) => void
 }) {
   const { subscription, plans } = summary
+  const resumeSubscriptionMutation = useResumeSubscription()
   const isSubscribed =
+    subscription.status === 'paymentPending' ||
     subscription.status === 'active' ||
     subscription.status === 'cancelScheduled' ||
     subscription.status === 'paymentFailed'
@@ -140,6 +143,7 @@ export function SubscriptionTab({
 
   const subscriptionStatus = {
     none: { label: '미구독', tone: 'neutral' as const },
+    paymentPending: { label: '결제 확인 중', tone: 'info' as const },
     active: { label: '구독중', tone: 'success' as const },
     cancelScheduled: { label: '해지 예약', tone: 'success' as const },
     paymentFailed: { label: '결제 실패', tone: 'error' as const },
@@ -147,22 +151,23 @@ export function SubscriptionTab({
 
   return (
     <div className='flex flex-col gap-24'>
-      {subscription.status === 'active' && (
-        <SectionCard className='border border-[rgba(36,115,230,0.08)] bg-[rgba(36,115,230,0.08)] p-24'>
-          <div className='flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-32'>
-            <StatusBadge tone='info'>안내</StatusBadge>
-            <div className='flex min-w-0 flex-col gap-4'>
-              <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
-                얼리버드 구독이 유지 중입니다.
-              </h3>
-              <p className='text-noto-body-xs-normal text-pretty text-text-and-icon-secondary'>
-                다음 결제일까지 이용 가능하며, 해지 후 재가입하면 정상가가
-                적용됩니다.
-              </p>
+      {subscription.status === 'active' &&
+        subscription.planCode === 'EARLY_BIRD' && (
+          <SectionCard className='border border-[rgba(36,115,230,0.08)] bg-[rgba(36,115,230,0.08)] p-24'>
+            <div className='flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-32'>
+              <StatusBadge tone='info'>안내</StatusBadge>
+              <div className='flex min-w-0 flex-col gap-4'>
+                <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+                  얼리버드 구독이 유지 중입니다.
+                </h3>
+                <p className='text-noto-body-xs-normal text-pretty text-text-and-icon-secondary'>
+                  다음 결제일까지 이용 가능하며, 해지 후 재가입하면 정상가가
+                  적용됩니다.
+                </p>
+              </div>
             </div>
-          </div>
-        </SectionCard>
-      )}
+          </SectionCard>
+        )}
       {subscription.status === 'paymentFailed' && (
         <SectionCard className='border border-feedback-error bg-[rgba(224,47,82,0.05)]'>
           <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
@@ -192,17 +197,40 @@ export function SubscriptionTab({
       )}
       {subscription.status === 'cancelScheduled' && (
         <SectionCard className='border border-[#E9B949] bg-[#FFF9E8]'>
-          <div className='flex flex-col gap-8'>
-            <div className='flex items-center gap-8'>
-              <StatusBadge tone='warning'>확인 필요</StatusBadge>
-              <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
-                구독 해지가 예약되어 있습니다.
-              </h3>
+          <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
+            <div className='flex flex-col gap-8'>
+              <div className='flex items-center gap-8'>
+                <StatusBadge tone='warning'>확인 필요</StatusBadge>
+                <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+                  구독 해지가 예약되어 있습니다.
+                </h3>
+              </div>
+              <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+                {formatDate(subscription.cancelScheduledDate)}까지 이용
+                가능하며, 그 전에는 해지를 철회할 수 있습니다.
+              </p>
             </div>
-            <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-              {formatDate(subscription.cancelScheduledDate)}까지 이용 가능하며,
-              그 전에는 결제를 철회할 수 있습니다.
-            </p>
+            <Button
+              type='button'
+              color='gray'
+              size='md'
+              variant='filled'
+              disabled={resumeSubscriptionMutation.isPending}
+              onClick={async () => {
+                try {
+                  await resumeSubscriptionMutation.mutateAsync()
+                  toast.success('구독 해지 예약을 철회했습니다.')
+                } catch {
+                  toast.error(
+                    '해지 철회에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                  )
+                }
+              }}
+              className='h-44 w-full sm:w-auto'>
+              {resumeSubscriptionMutation.isPending
+                ? '처리 중…'
+                : '해지 철회하기'}
+            </Button>
           </div>
         </SectionCard>
       )}
@@ -221,7 +249,7 @@ export function SubscriptionTab({
         <MetricCard
           label='다음 결제일'
           value={formatDate(subscription.nextPaymentDate)}
-          suffix='자동결제'
+          suffix={subscription.nextPaymentDate ? '자동결제' : undefined}
           suffixTone='info'
         />
         <MetricCard
@@ -448,8 +476,7 @@ export function CreditTab({
                     color='gray'
                     size='xs'
                     variant='filled'
-                    disabled={!batch.refundable || !!batch.refundedAt}
-                    onClick={() => onOpenModal({ type: 'creditRefund', batch })}
+                    disabled
                     className='h-28 w-full'>
                     {getCreditRefundLabel(batch)}
                   </Button>

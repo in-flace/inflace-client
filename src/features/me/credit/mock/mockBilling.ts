@@ -13,7 +13,7 @@ export const mockBillingSummary: BillingSummary = {
       ],
     },
     {
-      code: 'PRO_EARLY_BIRD',
+      code: 'EARLY_BIRD',
       name: 'PRO 얼리버드',
       price: 9900,
       originalPrice: 29000,

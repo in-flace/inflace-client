@@ -8,10 +8,10 @@ import {
   formatWon,
   issueCardBillingKey,
   useCancelSubscription,
+  useChangeBillingMethod,
   useDeleteBillingMethod,
   useExtendCreditBatch,
   usePurchaseCredits,
-  useRefundCreditBatch,
   useRegisterBillingMethod,
   useStartSubscription,
   type BillingSummary,
@@ -105,10 +105,10 @@ export function BillingModals({
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
+  const changeBillingMethodMutation = useChangeBillingMethod()
   const deleteBillingMethodMutation = useDeleteBillingMethod()
   const purchaseCreditsMutation = usePurchaseCredits()
   const extendCreditBatchMutation = useExtendCreditBatch()
-  const refundCreditBatchMutation = useRefundCreditBatch()
 
   const handleClose = () => {
     setAgreedAutoPay(false)
@@ -403,7 +403,7 @@ export function BillingModals({
                 size='lg'
                 variant='filled'
                 disabled={
-                  registerBillingMethodMutation.isPending ||
+                  changeBillingMethodMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
@@ -412,11 +412,8 @@ export function BillingModals({
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 변경',
                     })
-                    await registerBillingMethodMutation.mutateAsync({
-                      idempotencyKey: getStableIdempotencyKey(
-                        registerBillingMethodIdempotencyKeyRef
-                      ),
-                      payload: { billingKey },
+                    await changeBillingMethodMutation.mutateAsync({
+                      billingKey,
                     })
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
@@ -615,26 +612,6 @@ export function BillingModals({
                 batchId: modal.batch.id,
               })
               toast.success('유효기간 연장이 완료되었습니다.')
-              handleClose()
-            } catch (error) {
-              toast.error(getErrorMessage(error))
-            }
-          }}
-        />
-      )}
-      {modal?.type === 'creditRefund' && (
-        <ConfirmModal
-          title='환불을 신청할까요?'
-          description='사용하지 않은 크레딧 기준으로 환불 요청이 접수됩니다. 실제 환불 금액은 결제 정책에 따라 달라질 수 있습니다.'
-          confirmText='환불 신청'
-          isPending={refundCreditBatchMutation.isPending}
-          onCancel={handleClose}
-          onConfirm={async () => {
-            try {
-              await refundCreditBatchMutation.mutateAsync({
-                batchId: modal.batch.id,
-              })
-              toast.success('환불 신청이 접수되었습니다.')
               handleClose()
             } catch (error) {
               toast.error(getErrorMessage(error))
