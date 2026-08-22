@@ -3,6 +3,7 @@
 import { Sidebar, SidebarContent } from '@/shared/ui/shadcn/sidebar'
 import { NavGroupList } from '@/features/navigation/ui/NavGroupList'
 import { ChannelStatusCard } from '@/features/navigation/ui/ChannelStatusCard'
+import { SupportNavGroup } from '@/features/navigation/ui/SupportNavGroup'
 
 export function AppSidebar() {
   return (
@@ -11,6 +12,8 @@ export function AppSidebar() {
         <ChannelStatusCard />
 
         <NavGroupList />
+
+        <SupportNavGroup />
       </SidebarContent>
     </Sidebar>
   )

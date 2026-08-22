@@ -71,16 +71,21 @@ export const NAV_ITEMS: NavGroup[] = [
   //     },
   //   ],
   // },
-  {
-    id: 5,
-    group: '고객센터',
-    items: [
-      {
-        title: '1:1 문의하기',
-        icon: 'kakao',
-        url: 'https://pf.kakao.com/_KpzSX',
-        external: true,
-      },
-    ],
-  },
 ]
+
+/* 고객센터는 NAV_ITEMS에 넣지 않는다.
+ * 다른 그룹은 위에서부터 순서대로 쌓이지만 이 그룹만 하단에 고정되고
+ * 구분선을 갖는다. 같은 배열에 두면 NavGroupList가 마지막 항목만
+ * 다르게 분기해야 한다. */
+export const SUPPORT_NAV_GROUP: NavGroup = {
+  id: 5,
+  group: '고객센터',
+  items: [
+    {
+      title: '1:1 문의하기',
+      icon: 'kakao',
+      url: 'https://pf.kakao.com/_KpzSX',
+      external: true,
+    },
+  ],
+}
