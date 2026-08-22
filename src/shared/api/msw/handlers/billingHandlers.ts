@@ -229,7 +229,8 @@ export const billingHandlers = [
         creditBatches: currentSummary.creditBatches.map((batch, index) => {
           if (
             getUserCreditId(batch.id, index) !== userCreditId ||
-            !batch.extendable
+            !batch.extendable ||
+            !batch.expiryDate
           ) {
             return batch
           }
@@ -541,7 +542,7 @@ export const billingHandlers = [
       currentSummary = {
         ...currentSummary,
         creditBatches: currentSummary.creditBatches.map((batch) => {
-          if (batch.id !== batchId || !batch.extendable) {
+          if (batch.id !== batchId || !batch.extendable || !batch.expiryDate) {
             return batch
           }
 
