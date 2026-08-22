@@ -41,7 +41,7 @@ export function getExpiringCredits(
   expiryMonthPrefix: string
 ) {
   return batches.reduce((total, batch) => {
-    if (batch.refundedAt || !batch.expiryDate.startsWith(expiryMonthPrefix)) {
+    if (batch.refundedAt || !batch.expiryDate?.startsWith(expiryMonthPrefix)) {
       return total
     }
 
@@ -53,7 +53,11 @@ export function getNearestExpiryDate(batches: CreditBatch[]) {
   let nearest: string | null = null
 
   for (const batch of batches) {
-    if (batch.refundedAt || getRemainingCredits(batch) === 0) {
+    if (
+      batch.refundedAt ||
+      !batch.expiryDate ||
+      getRemainingCredits(batch) === 0
+    ) {
       continue
     }
 

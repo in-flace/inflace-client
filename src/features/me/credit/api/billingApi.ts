@@ -3,8 +3,6 @@ import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
 import type {
   BillingHistoryItem,
-  BillingHistoryStatus,
-  BillingHistoryType,
   BillingSummary,
   CancelSubscriptionPayload,
   CreditBatch,
@@ -80,6 +78,15 @@ interface CreditPurchaseStatusResponse {
 const CREDIT_PURCHASE_POLL_INTERVAL_MS = 1500
 const CREDIT_PURCHASE_MAX_POLL_COUNT = 20
 
+const CREDIT_OPTION_PRESENTATION: Record<
+  string,
+  Pick<CreditPurchaseOption, 'originalPrice' | 'badge'>
+> = {
+  CREDIT_10: { originalPrice: 4600 },
+  CREDIT_30: { originalPrice: 11700, badge: '15% 할인' },
+  CREDIT_100: { originalPrice: 39000, badge: '36% 할인' },
+}
+
 function idempotencyHeaders(idempotencyKey: string) {
   return {
     headers: {
@@ -88,8 +95,12 @@ function idempotencyHeaders(idempotencyKey: string) {
   }
 }
 
-function toDate(value: string | null | undefined) {
-  return value?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)
+function toDate(value: string) {
+  return value.slice(0, 10)
+}
+
+function toNullableDate(value: string | null) {
+  return value ? toDate(value) : null
 }
 
 function delay(ms: number) {
@@ -100,91 +111,66 @@ function findProductForBatch(
   batch: UserCreditBatchDto,
   products: CreditProductDto[]
 ) {
-  return products.find(
-    (product) =>
-      product.name === batch.productName ||
-      product.creditAmount === batch.initialAmount
-  )
+  return products.find((product) => product.name === batch.productName)
 }
 
 function toCreditOptions(products: CreditProductDto[]): CreditPurchaseOption[] {
-  return products.map((product) => ({
-    id: product.code,
-    credits: product.creditAmount,
-    price: product.price,
-    pricePerCredit: product.unitPrice,
-  }))
+  return products.map((product) => {
+    const presentation = CREDIT_OPTION_PRESENTATION[product.code]
+
+    return {
+      id: product.code,
+      credits: product.creditAmount,
+      price: product.price,
+      pricePerCredit: product.unitPrice,
+      ...presentation,
+    }
+  })
 }
 
 function toCreditBatches(
   credits: GetUserCreditsResponse,
-  products: CreditProductDto[]
+  products: CreditProductDto[],
+  transactions: CreditTransactionDto[]
 ): CreditBatch[] {
+  const extensionByBatchId = new Map<number, string>()
+  const refundByBatchId = new Map<number, string>()
+
+  for (const transaction of transactions) {
+    const transactionDate = toDate(transaction.createdAt)
+    if (transaction.transactionType === 'EXTEND') {
+      extensionByBatchId.set(transaction.userCreditId, transactionDate)
+    }
+    if (transaction.transactionType === 'REVOKE') {
+      refundByBatchId.set(transaction.userCreditId, transactionDate)
+    }
+  }
+
   return credits.batches.map((batch) => {
     const product = findProductForBatch(batch, products)
     const isPurchasedCredit = !!product
     const usedCredits = Math.max(batch.initialAmount - batch.remainingAmount, 0)
+    const extendedAt = extensionByBatchId.get(batch.userCreditId) ?? null
+    const refundedAt = refundByBatchId.get(batch.userCreditId) ?? null
 
     return {
       id: String(batch.userCreditId),
       paymentDate: toDate(batch.grantedAt),
-      expiryDate: toDate(batch.expiresAt),
+      expiryDate: toNullableDate(batch.expiresAt),
       type: isPurchasedCredit ? 'purchase' : 'subscription',
       purchasedCredits: batch.initialAmount,
       usedCredits,
       purchaseAmount: product?.price ?? 0,
       extendable:
-        isPurchasedCredit && batch.status === 'ACTIVE' && !!batch.expiresAt,
+        isPurchasedCredit &&
+        batch.status === 'ACTIVE' &&
+        !!batch.expiresAt &&
+        !extendedAt,
       refundable: false,
-      extendedAt: null,
-      refundedAt: null,
+      extendedAt,
+      refundedAt,
     }
   })
-}
-
-function getTransactionHistoryMeta(transactionType: CreditTransactionType): {
-  type: BillingHistoryType
-  status: BillingHistoryStatus
-  title: (amount: number) => string
-} {
-  switch (transactionType) {
-    case 'GRANT':
-      return {
-        type: 'creditPurchase',
-        status: 'paid',
-        title: (amount) => `크레딧 ${Math.abs(amount)}개 적립`,
-      }
-    case 'RESTORE':
-      return {
-        type: 'creditRestore',
-        status: 'completed',
-        title: (amount) => `크레딧 ${Math.abs(amount)}개 복원`,
-      }
-    case 'EXTEND':
-      return {
-        type: 'creditExtension',
-        status: 'completed',
-        title: () => '크레딧 유효기간 연장',
-      }
-    case 'EXPIRE':
-      return {
-        type: 'creditExpiration',
-        status: 'completed',
-        title: (amount) => `크레딧 ${Math.abs(amount)}개 만료`,
-      }
-    case 'REVOKE':
-      return {
-        type: 'creditRefund',
-        status: 'refunded',
-        title: (amount) => `크레딧 ${Math.abs(amount)}개 회수`,
-      }
-    case 'USE':
-      return {
-        type: 'creditUsage',
-        status: 'completed',
-        title: (amount) => `크레딧 ${Math.abs(amount)}개 사용`,
-      }
-  }
 }
 
 function toCreditHistory(
@@ -193,21 +179,31 @@ function toCreditHistory(
 ): BillingHistoryItem[] {
   const batchById = new Map(batches.map((batch) => [batch.id, batch]))
 
-  return transactions.map((transaction) => {
-    const meta = getTransactionHistoryMeta(transaction.transactionType)
+  return transactions.flatMap((transaction) => {
     const batch = batchById.get(String(transaction.userCreditId))
-    const isGrant = transaction.transactionType === 'GRANT'
-
-    return {
-      id: String(transaction.creditTransactionId),
-      date: toDate(transaction.createdAt),
-      title: meta.title(transaction.amount),
-      type: meta.type,
-      amount: isGrant ? (batch?.purchaseAmount ?? 0) : 0,
-      status: meta.status,
-      receiptAvailable: isGrant && !!batch?.purchaseAmount,
-      taxInvoiceAvailable: isGrant && !!batch?.purchaseAmount,
+    if (
+      batch?.type !== 'purchase' ||
+      (transaction.transactionType !== 'GRANT' &&
+        transaction.transactionType !== 'REVOKE')
+    ) {
+      return []
     }
+
+    const isPurchase = transaction.transactionType === 'GRANT'
+    return [
+      {
+        id: String(transaction.creditTransactionId),
+        date: toDate(transaction.createdAt),
+        title: isPurchase
+          ? `${batch.purchasedCredits}크레딧`
+          : '크레딧 구매 환불',
+        type: isPurchase ? 'creditPurchase' : 'creditRefund',
+        amount: isPurchase ? batch.purchaseAmount : -batch.purchaseAmount,
+        status: isPurchase ? 'paid' : 'refunded',
+        receiptAvailable: isPurchase && batch.purchaseAmount > 0,
+        taxInvoiceAvailable: isPurchase && batch.purchaseAmount > 0,
+      } satisfies BillingHistoryItem,
+    ]
   })
 }
 
@@ -221,7 +217,11 @@ function composeBillingSummary({
   transactions: GetCreditTransactionsResponse
 }): BillingSummary {
   const creditOptions = toCreditOptions(products.products)
-  const creditBatches = toCreditBatches(credits, products.products)
+  const creditBatches = toCreditBatches(
+    credits,
+    products.products,
+    transactions.transactions
+  )
 
   return {
     ...mockBillingSummary,
@@ -255,7 +255,9 @@ async function waitForCreditPurchase(orderId: number) {
       throw new Error('크레딧 결제에 실패했습니다. 결제수단을 확인해주세요.')
     }
 
-    await delay(CREDIT_PURCHASE_POLL_INTERVAL_MS)
+    if (attempt < CREDIT_PURCHASE_MAX_POLL_COUNT - 1) {
+      await delay(CREDIT_PURCHASE_POLL_INTERVAL_MS)
+    }
   }
 
   throw new Error('결제 확인이 지연되고 있습니다. 잠시 후 다시 확인해주세요.')

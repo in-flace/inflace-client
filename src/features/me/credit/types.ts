@@ -54,7 +54,7 @@ export interface BillingMethod {
 export interface CreditBatch {
   id: string
   paymentDate: string
-  expiryDate: string
+  expiryDate: string | null
   type: CreditBatchType
   purchasedCredits: number
   usedCredits: number

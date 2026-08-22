@@ -51,6 +51,19 @@ const creditBatches: CreditBatch[] = [
     extendedAt: null,
     refundedAt: null,
   },
+  {
+    id: 'batch-4',
+    paymentDate: '2026-08-04',
+    expiryDate: null,
+    type: 'subscription',
+    purchasedCredits: 1,
+    usedCredits: 0,
+    purchaseAmount: 0,
+    extendable: false,
+    refundable: false,
+    extendedAt: null,
+    refundedAt: null,
+  },
 ]
 
 describe('billingDerived', () => {
@@ -71,7 +84,7 @@ describe('billingDerived', () => {
   it('환불된 배치를 제외하고 남은 크레딧을 계산한다', () => {
     expect(getRemainingCredits(creditBatches[0])).toBe(3)
     expect(getRemainingCredits(creditBatches[1])).toBe(0)
-    expect(getTotalCredits(creditBatches)).toBe(6)
+    expect(getTotalCredits(creditBatches)).toBe(7)
   })
 
   it('지정한 만료 월에 해당하는 크레딧만 합산한다', () => {
