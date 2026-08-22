@@ -9,6 +9,19 @@ import type {
   StartSubscriptionPayload,
 } from '../types'
 
+interface IdempotentMutation<TPayload> {
+  idempotencyKey: string
+  payload: TPayload
+}
+
+function idempotencyHeaders(idempotencyKey: string) {
+  return {
+    headers: {
+      'Idempotency-Key': idempotencyKey,
+    },
+  }
+}
+
 export async function fetchBillingSummary(): Promise<BillingSummary> {
   const response =
     await axiosInstance.get<ApiResponse<BillingSummary>>('/billing/summary')
@@ -16,11 +29,12 @@ export async function fetchBillingSummary(): Promise<BillingSummary> {
 }
 
 export async function startSubscription(
-  payload: StartSubscriptionPayload
+  request: IdempotentMutation<StartSubscriptionPayload>
 ): Promise<BillingSummary> {
   const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
     '/billing/subscription',
-    payload
+    request.payload,
+    idempotencyHeaders(request.idempotencyKey)
   )
   return response.data.responseDto
 }
@@ -43,11 +57,12 @@ export async function retrySubscriptionPayment(): Promise<BillingSummary> {
 }
 
 export async function registerBillingMethod(
-  payload: RegisterBillingMethodPayload
+  request: IdempotentMutation<RegisterBillingMethodPayload>
 ): Promise<BillingSummary> {
   const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
     '/billing/method',
-    payload
+    request.payload,
+    idempotencyHeaders(request.idempotencyKey)
   )
   return response.data.responseDto
 }
@@ -59,11 +74,12 @@ export async function deleteBillingMethod(): Promise<BillingSummary> {
 }
 
 export async function purchaseCredits(
-  payload: PurchaseCreditsPayload
+  request: IdempotentMutation<PurchaseCreditsPayload>
 ): Promise<BillingSummary> {
   const response = await axiosInstance.post<ApiResponse<BillingSummary>>(
     '/billing/credits/purchase',
-    payload
+    request.payload,
+    idempotencyHeaders(request.idempotencyKey)
   )
   return response.data.responseDto
 }

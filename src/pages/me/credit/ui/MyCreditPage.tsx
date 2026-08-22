@@ -1,6 +1,12 @@
 'use client'
 
-import { useEffect, useState, useTransition, type ReactNode } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type ReactNode,
+} from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -765,6 +771,11 @@ function HistoryStatusBadge({ status }: { status: BillingHistoryStatus }) {
   }
 }
 
+function getStableIdempotencyKey(ref: { current: string | null }) {
+  ref.current ??= crypto.randomUUID()
+  return ref.current
+}
+
 function BillingModals({
   modal,
   summary,
@@ -788,6 +799,9 @@ function BillingModals({
     summary.billingMethod.status === 'registered' ? 'registeredCard' : 'oneTime'
   )
   const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
+  const registerBillingMethodIdempotencyKeyRef = useRef<string | null>(null)
+  const startSubscriptionIdempotencyKeyRef = useRef<string | null>(null)
+  const purchaseCreditsIdempotencyKeyRef = useRef<string | null>(null)
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
@@ -800,6 +814,9 @@ function BillingModals({
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
     setCancelReason('사용 빈도가 낮아요')
+    registerBillingMethodIdempotencyKeyRef.current = null
+    startSubscriptionIdempotencyKeyRef.current = null
+    purchaseCreditsIdempotencyKeyRef.current = null
     setPaymentMethod(
       summary.billingMethod.status === 'registered'
         ? 'registeredCard'
@@ -863,11 +880,19 @@ function BillingModals({
                         displayAmount: modal.plan.price,
                       })
                       await registerBillingMethodMutation.mutateAsync({
-                        billingKey,
+                        idempotencyKey: getStableIdempotencyKey(
+                          registerBillingMethodIdempotencyKeyRef
+                        ),
+                        payload: { billingKey },
                       })
                     }
                     await startSubscriptionMutation.mutateAsync({
-                      planCode: modal.plan.code,
+                      idempotencyKey: getStableIdempotencyKey(
+                        startSubscriptionIdempotencyKeyRef
+                      ),
+                      payload: {
+                        planCode: modal.plan.code,
+                      },
                     })
                     toast.success('구독이 시작되었습니다.')
                     handleClose()
@@ -1018,7 +1043,10 @@ function BillingModals({
                       issueName: '인플레이스 결제수단 등록',
                     })
                     await registerBillingMethodMutation.mutateAsync({
-                      billingKey,
+                      idempotencyKey: getStableIdempotencyKey(
+                        registerBillingMethodIdempotencyKeyRef
+                      ),
+                      payload: { billingKey },
                     })
                     onOpenModal({ type: 'billingRegistered' })
                   } catch (error) {
@@ -1152,9 +1180,14 @@ function BillingModals({
                       : null
 
                   await purchaseCreditsMutation.mutateAsync({
-                    optionId: selectedOption.id,
-                    paymentMethod,
-                    paymentId: payment?.paymentId,
+                    idempotencyKey: getStableIdempotencyKey(
+                      purchaseCreditsIdempotencyKeyRef
+                    ),
+                    payload: {
+                      optionId: selectedOption.id,
+                      paymentMethod,
+                      paymentId: payment?.paymentId,
+                    },
                   })
                   toast.success('크레딧 구매가 완료되었습니다.')
                   handleClose()
