@@ -71,9 +71,16 @@ export const NAV_ITEMS: NavGroup[] = [
   //     },
   //   ],
   // },
-  // {
-  //   id: 5,
-  //   group: '지원',
-  //   items: [{ title: '고객센터', icon: 'question', url: '' }],
-  // },
+  {
+    id: 5,
+    group: '고객센터',
+    items: [
+      {
+        title: '1:1 문의하기',
+        icon: 'kakao',
+        url: 'https://pf.kakao.com/_KpzSX',
+        external: true,
+      },
+    ],
+  },
 ]

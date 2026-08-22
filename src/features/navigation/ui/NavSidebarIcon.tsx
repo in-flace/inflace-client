@@ -7,6 +7,7 @@ import IconRising from '@/shared/assets/rising-bold.svg'
 import IconSend from '@/shared/assets/send-bold.svg'
 import IconArticle from '@/shared/assets/article-bold.svg'
 import IconQuestion from '@/shared/assets/question-bold.svg'
+import IconKakao from '@/shared/assets/kakaotalk.svg'
 import IconLock from '@/shared/assets/lock-filled-bold.svg'
 import type {
   IconName,
@@ -26,6 +27,7 @@ const iconMap: Record<
   article: IconArticle,
   message: IconSend,
   question: IconQuestion,
+  kakao: IconKakao,
   lock: IconLock,
 }
 

@@ -34,6 +34,19 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
     }
   }
 
+  const content = (
+    <>
+      {item.icon && (
+        <SidebarIcon
+          name={item.icon}
+          className='shrink-0 [&>path]:fill-current'
+          size={18}
+        />
+      )}
+      <span className='whitespace-nowrap'>{item.title}</span>
+    </>
+  )
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -42,19 +55,24 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
             ? 'bg-btn-primary-outlined-hover text-brand-primary'
             : 'bg-white text-text-and-icon-primary'
         )}>
-        <Link
-          href={item.url}
-          className='flex w-full items-center gap-8'
-          onClick={handleClick}>
-          {item.icon && (
-            <SidebarIcon
-              name={item.icon}
-              className='shrink-0 [&>path]:fill-current'
-              size={18}
-            />
-          )}
-          <span className='whitespace-nowrap'>{item.title}</span>
-        </Link>
+        {/* 외부 링크는 라우팅 대상이 아니라 next/link로 감싸지 않는다.
+         * noreferrer까지 붙여야 새 탭에서 window.opener 접근이 막힌다. */}
+        {item.external ? (
+          <a
+            href={item.url}
+            target='_blank'
+            rel='noopener noreferrer'
+            className='flex w-full items-center gap-8'>
+            {content}
+          </a>
+        ) : (
+          <Link
+            href={item.url}
+            className='flex w-full items-center gap-8'
+            onClick={handleClick}>
+            {content}
+          </Link>
+        )}
       </SidebarMenuButton>
     </SidebarMenuItem>
   )
