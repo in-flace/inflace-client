@@ -30,10 +30,232 @@ function getPlan(planCode: BillingPlanCode) {
   return currentSummary.plans.find((plan) => plan.code === planCode)
 }
 
+function apiResponse<T>(responseDto: T, status = 200) {
+  return HttpResponse.json(
+    {
+      success: true,
+      responseDto,
+      error: null,
+    },
+    { status }
+  )
+}
+
+function creditProductCode(credits: number) {
+  return `CREDIT_${credits}`
+}
+
+function getMockCreditProducts() {
+  return currentSummary.creditOptions.map((option) => ({
+    code: creditProductCode(option.credits),
+    name: `${option.credits}크레딧`,
+    creditAmount: option.credits,
+    price: option.price,
+    unitPrice: option.pricePerCredit,
+    validityDays: 90,
+  }))
+}
+
+function getUserCreditId(batchId: string, index: number) {
+  const numericId = batchId.match(/\d+$/)?.[0]
+  return Number(numericId ?? index + 1)
+}
+
+function getMockUserCredits() {
+  return {
+    totalRemaining: currentSummary.creditBatches.reduce(
+      (total, batch) =>
+        total + Math.max(batch.purchasedCredits - batch.usedCredits, 0),
+      0
+    ),
+    batches: currentSummary.creditBatches.map((batch, index) => ({
+      userCreditId: getUserCreditId(batch.id, index),
+      productName: `${batch.purchasedCredits}크레딧`,
+      initialAmount: batch.purchasedCredits,
+      remainingAmount: Math.max(batch.purchasedCredits - batch.usedCredits, 0),
+      status:
+        batch.usedCredits >= batch.purchasedCredits ? 'EXHAUSTED' : 'ACTIVE',
+      grantedAt: `${batch.paymentDate}T00:00:00`,
+      expiresAt: `${batch.expiryDate}T00:00:00`,
+    })),
+  }
+}
+
+function getMockCreditTransactions() {
+  const transactions = currentSummary.creditBatches.flatMap((batch, index) => {
+    const userCreditId = getUserCreditId(batch.id, index)
+    const baseId = userCreditId * 10
+    const items = [
+      {
+        creditTransactionId: baseId + 1,
+        userCreditId,
+        transactionType: 'GRANT',
+        amount: batch.purchasedCredits,
+        createdAt: `${batch.paymentDate}T00:00:00`,
+      },
+    ]
+
+    if (batch.usedCredits > 0) {
+      items.push({
+        creditTransactionId: baseId + 2,
+        userCreditId,
+        transactionType: 'USE',
+        amount: -batch.usedCredits,
+        createdAt: `${batch.paymentDate}T01:00:00`,
+      })
+    }
+
+    if (batch.extendedAt) {
+      items.push({
+        creditTransactionId: baseId + 3,
+        userCreditId,
+        transactionType: 'EXTEND',
+        amount: 0,
+        createdAt: `${batch.extendedAt}T00:00:00`,
+      })
+    }
+
+    return items
+  })
+
+  return {
+    transactions: transactions.sort((a, b) =>
+      b.createdAt.localeCompare(a.createdAt)
+    ),
+  }
+}
+
 export const billingHandlers = [
   http.get(`${process.env.NEXT_PUBLIC_API_URL}/billing/summary`, () => {
     return jsonResponse()
   }),
+
+  http.get(`${process.env.NEXT_PUBLIC_API_URL}/credits`, () => {
+    return apiResponse(getMockUserCredits())
+  }),
+
+  http.get(`${process.env.NEXT_PUBLIC_API_URL}/credit-products`, () => {
+    return apiResponse({ products: getMockCreditProducts() })
+  }),
+
+  http.get(`${process.env.NEXT_PUBLIC_API_URL}/credits/transactions`, () => {
+    return apiResponse(getMockCreditTransactions())
+  }),
+
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases`,
+    async ({ request }) => {
+      if (!request.headers.get('Idempotency-Key')) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'COMMON_400_IDEMPOTENCY',
+              message: 'Idempotency-Key header is required',
+            },
+          },
+          { status: 400 }
+        )
+      }
+
+      const body = (await request.json()) as { productCode: string }
+      const option = currentSummary.creditOptions.find(
+        (creditOption) =>
+          creditProductCode(creditOption.credits) === body.productCode
+      )
+
+      if (!option) {
+        return HttpResponse.json(
+          {
+            success: false,
+            responseDto: null,
+            error: {
+              code: 'CREDIT_PRODUCT_NOT_FOUND',
+              message: '크레딧 상품을 찾을 수 없습니다.',
+            },
+          },
+          { status: 404 }
+        )
+      }
+
+      const today = new Date()
+      const expiryDate = new Date(today)
+      expiryDate.setDate(expiryDate.getDate() + 90)
+      const orderId = Date.now()
+
+      currentSummary = {
+        ...currentSummary,
+        creditBatches: [
+          {
+            id: String(orderId),
+            paymentDate: today.toISOString().slice(0, 10),
+            expiryDate: expiryDate.toISOString().slice(0, 10),
+            type: 'purchase',
+            purchasedCredits: option.credits,
+            usedCredits: 0,
+            purchaseAmount: option.price,
+            extendable: true,
+            refundable: false,
+            extendedAt: null,
+            refundedAt: null,
+          },
+          ...currentSummary.creditBatches,
+        ],
+      }
+
+      return apiResponse({ orderId, status: 'PENDING' }, 202)
+    }
+  ),
+
+  http.get(
+    `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/:orderId/payment-status`,
+    ({ params }) => {
+      return apiResponse({
+        orderId: Number(params.orderId),
+        orderStatus: 'COMPLETED',
+        paymentStatus: 'PAID',
+      })
+    }
+  ),
+
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/credits/:userCreditId/extension`,
+    ({ params }) => {
+      const userCreditId = Number(params.userCreditId)
+
+      currentSummary = {
+        ...currentSummary,
+        creditBatches: currentSummary.creditBatches.map((batch, index) => {
+          if (
+            getUserCreditId(batch.id, index) !== userCreditId ||
+            !batch.extendable
+          ) {
+            return batch
+          }
+
+          const expiryDate = new Date(batch.expiryDate)
+          expiryDate.setMonth(expiryDate.getMonth() + 3)
+
+          return {
+            ...batch,
+            expiryDate: expiryDate.toISOString().slice(0, 10),
+            extendable: false,
+            extendedAt: new Date().toISOString().slice(0, 10),
+          }
+        }),
+      }
+
+      const target = currentSummary.creditBatches.find(
+        (batch, index) => getUserCreditId(batch.id, index) === userCreditId
+      )
+
+      return apiResponse({
+        userCreditId,
+        expiresAt: `${target?.expiryDate ?? new Date().toISOString().slice(0, 10)}T00:00:00`,
+      })
+    }
+  ),
 
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/billing/subscription`,

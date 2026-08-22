@@ -18,7 +18,6 @@ import {
   getTotalCredits,
   issueCardBillingKey,
   isBillingTab,
-  requestOneTimeCardPayment,
   useBillingSummary,
   useCancelSubscription,
   useDeleteBillingMethod,
@@ -768,6 +767,8 @@ function HistoryStatusBadge({ status }: { status: BillingHistoryStatus }) {
       return <StatusBadge tone='neutral'>환불 완료</StatusBadge>
     case 'scheduled':
       return <StatusBadge tone='info'>예정</StatusBadge>
+    case 'completed':
+      return <StatusBadge tone='neutral'>완료</StatusBadge>
   }
 }
 
@@ -1153,10 +1154,11 @@ function BillingModals({
                   }
                 />
                 <PaymentChoice
+                  disabled
                   selected={paymentMethod === 'oneTime'}
                   onSelect={() => setPaymentMethod('oneTime')}
                   title='다른 결제수단으로 구매'
-                  description='인증결제(1회성 결제창) · 매번 카드 정보 입력'
+                  description='현재 API 명세에 없는 결제 방식입니다.'
                 />
               </div>
             </div>
@@ -1166,19 +1168,14 @@ function BillingModals({
               size='lg'
               variant='filled'
               disabled={
-                purchaseCreditsMutation.isPending || isPaymentWindowPending
+                paymentMethod !== 'registeredCard' ||
+                summary.billingMethod.status !== 'registered' ||
+                purchaseCreditsMutation.isPending ||
+                isPaymentWindowPending
               }
               onClick={async () => {
                 setIsPaymentWindowPending(true)
                 try {
-                  const payment =
-                    paymentMethod === 'oneTime'
-                      ? await requestOneTimeCardPayment({
-                          orderName: `인플레이스 ${selectedOption.credits} 크레딧`,
-                          totalAmount: selectedOption.price,
-                        })
-                      : null
-
                   await purchaseCreditsMutation.mutateAsync({
                     idempotencyKey: getStableIdempotencyKey(
                       purchaseCreditsIdempotencyKeyRef
@@ -1186,7 +1183,6 @@ function BillingModals({
                     payload: {
                       optionId: selectedOption.id,
                       paymentMethod,
-                      paymentId: payment?.paymentId,
                     },
                   })
                   toast.success('크레딧 구매가 완료되었습니다.')

@@ -11,9 +11,16 @@ export type BillingMethodStatus = 'none' | 'registered'
 export type CreditBatchType = 'subscription' | 'purchase'
 
 export type BillingHistoryType =
-  'subscription' | 'creditPurchase' | 'creditRefund'
+  | 'subscription'
+  | 'creditPurchase'
+  | 'creditRefund'
+  | 'creditUsage'
+  | 'creditRestore'
+  | 'creditExtension'
+  | 'creditExpiration'
 
-export type BillingHistoryStatus = 'paid' | 'failed' | 'refunded' | 'scheduled'
+export type BillingHistoryStatus =
+  'paid' | 'failed' | 'refunded' | 'scheduled' | 'completed'
 
 export interface BillingPlan {
   code: BillingPlanCode
