@@ -1,30 +1,38 @@
 'use client'
 
 import { cn } from '@/shared/lib/utils'
-import { useInquiryModal } from '@/features/inquiry'
-import IconQuestion from '@/shared/assets/question-mark-bold.svg'
+import { useInquiryPanel, INQUIRY_PANEL_ID } from '@/features/inquiry'
+import IconFeedback from '@/shared/assets/feedback-bold.svg'
+import IconClose from '@/shared/assets/x-bold.svg'
 
 interface InquiryFloatingButtonProps {
   className?: string
 }
 
+/* 패널이 열리면 X로 바뀐다. 패널 안에 별도 닫기 버튼이 없으므로
+ * 이 버튼이 여는 곳이자 닫는 곳이다(디자인 state=closed / state=open). */
 export function InquiryFloatingButton({
   className,
 }: InquiryFloatingButtonProps) {
-  const open = useInquiryModal((s) => s.open)
+  const isOpen = useInquiryPanel((s) => s.isOpen)
+  const toggle = useInquiryPanel((s) => s.toggle)
+
+  const Icon = isOpen ? IconClose : IconFeedback
 
   return (
     <button
       type='button'
-      onClick={open}
-      aria-label='문의하기'
-      /* ScrollToTopButton도 right-32 bottom-32 z-40을 쓴다(현재는 경쟁사 페이지 전용).
-       * 나중에 두 버튼이 같은 화면에 놓이면 한쪽을 bottom-104로 올려야 한다. */
+      onClick={toggle}
+      aria-label={isOpen ? '피드백 닫기' : '피드백 보내기'}
+      aria-expanded={isOpen}
+      aria-controls={INQUIRY_PANEL_ID}
       className={cn(
-        'fixed right-32 bottom-32 z-40 flex size-56 cursor-pointer items-center justify-center rounded-full bg-brand-primary text-white shadow-lg transition-opacity hover:opacity-90',
+        'fixed right-32 bottom-32 z-40 flex size-56 cursor-pointer items-center justify-center rounded-full bg-brand-tertiary text-white transition-opacity hover:opacity-90',
+        'shadow-[0_4px_8px_0_rgba(14,38,70,0.16)]',
         className
       )}>
-      <IconQuestion className='size-28' />
+      {/* x-bold.svg는 fill이 black으로 박혀 있어 fill-current로 덮어야 흰색이 된다 */}
+      <Icon className='size-24 [&>path]:fill-current' />
     </button>
   )
 }

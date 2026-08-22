@@ -1,6 +1,5 @@
 import { FeatureSection, HeroMain, PlansSection } from '@/widgets/home'
 import { HomeAuthGate } from '@/pages/home/ui/HomeAuthGate'
-import { InquiryFloatingButton, InquiryModal } from '@/widgets/inquiry'
 
 /* 정적 마크업은 서버 컴포넌트로 렌더링되어 LCP/SI에 유리하다.
  * 로그인 여부에 따른 리다이렉트, snap 클래스 토글, 모달 오픈 등
@@ -19,8 +18,6 @@ export default function HomePage() {
           <PlansSection />
         </section>
       </div>
-      <InquiryFloatingButton />
-      <InquiryModal />
     </>
   )
 }

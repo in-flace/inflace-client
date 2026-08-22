@@ -13,6 +13,7 @@ import { AuthInitializer } from '@/features/auth'
 import { LoginModal, YoutubeConnectModal } from '@/widgets/auth'
 import { OnboardingModal } from '@/widgets/onboarding'
 import { GoogleAuthNoticeModal } from '@/widgets/googleAuthNotice'
+import { InquiryWidget } from '@/widgets/inquiry'
 import { GtmPageView } from '@/shared/analytics'
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/shared/config/site'
 
@@ -106,6 +107,7 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
             <YoutubeConnectModal />
             <OnboardingModal />
             <GoogleAuthNoticeModal />
+            <InquiryWidget />
             <div className='flex flex-1'>
               <SidebarStoreProvider>
                 <AppSidebar />

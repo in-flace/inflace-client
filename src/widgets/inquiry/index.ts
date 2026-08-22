@@ -1,2 +1,1 @@
-export { InquiryFloatingButton } from './ui/InquiryFloatingButton'
-export { InquiryModal } from './ui/InquiryModal'
+export { InquiryWidget } from './ui/InquiryWidget'
