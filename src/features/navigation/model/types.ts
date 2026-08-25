@@ -10,6 +10,7 @@ export type IconName =
   | 'article'
   | 'message'
   | 'question'
+  | 'kakao'
   | 'lock'
 
 export interface SidebarIconProps {
@@ -26,6 +27,8 @@ export interface NavItem {
   requiredPlan?: UserPlan
   requiresAuth?: boolean
   requiresChannel?: boolean
+  /* 외부 링크. next/link 대신 새 탭으로 여는 <a>로 렌더링한다. */
+  external?: boolean
 }
 
 export interface NavGroup {
