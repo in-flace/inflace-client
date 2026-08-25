@@ -22,12 +22,19 @@ const PANEL_BOTTOM_RAISED = 'bottom-[17.6rem]'
 
 export function InquiryPanel() {
   const close = useInquiryPanel((s) => s.close)
+  const setSubmitting = useInquiryPanel((s) => s.setSubmitting)
   const isScrollTopVisible = useScrollToTopVisible((s) => s.isVisible)
 
   const [content, setContent] = useState('')
+  /* isError가 아니라 이 값으로 실패 화면을 그린다.
+   * mutate를 다시 호출하면 react-query가 상태를 pending으로 되돌려
+   * isError가 즉시 false가 된다. 그대로 두면 재시도를 누르는 순간
+   * 제목과 버튼이 최초 폼으로 돌아갔다가 다시 실패로 돌아온다.
+   * 한 번 실패한 뒤로는 성공할 때까지 실패 화면을 유지해야 한다. */
+  const [hasFailed, setHasFailed] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const { mutate, isPending, isSuccess, isError } = useSubmitInquiry()
+  const { mutate, isPending, isSuccess } = useSubmitInquiry()
 
   const trimmed = content.trim()
   const canSubmit = trimmed.length > 0 && !isPending
@@ -46,18 +53,31 @@ export function InquiryPanel() {
   }, [isSuccess, close])
 
   /* ESC로 닫는다. 바깥 클릭으로는 닫지 않는다 —
-   * 작성 중인 내용이 클릭 한 번에 날아가는 편이 더 나쁘다. */
+   * 작성 중인 내용이 클릭 한 번에 날아가는 편이 더 나쁘다.
+   * 전송 중인지는 close가 알아서 판단한다. */
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape' && !isPending) close()
+      if (e.key === 'Escape') close()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [close, isPending])
+  }, [close])
+
+  /* 언마운트되면 전송 중 표시를 반드시 내린다.
+   * 남겨두면 진입점 버튼이 영영 비활성으로 굳는다. */
+  useEffect(() => () => setSubmitting(false), [setSubmitting])
 
   function handleSubmit() {
     if (!canSubmit) return
-    mutate({ content: trimmed })
+
+    setSubmitting(true)
+    mutate(
+      { content: trimmed },
+      {
+        onError: () => setHasFailed(true),
+        onSettled: () => setSubmitting(false),
+      }
+    )
   }
 
   return (
@@ -79,12 +99,12 @@ export function InquiryPanel() {
         <>
           <PanelHeader
             title={
-              isError
+              hasFailed
                 ? '전송에 실패했습니다'
                 : '사용 중 불편한 점이 생기셨나요?'
             }
             description={
-              isError
+              hasFailed
                 ? '다시 보내기 버튼을 눌러 다시 시도해주세요.'
                 : '피드백은 익명으로 접수됩니다.'
             }
@@ -105,7 +125,7 @@ export function InquiryPanel() {
             )}
           />
 
-          {isError ? (
+          {hasFailed ? (
             <>
               <Button
                 type='button'

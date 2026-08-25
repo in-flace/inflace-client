@@ -17,6 +17,7 @@ export function InquiryFloatingButton({
 }: InquiryFloatingButtonProps) {
   const isOpen = useInquiryPanel((s) => s.isOpen)
   const toggle = useInquiryPanel((s) => s.toggle)
+  const isSubmitting = useInquiryPanel((s) => s.isSubmitting)
   const isScrollTopVisible = useScrollToTopVisible((s) => s.isVisible)
 
   const Icon = isOpen ? IconClose : IconFeedback
@@ -25,13 +26,16 @@ export function InquiryFloatingButton({
     <button
       type='button'
       onClick={toggle}
+      /* 전송 중에는 닫을 수 없다(toggle이 막는다). 눌러도 반응이 없으면
+       * 고장으로 보이므로 버튼도 같이 비활성으로 보여준다. */
+      disabled={isSubmitting}
       aria-label={isOpen ? '피드백 닫기' : '피드백 보내기'}
       aria-expanded={isOpen}
       aria-controls={INQUIRY_PANEL_ID}
       /* 평소에는 코너에 있다가, 맨 위로 버튼이 나타나면 그 위(32 + 56 + 16)로
        * 비켜선다. 항상 올라가 있으면 버튼 아래가 빈 채로 남아 어색하다. */
       className={cn(
-        'fixed right-32 z-40 flex size-56 cursor-pointer items-center justify-center rounded-full bg-brand-tertiary text-white transition-[bottom,opacity] hover:opacity-90',
+        'fixed right-32 z-40 flex size-56 cursor-pointer items-center justify-center rounded-full bg-brand-tertiary text-white transition-[bottom,opacity] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60',
         isScrollTopVisible ? 'bottom-[10.4rem]' : 'bottom-32',
         'shadow-[0_4px_8px_0_rgba(14,38,70,0.16)]',
         className
