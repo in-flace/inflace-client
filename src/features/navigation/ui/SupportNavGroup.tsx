@@ -13,7 +13,7 @@ import { NavMenuItem } from './NavMenuItem'
  * mt-auto가 위 그룹들과의 남는 공간을 모두 차지해 아래로 밀어낸다. */
 export function SupportNavGroup() {
   return (
-    <SidebarGroup className='mt-auto border-t border-stroke-divider pt-16 pb-16'>
+    <SidebarGroup className='mt-auto border-t border-stroke-divider pt-16'>
       <SidebarGroupLabel>{SUPPORT_NAV_GROUP.group}</SidebarGroupLabel>
       <SidebarMenu>
         {SUPPORT_NAV_GROUP.items.map((item) => (
