@@ -51,6 +51,7 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
     <SidebarMenuItem>
       <SidebarMenuButton
         className={cn(
+          'h-[3.6rem] rounded-8 px-[1.2rem] py-0',
           isActive
             ? 'bg-btn-primary-outlined-hover text-brand-primary'
             : 'bg-white text-text-and-icon-primary'
@@ -62,13 +63,13 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
             href={item.url}
             target='_blank'
             rel='noopener noreferrer'
-            className='flex w-full items-center gap-8'>
+            className='flex h-full w-full items-center gap-8'>
             {content}
           </a>
         ) : (
           <Link
             href={item.url}
-            className='flex w-full items-center gap-8'
+            className='flex h-full w-full items-center gap-8'
             onClick={handleClick}>
             {content}
           </Link>

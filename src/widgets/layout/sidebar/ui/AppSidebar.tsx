@@ -8,7 +8,7 @@ import { SupportNavGroup } from '@/features/navigation/ui/SupportNavGroup'
 export function AppSidebar() {
   return (
     <Sidebar>
-      <SidebarContent className='mt-header-height size-fit w-full flex-col items-center gap-16 overscroll-contain'>
+      <SidebarContent className='mt-header-height w-full flex-col items-stretch gap-20 overscroll-contain px-16 py-16'>
         <ChannelStatusCard />
 
         <NavGroupList />
