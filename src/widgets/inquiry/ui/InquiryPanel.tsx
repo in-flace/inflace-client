@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/shared/ui/button'
+import { useScrollToTopVisible } from '@/shared/ui/scroll-to-top'
 import { cn } from '@/shared/lib/utils'
 import {
   useInquiryPanel,
@@ -14,11 +15,14 @@ import {
 
 const TITLE_ID = 'inquiry-panel-title'
 
-/* 진입점 버튼(56px) 바로 위에 붙는다. 32(버튼 하단 여백) + 56(버튼) + 16(간격). */
+/* 진입점 버튼 바로 위에 붙는다. 버튼이 비켜서면 패널도 같이 따라 올라가야
+ * 간격이 유지된다. 32 + 56(버튼) + 16 = 104, 맨 위로 버튼이 끼면 +72. */
 const PANEL_BOTTOM = 'bottom-[10.4rem]'
+const PANEL_BOTTOM_RAISED = 'bottom-[17.6rem]'
 
 export function InquiryPanel() {
   const close = useInquiryPanel((s) => s.close)
+  const isScrollTopVisible = useScrollToTopVisible((s) => s.isVisible)
 
   const [content, setContent] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -62,9 +66,9 @@ export function InquiryPanel() {
       role='dialog'
       aria-labelledby={TITLE_ID}
       className={cn(
-        'fixed right-32 z-40 flex w-[36rem] flex-col rounded-16 border border-stroke-border-gray-default bg-white p-24',
+        'fixed right-32 z-40 flex w-[36rem] flex-col rounded-16 border border-stroke-border-gray-default bg-white p-24 transition-[bottom]',
         'shadow-[0_4px_8px_0_rgba(14,38,70,0.16)]',
-        PANEL_BOTTOM
+        isScrollTopVisible ? PANEL_BOTTOM_RAISED : PANEL_BOTTOM
       )}>
       {isSuccess ? (
         <PanelHeader
