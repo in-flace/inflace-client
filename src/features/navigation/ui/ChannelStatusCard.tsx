@@ -80,7 +80,11 @@ export const ChannelStatusCard = () => {
         <span className='text-noto-label-sm-normal text-text-and-icon-default'>
           채널 미연동
         </span>
-        <Button color='primary' variant='filled' size='xs' onClick={openModal}>
+        <Button
+          color='primary'
+          variant='filled'
+          size='xs'
+          onClick={() => openModal('channel_status')}>
           연동하기
         </Button>
       </div>

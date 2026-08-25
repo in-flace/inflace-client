@@ -18,6 +18,7 @@ import {
   EngagementRateDropdown,
   UPLOAD_PERIOD_OPTIONS,
   OUTLIER_RANGE_OPTIONS,
+  SERVER_FILTER_DEFAULTS,
 } from '@/features/influencer'
 import type { YoutubeCategory } from '@/entities/youtubeCategory'
 
@@ -39,7 +40,8 @@ function deriveCategoryOutput(
   categoryIds: number[],
   categories: YoutubeCategory[]
 ): string {
-  if (categoryIds.length === 0) return '전체'
+  /* 미선택이어도 서버가 기본 카테고리로 좁힌다. '전체'라고 쓰면 거짓말이 된다. */
+  if (categoryIds.length === 0) return '기본 카테고리'
   const labels = categories
     .filter((c) => categoryIds.includes(c.id))
     .map((c) => c.title)
@@ -48,12 +50,10 @@ function deriveCategoryOutput(
     : `${labels[0]} 외 ${labels.length - 1}`
 }
 
-function deriveUploadPeriodOutput(values: string[]): string {
-  if (values.length === 0) return '전체'
-  const labels = values.map((v) => UPLOAD_PERIOD_LABELS[v] ?? v)
-  return labels.length === 1
-    ? labels[0]
-    : `${labels[0]} 외 ${labels.length - 1}`
+/* 서버 스펙상 uploadPeriod는 값 하나만 받는다. 다중 선택 표기가 필요 없다. */
+function deriveUploadPeriodOutput(value: string): string {
+  if (!value) return '전체'
+  return UPLOAD_PERIOD_LABELS[value] ?? value
 }
 
 function deriveSubscriberOutput(from: string, to: string): string {
@@ -61,9 +61,12 @@ function deriveSubscriberOutput(from: string, to: string): string {
   return `${from || '0'}명 ~ ${to || ''}명`
 }
 
+/* 비워두면 '전체'가 아니라 서버 기본값(2~3%)이 걸린다.
+ * 실제로 적용되는 값을 그대로 보여준다. */
 function deriveEngagementRateOutput(from: string, to: string): string {
-  if (!from && !to) return '전체'
-  return `${from || '0'}% ~ ${to || ''}%`
+  return `${from || SERVER_FILTER_DEFAULTS.engagementRateFrom}% ~ ${
+    to || SERVER_FILTER_DEFAULTS.engagementRateTo
+  }%`
 }
 
 function deriveHasAdHistoryOutput(value: string): string {
@@ -89,12 +92,13 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
   const categoryIds = searchParams.getAll('categoryIds').map(Number)
   const subscriberFrom = searchParams.get('subscriberFrom') ?? ''
   const subscriberTo = searchParams.get('subscriberTo') ?? ''
-  const uploadPeriodValues = (searchParams.get('uploadPeriod') ?? '')
-    .split(',')
-    .filter(Boolean)
+  const uploadPeriodValue = searchParams.get('uploadPeriod') ?? ''
   const hasAdHistoryValue = searchParams.get('hasAdHistory') ?? 'true'
-  const engagementRateFrom = searchParams.get('engagementRateFrom') ?? ''
-  const engagementRateTo = searchParams.get('engagementRateTo') ?? ''
+  /* URL에 실제로 있는 값과, 서버가 적용하는 값을 구분한다.
+   * 드롭다운에는 원본을 넘겨야 한다 — 기본값을 넣으면 입력 모드로 인식되어
+   * 프리셋 선택이 통째로 막힌다. */
+  const engagementRateFromParam = searchParams.get('engagementRateFrom') ?? ''
+  const engagementRateToParam = searchParams.get('engagementRateTo') ?? ''
   const outlierRangeValue = searchParams.get('outlierRange') ?? ''
 
   const [query, setQuery] = useState(searchParams.get('channelName') ?? '')
@@ -227,16 +231,17 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
 
           <DropdownTrigger
             label='업로드 주기'
-            output={deriveUploadPeriodOutput(uploadPeriodValues)}
-            isModified={uploadPeriodValues.length > 0}
-            onReset={() => updateUrl((params) => params.delete('uploadPeriod'))}>
+            output={deriveUploadPeriodOutput(uploadPeriodValue)}
+            isModified={!!uploadPeriodValue}
+            onReset={() =>
+              updateUrl((params) => params.delete('uploadPeriod'))
+            }>
             {(onClose) => (
               <UploadPeriodDropdown
-                defaultValue={uploadPeriodValues}
-                onChange={(_, values) => {
+                defaultValue={uploadPeriodValue}
+                onChange={(_, value) => {
                   updateUrl((params) => {
-                    if (values.length)
-                      params.set('uploadPeriod', values.join(','))
+                    if (value) params.set('uploadPeriod', value)
                     else params.delete('uploadPeriod')
                   })
                   onClose()
@@ -249,7 +254,9 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             label='광고 이력'
             output={deriveHasAdHistoryOutput(hasAdHistoryValue)}
             isModified={hasAdHistoryValue !== 'true'}
-            onReset={() => updateUrl((params) => params.delete('hasAdHistory'))}>
+            onReset={() =>
+              updateUrl((params) => params.delete('hasAdHistory'))
+            }>
             {(onClose) => (
               <HasAdHistoryDropdown
                 defaultValue={hasAdHistoryValue}
@@ -267,10 +274,12 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
           <DropdownTrigger
             label='참여율'
             output={deriveEngagementRateOutput(
-              engagementRateFrom,
-              engagementRateTo
+              engagementRateFromParam,
+              engagementRateToParam
             )}
-            isModified={Boolean(engagementRateFrom || engagementRateTo)}
+            isModified={Boolean(
+              engagementRateFromParam || engagementRateToParam
+            )}
             onReset={() =>
               updateUrl((params) => {
                 params.delete('engagementRateFrom')
@@ -279,8 +288,8 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             }>
             {(onClose) => (
               <EngagementRateDropdown
-                defaultFrom={engagementRateFrom}
-                defaultTo={engagementRateTo}
+                defaultFrom={engagementRateFromParam}
+                defaultTo={engagementRateToParam}
                 onChange={(_, { from, to }) => {
                   updateUrl((params) => {
                     if (from) params.set('engagementRateFrom', from)
@@ -298,7 +307,9 @@ function InfluencerFilterInner({ categories }: InfluencerFilterProps) {
             label='Outlier 배수'
             output={OUTLIER_RANGE_LABELS[outlierRangeValue] ?? '전체'}
             isModified={Boolean(outlierRangeValue)}
-            onReset={() => updateUrl((params) => params.delete('outlierRange'))}>
+            onReset={() =>
+              updateUrl((params) => params.delete('outlierRange'))
+            }>
             {(onClose) => (
               <OutlierRangeDropdown
                 defaultValue={outlierRangeValue}

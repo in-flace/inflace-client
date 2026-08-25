@@ -1,5 +1,4 @@
-// 젝트 광고 기간 동안 가격 정책 노출 중단 — PlansSection 임시 주석 처리
-import { FeatureSection, HeroMain /*, PlansSection */ } from '@/widgets/home'
+import { FeatureSection, HeroMain, PlansSection } from '@/widgets/home'
 import { HomeAuthGate } from '@/pages/home/ui/HomeAuthGate'
 
 /* 정적 마크업은 서버 컴포넌트로 렌더링되어 LCP/SI에 유리하다.
@@ -15,11 +14,9 @@ export default function HomePage() {
         <section className='mx-auto grid w-full max-w-[144rem] grid-cols-1 gap-20 px-20 py-40 sm:px-32 md:grid-cols-2 md:gap-24 md:py-56 lg:grid-cols-3 lg:px-40 xl:px-64'>
           <FeatureSection />
         </section>
-        {/* 젝트 광고 기간 동안 가격 섹션 노출 중단
         <section className='px-md py-56'>
           <PlansSection />
         </section>
-        */}
       </div>
     </>
   )

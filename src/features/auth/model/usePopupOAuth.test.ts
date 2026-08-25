@@ -5,7 +5,14 @@ import { useAuthStore } from '@/shared/api'
 import { useLoginModal } from './useLoginModal'
 import { usePopupOAuth } from './usePopupOAuth'
 
-const CONFIG = { apiPath: '/auth/google', popupName: 'google-login' }
+/* 계측은 별도 테스트에서 다룬다. 여기서는 팝업 동작만 본다. */
+vi.mock('@/shared/analytics', () => ({ trackEvent: vi.fn() }))
+
+const CONFIG = {
+  apiPath: '/auth/google',
+  popupName: 'google-login',
+  provider: 'google',
+} as const
 
 const mockPopup = {
   closed: false,
@@ -135,7 +142,11 @@ describe('usePopupOAuth', () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           origin: 'https://evil.example.com',
-          data: { type: 'AUTH_SUCCESS', accessToken: 'stolen-token', user: null },
+          data: {
+            type: 'AUTH_SUCCESS',
+            accessToken: 'stolen-token',
+            user: null,
+          },
         })
       )
     })

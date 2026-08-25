@@ -23,9 +23,14 @@ export interface InfluencerListResponse {
 
 export interface FetchInfluencersParams {
   cursor?: string | null
-  size?: number
+  /* 서버 스펙상 이름은 pageSize다(미입력 시 9). 이전 이름 size는 서버가 무시했다.
+   * 현재 넘기는 곳은 없고 서버 기본값을 그대로 쓴다. */
+  pageSize?: number
   channelName?: string
   categoryIds?: number[]
+  /* 카테고리 미입력 시 기본 카테고리 필터를 쓸지 여부(미입력 시 true).
+   * 보내지 않으면 서버가 기본 카테고리로 좁힌다. */
+  useDefaultCategories?: string
   subscriberFrom?: string
   subscriberTo?: string
   uploadPeriod?: string
@@ -33,7 +38,6 @@ export interface FetchInfluencersParams {
   engagementRateFrom?: string
   engagementRateTo?: string
   outlierRange?: string
-  language?: string
   sortCriteria?: SortCriteria
   sortOrder?: SortOrder
   bookmarkedOnly?: boolean

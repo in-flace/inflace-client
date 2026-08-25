@@ -3,16 +3,23 @@ import { useState } from 'react'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 
+/* 경계를 비워두면 안 된다. 서버는 미입력을 "무제한"이 아니라 기본값으로 채운다
+ * (engagementRateFrom 2.0 / engagementRateTo 3.0). 그래서 예전의
+ * { from: '5', to: '' }는 서버에서 5~3 구간이 되어 항상 0건이었고,
+ * { from: '', to: '1' }은 2~1이 되어 마찬가지였다.
+ * 양끝을 명시적인 숫자로 둔다. */
+const ENGAGEMENT_RATE_MAX = '100'
+
 const ENGAGEMENT_RATE_OPTIONS: {
   label: string
   from: string
   to: string
 }[] = [
-  { label: '1% 미만', from: '', to: '1' },
+  { label: '1% 미만', from: '0', to: '1' },
   { label: '1% ~ 2%', from: '1', to: '2' },
   { label: '2% ~ 3%', from: '2', to: '3' },
   { label: '3% ~ 5%', from: '3', to: '5' },
-  { label: '5% 이상', from: '5', to: '' },
+  { label: '5% 이상', from: '5', to: ENGAGEMENT_RATE_MAX },
 ]
 
 type SelectedOption = { from: string; to: string }
@@ -68,8 +75,15 @@ function EngagementRateDropdown({
 
   function handleConfirm() {
     if (isInputMode) {
-      const output = from || to ? `${from || '0'}% ~ ${to || ''}%` : '전체'
-      onChange(output, { from, to })
+      /* 한쪽만 입력해도 반대쪽을 비워 보내면 안 된다. 서버가 빈 쪽을 기본값으로
+       * 채우기 때문에 "7% 이상"이 7~3 구간이 되어 결과가 0건이 된다.
+       * 프리셋과 같은 규칙으로 양끝을 채운다. */
+      const normalizedFrom = from || '0'
+      const normalizedTo = to || ENGAGEMENT_RATE_MAX
+      onChange(`${normalizedFrom}% ~ ${normalizedTo}%`, {
+        from: normalizedFrom,
+        to: normalizedTo,
+      })
       return
     }
 

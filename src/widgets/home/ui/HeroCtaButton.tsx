@@ -13,7 +13,7 @@ export function HeroCtaButton({ children }: { children: React.ReactNode }) {
       variant='outlined'
       rightIcon={<IconArrowRight />}
       className='w-full max-w-[32rem] bg-white [&>span]:size-16 sm:w-fit'
-      onClick={open}>
+      onClick={() => open('hero_cta')}>
       {children}
     </Button>
   )

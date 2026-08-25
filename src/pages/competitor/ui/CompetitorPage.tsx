@@ -121,7 +121,7 @@ export function CompetitorPage() {
   /* 초기화 중 클릭은 통과 — 미로그인이면 axiosInstance의 401 인터셉터가 모달을 띄운다 */
   function blockIfGuest() {
     if (isInitializing || isLoggedIn) return false
-    openLoginModal()
+    openLoginModal('competitor_gate')
     return true
   }
 

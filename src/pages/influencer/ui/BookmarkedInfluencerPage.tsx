@@ -2,7 +2,12 @@
 
 import dynamic from 'next/dynamic'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { InfluencerList, useInfluencers, SORT_OPTIONS } from '@/features/influencer'
+import {
+  InfluencerList,
+  useInfluencers,
+  SERVER_FILTER_DEFAULTS,
+  SORT_OPTIONS,
+} from '@/features/influencer'
 import { useYoutubeCategories } from '@/entities/youtubeCategory'
 import type { SortCriteria, SortOrder } from '@/entities/influencer'
 import { InfluencerFilter } from '@/widgets/influencer'
@@ -34,16 +39,25 @@ function BookmarkedInfluencerListSection() {
   const filters = {
     channelName: searchParams?.get('channelName') ?? undefined,
     categoryIds: searchParams?.getAll('categoryIds').map(Number) ?? undefined,
+    useDefaultCategories: SERVER_FILTER_DEFAULTS.useDefaultCategories,
     subscriberFrom: searchParams?.get('subscriberFrom') ?? undefined,
     subscriberTo: searchParams?.get('subscriberTo') ?? undefined,
     uploadPeriod: searchParams?.get('uploadPeriod') ?? undefined,
-    hasAdHistory: searchParams?.get('hasAdHistory') ?? undefined,
-    engagementRateFrom: searchParams?.get('engagementRateFrom') ?? undefined,
-    engagementRateTo: searchParams?.get('engagementRateTo') ?? undefined,
+    hasAdHistory:
+      searchParams?.get('hasAdHistory') ?? SERVER_FILTER_DEFAULTS.hasAdHistory,
+    /* 서버 기본값을 그대로 실어 보낸다. 보내지 않아도 서버가 같은 값을 적용하지만,
+     * 화면에 보이는 필터와 실제 요청이 어긋나면 나중에 추적이 어렵다. */
+    engagementRateFrom:
+      searchParams?.get('engagementRateFrom') ??
+      SERVER_FILTER_DEFAULTS.engagementRateFrom,
+    engagementRateTo:
+      searchParams?.get('engagementRateTo') ??
+      SERVER_FILTER_DEFAULTS.engagementRateTo,
     outlierRange: searchParams?.get('outlierRange') ?? undefined,
-    language: searchParams?.get('language') ?? undefined,
-    sortCriteria: (searchParams?.get('sortCriteria') ?? undefined) as SortCriteria | undefined,
-    sortOrder: (searchParams?.get('sortOrder') ?? undefined) as SortOrder | undefined,
+    sortCriteria: (searchParams?.get('sortCriteria') ?? undefined) as
+      SortCriteria | undefined,
+    sortOrder: (searchParams?.get('sortOrder') ?? undefined) as
+      SortOrder | undefined,
     bookmarkedOnly: true,
   }
 
@@ -59,7 +73,10 @@ function BookmarkedInfluencerListSection() {
       o.sortCriteria === sortCriteriaParam && o.sortOrder === sortOrderParam
   )
 
-  const handleSortChange = (sortCriteria: SortCriteria, sortOrder: SortOrder) => {
+  const handleSortChange = (
+    sortCriteria: SortCriteria,
+    sortOrder: SortOrder
+  ) => {
     const params = new URLSearchParams(searchParams?.toString())
     params.set('sortCriteria', sortCriteria)
     params.set('sortOrder', sortOrder)

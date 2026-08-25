@@ -1,10 +1,6 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/shared/ui/shadcn/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/shadcn/dialog'
 import {
   SocialLoginButton,
   useLoginModal,
@@ -22,10 +18,12 @@ export function LoginModal() {
   const youtube = usePopupOAuth({
     apiPath: '/auth/youtube',
     popupName: 'youtube-login',
+    provider: 'youtube',
   })
   const google = usePopupOAuth({
     apiPath: '/auth/google',
     popupName: 'google-login',
+    provider: 'google',
   })
 
   return (

@@ -12,7 +12,7 @@ export function useRequireAuth() {
   // 미로그인 상태가 확인되면 페이지 이동 없이 로그인 모달 오픈
   useEffect(() => {
     if (!isInitializing && !isLoggedIn) {
-      open()
+      open('protected_redirect')
     }
   }, [isInitializing, isLoggedIn, open])
 
