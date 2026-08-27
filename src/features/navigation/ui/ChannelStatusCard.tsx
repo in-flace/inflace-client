@@ -5,7 +5,7 @@ import { isLoggedIn, useAuthStore } from '@/shared/api/authStore'
 import { UserIcon } from '@/features/userStatus/ui/UserIcon'
 
 import { Button } from '@/shared/ui/button'
-import IconYoutube from '@/shared/assets/youtube-disable.svg'
+import IconYoutube from '@/shared/assets/youtube.svg'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
 import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
 
@@ -38,7 +38,7 @@ export const ChannelStatusCard = () => {
       <div className='flex h-fit w-full flex-col items-center gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
         <div className='flex h-fit w-full items-center gap-12'>
           {/* 채널 아이콘 */}
-          <UserIcon size={38} showBadge />
+          <UserIcon size={38} />
 
           <div className='flex h-fit w-full min-w-0 flex-1 flex-col gap-6'>
             {/* 채널 이름 */}
@@ -72,8 +72,11 @@ export const ChannelStatusCard = () => {
   /* 로그인 상태가 아니거나 채널 미연동 상태일 때 랜더링 되는 카드 */
   return (
     <div className='flex h-fit w-full items-center justify-between gap-12 rounded-10 border border-stroke-border-neutral-default bg-background-gray-default p-12'>
-      <div className='flex h-34 w-34 items-center justify-center rounded-full bg-stroke-border-gray-default'>
-        <IconYoutube className='size-sm' />
+      {/* 미연동 상태라 로고를 흐리게 처리한다 */}
+      <div className='flex size-[4.2rem] shrink-0 items-center justify-center rounded-full bg-background-gray-stronger'>
+        {/* viewBox가 35 정사각형이라 CSS로 28x20을 주면 preserveAspectRatio가
+         * 높이 기준으로 축소한다. 로고가 28x20이 되도록 정사각 프레임을 역산한다. */}
+        <IconYoutube className='size-[3.424rem] opacity-40' />
       </div>
 
       <div className='flex h-fit min-w-0 flex-1 items-center justify-between gap-12'>
