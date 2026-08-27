@@ -56,14 +56,14 @@ describe('LoginModal', () => {
     useLoginModal.setState({ isOpen: true })
     render(<LoginModal />)
 
-    expect(screen.getByText('Continue with YouTube')).toBeInTheDocument()
+    expect(screen.getByText('YouTube로 계속하기')).toBeInTheDocument()
   })
 
   it('isOpen이 true일 때 Google 로그인 버튼이 표시된다', () => {
     useLoginModal.setState({ isOpen: true })
     render(<LoginModal />)
 
-    expect(screen.getByText('Continue with Google')).toBeInTheDocument()
+    expect(screen.getByText('Google로 계속하기')).toBeInTheDocument()
   })
 
   it('google.isLoading이 true이면 Google 버튼 라벨이 "로그인 중..."으로 바뀌고 비활성화된다', () => {
@@ -87,7 +87,7 @@ describe('LoginModal', () => {
     render(<LoginModal />)
 
     const youtubeButton = screen
-      .getByText('Continue with YouTube')
+      .getByText('YouTube로 계속하기')
       .closest('button')
     expect(youtubeButton).toBeDisabled()
   })

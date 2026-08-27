@@ -31,13 +31,13 @@ export function YoutubeConnectModal() {
       <DialogContent
         showCloseButton={false}
         overlayClassName='bg-background-dim-default'
-        className='flex w-full flex-col items-center justify-center gap-40 rounded-16 bg-white p-40 lg:max-w-[73rem] lg:px-[12rem]'>
+        className='flex min-h-[60.6rem] w-full max-w-[min(61rem,calc(100vw-3.2rem))] flex-col items-center justify-center gap-40 rounded-16 bg-white px-[6rem] py-40 sm:max-w-[min(61rem,calc(100vw-3.2rem))]'>
         <VisuallyHidden>
           <DialogTitle>유튜브 채널 연동하기</DialogTitle>
         </VisuallyHidden>
 
         {/* 헤더 + 이미지 묶음 */}
-        <div className='flex w-full flex-col items-center gap-20'>
+        <div className='flex min-h-[40.6rem] w-full flex-col items-center gap-20'>
           {/* 헤더: 제목 + 설명 */}
           <div className='flex w-full flex-col items-center gap-8'>
             <h2 className='text-center text-ibm-heading-sm-normal text-text-and-icon-default'>

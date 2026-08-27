@@ -19,10 +19,11 @@ export function YoutubeConnectActions({
   pendingLabel = '연동 중...',
 }: YoutubeConnectActionsProps) {
   return (
-    <div className='flex w-full flex-col items-center gap-16'>
+    <div className='flex min-h-80 w-full flex-col items-center gap-16'>
       <SocialLoginButton
         icon={<YouTubeIcon />}
-        label={isPending ? pendingLabel : 'Continue with YouTube'}
+        label={isPending ? pendingLabel : 'YouTube로 계속하기'}
+        labelClassName='text-noto-label-lg-normal'
         onClick={onConnect}
         disabled={isPending}
         className='w-full'

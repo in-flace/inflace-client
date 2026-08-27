@@ -10,6 +10,7 @@ export function SocialLoginButton({
   onClick,
   disabled = false,
   className,
+  labelClassName,
 }: SocialLoginButtonProps) {
   return (
     <button
@@ -24,7 +25,11 @@ export function SocialLoginButton({
         <span className='flex size-[3.5rem] shrink-0 items-center justify-center *:size-full'>
           {icon}
         </span>
-        <span className='text-center text-noto-label-md-normal break-keep text-text-and-icon-primary'>
+        <span
+          className={cn(
+            'text-center text-noto-label-md-normal break-keep text-text-and-icon-primary',
+            labelClassName
+          )}>
           {label}
         </span>
       </div>

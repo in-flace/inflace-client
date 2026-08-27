@@ -4,6 +4,10 @@ import { extendTailwindMerge } from 'tailwind-merge'
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
+      /* 디자인 토큰의 radius 스케일을 tailwind-merge에 알려준다.
+       * 등록하지 않으면 shadcn 기본 클래스(rounded-lg 등)와 같은 그룹으로
+       * 병합되지 않아 둘 다 살아남고, 명시도가 같아 나중 선언이 이긴다. */
+      rounded: [{ rounded: ['0', '2', '4', '6', '8', '10', '12', '16', '24'] }],
       'font-size': [
         {
           text: [
