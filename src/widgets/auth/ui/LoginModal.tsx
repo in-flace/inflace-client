@@ -39,34 +39,34 @@ export function LoginModal() {
       <DialogContent
         showCloseButton={false}
         overlayClassName='bg-background-dim-default'
-        className='flex h-[68rem] w-[56rem] shrink-0 flex-col items-center gap-80 rounded-16 bg-white px-40 py-80 sm:min-h-[68rem] sm:min-w-[56rem]'>
+        className='flex min-h-[44.8rem] w-[48rem] max-w-[calc(100vw-3.2rem)] shrink-0 flex-col items-center gap-[6rem] rounded-16 bg-white px-40 py-64 sm:max-w-[calc(100vw-3.2rem)]'>
         {/* title containter */}
-        <div className='flex h-fit w-full flex-col items-center justify-center gap-16'>
+        <div className='flex min-h-[6.8rem] w-full max-w-[40rem] flex-col items-center justify-center gap-16'>
           {/* logo */}
           <div className='flex items-center justify-center'>
-            <LogoSvg className='h-[5.5rem] w-[16.6rem]' />
+            <LogoSvg className='h-32 w-[10.3rem]' />
             <span className='sr-only'>inflace</span>
           </div>
 
           {/* 메인 문구 */}
-          <DialogTitle className='size-fit text-center text-noto-body-xs-bold text-text-and-icon-default'>
+          <DialogTitle className='w-full text-center text-noto-body-xs-normal break-keep text-text-and-icon-primary'>
             인플루언서 탐색, 채널 분석, 콘텐츠 분석까지 모두 경험하세요
           </DialogTitle>
         </div>
 
         {/* 로그인 버튼 + 이용약관*/}
-        <div className='flex h-fit w-full flex-col items-center justify-center gap-64'>
-          <div className='flex size-fit flex-col gap-24'>
+        <div className='flex min-h-[19.2rem] w-full max-w-[40rem] flex-col items-center justify-center gap-64 px-sm'>
+          <div className='flex min-h-[10.8rem] w-full max-w-[36rem] flex-col gap-12'>
             <SocialLoginButton
               icon={<YouTubeIcon />}
-              label='Continue with YouTube'
+              label='YouTube로 계속하기'
               onClick={youtube.handleClick}
               disabled={youtube.isLoading}
             />
 
             <SocialLoginButton
               icon={<GoogleIcon />}
-              label={google.isLoading ? '로그인 중...' : 'Continue with Google'}
+              label={google.isLoading ? '로그인 중...' : 'Google로 계속하기'}
               onClick={google.handleClick}
               disabled={google.isLoading}
             />
