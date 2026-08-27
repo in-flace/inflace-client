@@ -9,10 +9,9 @@ export default function PrivacyPage() {
       </header>
 
       <p className='mb-56 leading-32 text-gray-700'>
-        인플레이스(이하 &ldquo;회사&rdquo; 또는 &ldquo;우리&rdquo;)는
-        개인정보 보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을
-        신속하고 원활하게 처리하기 위하여 다음과 같이 개인정보처리방침을
-        수립합니다.
+        인플레이스(이하 &ldquo;회사&rdquo; 또는 &ldquo;우리&rdquo;)는 개인정보
+        보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고
+        원활하게 처리하기 위하여 다음과 같이 개인정보처리방침을 수립합니다.
       </p>
 
       <Section title='1조. 개인정보의 처리 목적'>
@@ -21,8 +20,8 @@ export default function PrivacyPage() {
         </p>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
-            <strong>회원가입 및 관리</strong>: 서비스 이용을 위한 회원 신원 확인,
-            불량 회원 및 부정 이용 방지
+            <strong>회원가입 및 관리</strong>: 서비스 이용을 위한 회원 신원
+            확인, 불량 회원 및 부정 이용 방지
           </li>
           <li>
             <strong>서비스 제공</strong>: INFLACE 서비스(인플루언서 분석, 채널
@@ -46,7 +45,7 @@ export default function PrivacyPage() {
       </Section>
 
       <Section title='2조. 처리하는 개인정보의 항목'>
-        <h3 className='mb-12 mt-24 text-lg font-semibold text-gray-900'>
+        <h3 className='mt-24 mb-12 text-lg font-semibold text-gray-900'>
           필수 수집 항목
         </h3>
         <Table
@@ -58,7 +57,7 @@ export default function PrivacyPage() {
           ]}
         />
 
-        <h3 className='mb-12 mt-32 text-lg font-semibold text-gray-900'>
+        <h3 className='mt-32 mb-12 text-lg font-semibold text-gray-900'>
           결제 시 추가 수집 항목
         </h3>
         <Table
@@ -74,7 +73,7 @@ export default function PrivacyPage() {
           ]}
         />
 
-        <h3 className='mb-12 mt-32 text-lg font-semibold text-gray-900'>
+        <h3 className='mt-32 mb-12 text-lg font-semibold text-gray-900'>
           자동 수집 항목 (서비스 이용 시)
         </h3>
         <ul className='list-disc space-y-8 pl-24 leading-32 text-gray-700'>
@@ -94,7 +93,11 @@ export default function PrivacyPage() {
           headers={['제공 대상', '제공 항목', '제공 목적']}
           rows={[
             ['토스페이먼츠', '결제 정보', '결제 처리 및 정산'],
-            ['클라우드 인프라 제공업체', '서버 접속 로그', '서비스 시스템 운영'],
+            [
+              '클라우드 인프라 제공업체',
+              '서버 접속 로그',
+              '서비스 시스템 운영',
+            ],
             ['이메일 발송 서비스', '이메일 주소', '서비스 안내 발송'],
           ]}
         />
@@ -182,9 +185,10 @@ export default function PrivacyPage() {
 
       <Section title='7조. 쿠키 및 접속 로그 수집'>
         <p className='mb-16 leading-32 text-gray-700'>
-          회사는 서비스 운영 및 프라이버시 보호를 위해 쿠키(Cookie)를 사용합니다.
+          회사는 서비스 운영 및 프라이버시 보호를 위해 쿠키(Cookie)를
+          사용합니다.
         </p>
-        <h3 className='mb-12 mt-24 text-lg font-semibold text-gray-900'>
+        <h3 className='mt-24 mb-12 text-lg font-semibold text-gray-900'>
           사용하는 쿠키 유형
         </h3>
         <Table
@@ -211,11 +215,12 @@ export default function PrivacyPage() {
             저장됩니다.
           </li>
           <li>
-            <strong>HTTPS</strong>: 모든 데이터 전송은 SSL/TLS를 통해 암호화됩니다.
+            <strong>HTTPS</strong>: 모든 데이터 전송은 SSL/TLS를 통해
+            암호화됩니다.
           </li>
           <li>
-            <strong>접근 권한 관리</strong>: 개인정보에 대한 접근은 담당 직원에만
-            부여합니다.
+            <strong>접근 권한 관리</strong>: 개인정보에 대한 접근은 담당
+            직원에만 부여합니다.
           </li>
           <li>
             <strong>PCI-DSS 준수</strong>: 결제 정보는 토스페이먼츠를 통해
@@ -241,19 +246,17 @@ export default function PrivacyPage() {
             <strong>연락처</strong>:{' '}
             <a
               href='mailto:inflaceproject@gmail.com'
-              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'
-            >
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
               inflaceproject@gmail.com
             </a>
           </li>
           <li>
-            <strong>홀페이지</strong>:{' '}
+            <strong>홈페이지</strong>:{' '}
             <a
               href='https://inflace.site'
               target='_blank'
               rel='noopener noreferrer'
-              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'
-            >
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
               https://inflace.site
             </a>
           </li>
@@ -276,8 +279,54 @@ export default function PrivacyPage() {
             공지합니다.
           </li>
           <li>
-            이용자가 변경된 방침에 동의하지 않는 경우 서비스 탈퇴를 통해 개인정보
-            제공을 중단할 수 있습니다.
+            이용자가 변경된 방침에 동의하지 않는 경우 서비스 탈퇴를 통해
+            개인정보 제공을 중단할 수 있습니다.
+          </li>
+        </ol>
+      </Section>
+      <Section title='11조. YouTube API Services 이용 및 데이터 처리'>
+        <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
+          <li>
+            YouTube API Services 사용 회사는 채널 연동, 데이터 조회 및 분석
+            기능을 제공하기 위해 YouTube Data API, YouTube Analytics API 및
+            YouTube Reporting API를 포함한 YouTube API Services를 사용합니다.
+          </li>
+          <li>
+            처리하는 YouTube 데이터와 이용 목적 회사는 공개된 채널·동영상
+            정보(채널 및 동영상 식별자, 제목, 설명, 썸네일,
+            조회·좋아요·댓글·구독자·동영상 수 등)와 이용자가 Google 계정을 통해
+            권한을 부여한 경우 해당 채널의 분석 정보(조회수, 시청 시간, 시청
+            지속률, 트래픽 소스, 시청자 특성 등 집계 통계) 및 OAuth 인증 토큰을
+            처리할 수 있습니다. 해당 데이터는 채널 연결 및 본인 채널 확인,
+            대시보드 제공, 채널·콘텐츠 성과 분석, 성장 인사이트 제공과 서비스
+            보안 목적으로만 이용합니다.
+          </li>
+          <li>
+            Google 개인정보처리방침 YouTube API Services를 통한 데이터 처리에는
+            Google 개인정보처리방침(https://policies.google.com/privacy)이
+            적용될 수 있습니다.
+          </li>
+          <li>
+            보유기간 및 갱신 회사는 YouTube API 데이터와 인증 정보를 서비스
+            제공에 필요한 기간에만 보유합니다. 관련 정책에 따라 최소 30일마다
+            저장 데이터의 최신성과 이용자의 승인 상태를 확인하며, 필요한 경우
+            데이터를 갱신하거나 삭제합니다. 법령에 따라 보존해야 하는 정보는
+            해당 기간 동안 별도로 분리하여 보관합니다.
+          </li>
+          <li>
+            연동 해제, 접근 권한 취소 및 데이터 삭제 이용자는 서비스 내 채널
+            연동 해제 또는 회원 탈퇴 기능을 이용하거나, 가입 이메일과 연결 채널
+            정보를 기재하여 inflaceproject@gmail.com으로 요청함으로써 저장된
+            YouTube 관련 데이터의 삭제를 요구할 수 있습니다. 회사는 본인 확인 후
+            OAuth 인증 토큰과 저장된 YouTube 관련 데이터를 지체 없이 삭제하며,
+            특별한 사유가 없는 한 요청 또는 권한 취소일로부터 7일 이내에
+            처리합니다. 이용자는 Google 계정 연결
+            관리(https://myaccount.google.com/connections?filters=3,4&hl=ko)에서
+            INFLACE의 접근 권한을 직접 취소할 수 있습니다. 권한이 취소되면 신규
+            데이터 수집이 중단되고, 회사는 관련 저장 데이터를 위 절차에 따라
+            삭제합니다. INFLACE에 저장된 데이터를 삭제하더라도 YouTube 자체에
+            게시되거나 저장된 데이터는 삭제되지 않습니다. 해당 데이터는 이용자가
+            YouTube에서 직접 삭제해야 합니다.
           </li>
         </ol>
       </Section>
@@ -287,14 +336,17 @@ export default function PrivacyPage() {
         <p className='leading-32 text-gray-700'>
           이 개인정보처리방침은 2026년 6월 1일부터 시행합니다.
         </p>
+        <p className='mt-8 leading-32 text-gray-700'>
+          제11조(YouTube API Services 이용 및 데이터 처리)는 2026년 8월 26일부터
+          시행합니다.
+        </p>
         <p className='mt-16 text-sm text-gray-500'>
           <strong>개인정보보호위 처리</strong>:{' '}
           <a
             href='http://www.privacy.go.kr'
             target='_blank'
             rel='noopener noreferrer'
-            className='text-blue-600 underline underline-offset-2 hover:text-blue-700'
-          >
+            className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
             www.privacy.go.kr
           </a>{' '}
           / 182 (국번 없이 연락 가능)
@@ -319,13 +371,7 @@ function Section({
   )
 }
 
-function Table({
-  headers,
-  rows,
-}: {
-  headers: string[]
-  rows: string[][]
-}) {
+function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <div className='overflow-x-auto'>
       <table className='w-full border-collapse text-base'>
@@ -334,8 +380,7 @@ function Table({
             {headers.map((header) => (
               <th
                 key={header}
-                className='border border-gray-200 px-16 py-12 text-left font-semibold text-gray-900'
-              >
+                className='border border-gray-200 px-16 py-12 text-left font-semibold text-gray-900'>
                 {header}
               </th>
             ))}
@@ -347,8 +392,7 @@ function Table({
               {row.map((cell, cellIdx) => (
                 <td
                   key={cellIdx}
-                  className='border border-gray-200 px-16 py-12 leading-24 text-gray-700'
-                >
+                  className='border border-gray-200 px-16 py-12 leading-24 text-gray-700'>
                   {cell}
                 </td>
               ))}
@@ -376,8 +420,7 @@ function Callout({
   const icon = variant === 'warning' ? '⚠️' : 'ℹ️'
   return (
     <div
-      className={`rounded-md border-l-4 px-16 py-12 leading-28 ${styles[variant]} ${className ?? ''}`}
-    >
+      className={`rounded-md border-l-4 px-16 py-12 leading-28 ${styles[variant]} ${className ?? ''}`}>
       <span className='mr-8'>{icon}</span>
       {children}
     </div>
