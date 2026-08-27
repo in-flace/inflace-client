@@ -303,8 +303,15 @@ export default function PrivacyPage() {
           </li>
           <li>
             Google 개인정보처리방침 YouTube API Services를 통한 데이터 처리에는
-            Google 개인정보처리방침(https://policies.google.com/privacy)이
-            적용될 수 있습니다.
+            Google 개인정보처리방침(
+            <a
+              href='https://policies.google.com/privacy'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+              https://policies.google.com/privacy
+            </a>
+            )이 적용될 수 있습니다.
           </li>
           <li>
             보유기간 및 갱신 회사는 YouTube API 데이터와 인증 정보를 서비스
@@ -316,17 +323,28 @@ export default function PrivacyPage() {
           <li>
             연동 해제, 접근 권한 취소 및 데이터 삭제 이용자는 서비스 내 채널
             연동 해제 또는 회원 탈퇴 기능을 이용하거나, 가입 이메일과 연결 채널
-            정보를 기재하여 inflaceproject@gmail.com으로 요청함으로써 저장된
-            YouTube 관련 데이터의 삭제를 요구할 수 있습니다. 회사는 본인 확인 후
-            OAuth 인증 토큰과 저장된 YouTube 관련 데이터를 지체 없이 삭제하며,
-            특별한 사유가 없는 한 요청 또는 권한 취소일로부터 7일 이내에
-            처리합니다. 이용자는 Google 계정 연결
-            관리(https://myaccount.google.com/connections?filters=3,4&hl=ko)에서
-            INFLACE의 접근 권한을 직접 취소할 수 있습니다. 권한이 취소되면 신규
-            데이터 수집이 중단되고, 회사는 관련 저장 데이터를 위 절차에 따라
-            삭제합니다. INFLACE에 저장된 데이터를 삭제하더라도 YouTube 자체에
-            게시되거나 저장된 데이터는 삭제되지 않습니다. 해당 데이터는 이용자가
-            YouTube에서 직접 삭제해야 합니다.
+            정보를 기재하여{' '}
+            <a
+              href='mailto:inflaceproject@gmail.com'
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+              inflaceproject@gmail.com
+            </a>
+            으로 요청함으로써 저장된 YouTube 관련 데이터의 삭제를 요구할 수
+            있습니다. 회사는 본인 확인 후 OAuth 인증 토큰과 저장된 YouTube 관련
+            데이터를 지체 없이 삭제하며, 특별한 사유가 없는 한 요청 또는 권한
+            취소일로부터 7일 이내에 처리합니다. 이용자는 Google 계정 연결 관리(
+            <a
+              href='https://myaccount.google.com/connections?filters=3,4&hl=ko'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+              https://myaccount.google.com/connections?filters=3,4&hl=ko
+            </a>
+            )에서 INFLACE의 접근 권한을 직접 취소할 수 있습니다. 권한이 취소되면
+            신규 데이터 수집이 중단되고, 회사는 관련 저장 데이터를 위 절차에
+            따라 삭제합니다. INFLACE에 저장된 데이터를 삭제하더라도 YouTube
+            자체에 게시되거나 저장된 데이터는 삭제되지 않습니다. 해당 데이터는
+            이용자가 YouTube에서 직접 삭제해야 합니다.
           </li>
         </ol>
       </Section>

@@ -350,9 +350,15 @@ export default function TermsPage() {
           </li>
           <li>
             이용자가 서비스의 YouTube 연동 또는 분석 기능을 이용하는 경우, 본
-            약관에 동의하는 것과 함께 YouTube
-            이용약관(https://www.youtube.com/t/terms)에 동의하고 이를
-            준수합니다.
+            약관에 동의하는 것과 함께 YouTube 이용약관(
+            <a
+              href='https://www.youtube.com/t/terms'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+              https://www.youtube.com/t/terms
+            </a>
+            )에 동의하고 이를 준수합니다.
           </li>
         </ol>
       </Section>
