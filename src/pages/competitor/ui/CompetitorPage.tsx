@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import AiInsightIcon from '@/shared/assets/ai-strategy-insight.svg'
 
@@ -13,6 +12,7 @@ import {
 } from '@/widgets/competitor'
 import {
   DEFAULT_COMPETITOR_FILTER,
+  toBrandCollaborationsQuery,
   useBrandCollaborations,
   type CompetitorFilterState,
   type SortCriteria,
@@ -23,7 +23,6 @@ import { ScrollToTopButton } from '@/shared/ui/scroll-to-top'
 const MAX_SELECTED = 10
 
 export function CompetitorPage() {
-  const queryClient = useQueryClient()
   const { isLoggedIn, isInitializing } = useAuth()
   const openLoginModal = useLoginModal((s) => s.open)
 
@@ -48,7 +47,7 @@ export function CompetitorPage() {
   /* 상세 검색 영역 열림 상태 — 분석 완료 시 자동 닫기 위해 페이지에서 관리 (기본 펼침) */
   const [isDetailOpen, setIsDetailOpen] = useState(true)
 
-  const { data, hasNextPage, isFetchingNextPage, fetchNextPage } =
+  const { data, hasNextPage, isFetchingNextPage, fetchNextPage, refetch } =
     useBrandCollaborations({ filter: appliedFilter })
 
   const videos = data?.pages.flatMap((page) => page.content) ?? []
@@ -72,10 +71,17 @@ export function CompetitorPage() {
   /* 검색: 편집 필터를 확정. 동일 조건 재검색 시에도 강제 refetch */
   function handleSearch() {
     if (blockIfGuest()) return
-    setAppliedFilter(draftFilter)
+    const isSameQuery =
+      JSON.stringify(toBrandCollaborationsQuery(appliedFilter)) ===
+      JSON.stringify(toBrandCollaborationsQuery(draftFilter))
+
+    if (isSameQuery) {
+      refetch()
+    } else {
+      setAppliedFilter(draftFilter)
+    }
     setSelectedVideoIds(new Set())
     setAnalyzedVideoIds([])
-    queryClient.invalidateQueries({ queryKey: ['brand-collaborations'] })
   }
 
   /* 정렬 변경: 검색 결과에 즉시 반영 */
