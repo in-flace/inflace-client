@@ -58,8 +58,11 @@ function isMockPaymentEnabled() {
   return process.env.NEXT_PUBLIC_MOCK_ENABLED === 'true'
 }
 
+/* KG이니시스(INICIS_V2)는 oid를 1~40자로 제한한다. 포트원의 issueId·paymentId가
+ * 그대로 oid로 넘어가는데 UUID는 하이픈까지 36자라, 접두사를 붙이면 한계를 넘어
+ * 결제창이 열리지 않는다. 하이픈을 지워 32자로 줄이고 접두사도 짧게 둔다. */
 function createId(prefix: string) {
-  return `${prefix}-${crypto.randomUUID()}`
+  return `${prefix}-${crypto.randomUUID().replace(/-/g, '')}`
 }
 
 /* 포트원이 돌려주는 원문 에러는 필드명이 영어로 노출되므로 결제창 호출 전에
@@ -107,7 +110,7 @@ export async function issueCardBillingKey({
   const response = await PortOne.requestIssueBillingKey({
     ...config,
     billingKeyMethod: 'CARD',
-    issueId: createId('billing'),
+    issueId: createId('bill'),
     issueName,
     displayAmount,
     currency: displayAmount ? 'KRW' : undefined,
@@ -147,7 +150,7 @@ export async function requestOneTimeCardPayment({
   totalAmount,
   customer,
 }: RequestOneTimePaymentParams): Promise<OneTimePaymentResult> {
-  const paymentId = createId('payment')
+  const paymentId = createId('pay')
   const portOneCustomer = toPortOneCustomer(customer)
 
   if (isMockPaymentEnabled()) {
