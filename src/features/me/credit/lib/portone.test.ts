@@ -40,8 +40,22 @@ describe('portone adapter', () => {
     })
 
     expect(first.isMock).toBe(true)
-    expect(first.paymentId).toMatch(/^payment-/)
+    expect(first.paymentId).toMatch(/^pay-/)
     expect(first.paymentId).not.toBe(second.paymentId)
+  })
+
+  /* KG이니시스는 oid를 40자로 제한하며, 넘기면 결제창 자체가 열리지 않는다.
+   * 접두사를 늘리다 한계를 넘기는 일이 생기지 않게 길이를 고정해 지킨다. */
+  it('결제 식별자는 PG oid 길이 제한 40자를 넘지 않는다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'true')
+
+    const { paymentId } = await requestOneTimeCardPayment({
+      orderName: '10 크레딧',
+      totalAmount: 3900,
+      customer: payer,
+    })
+
+    expect(paymentId.length).toBeLessThanOrEqual(40)
   })
 
   it('실결제 환경에서 설정이 없으면 목 결제로 우회하지 않는다', async () => {
