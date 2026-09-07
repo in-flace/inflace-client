@@ -3,14 +3,24 @@ type PortOneConfig = {
   channelKey: string
 }
 
+/* 포트원 요청의 customer 블록. 연동한 PG 채널이 이 세 필드를 필수로 요구하며,
+ * 빠지면 결제창이 열리기도 전에 INVALID_REQUEST로 거부된다. */
+export type PaymentCustomer = {
+  fullName: string
+  phoneNumber: string
+  email: string
+}
+
 type IssueBillingKeyParams = {
   issueName: string
   displayAmount?: number
+  customer: PaymentCustomer
 }
 
 type RequestOneTimePaymentParams = {
   orderName: string
   totalAmount: number
+  customer: PaymentCustomer
 }
 
 export type BillingKeyIssueResult = {
@@ -52,10 +62,32 @@ function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`
 }
 
+/* 포트원이 돌려주는 원문 에러는 필드명이 영어로 노출되므로 결제창 호출 전에
+ * 우리 문구로 막는다. mock 모드에서도 같은 검증을 거치게 두어야 로컬에서
+ * 통과한 흐름이 실서비스에서 처음 깨지는 일을 막을 수 있다. */
+function toPortOneCustomer(customer: PaymentCustomer) {
+  const fullName = customer.fullName.trim()
+  /* PG사에 따라 하이픈이 섞인 번호를 거부하므로 숫자만 남긴다. */
+  const phoneNumber = customer.phoneNumber.replace(/\D/g, '')
+  const email = customer.email.trim()
+
+  if (!fullName || !phoneNumber || !email) {
+    throw new PortOnePaymentError(
+      '이름, 전화번호, 이메일을 모두 입력해주세요.',
+      'CUSTOMER_INFO_MISSING'
+    )
+  }
+
+  return { fullName, phoneNumber, email }
+}
+
 export async function issueCardBillingKey({
   issueName,
   displayAmount,
+  customer,
 }: IssueBillingKeyParams): Promise<BillingKeyIssueResult> {
+  const portOneCustomer = toPortOneCustomer(customer)
+
   if (isMockPaymentEnabled()) {
     return {
       billingKey: createId('mock-billing-key'),
@@ -79,6 +111,7 @@ export async function issueCardBillingKey({
     issueName,
     displayAmount,
     currency: displayAmount ? 'KRW' : undefined,
+    customer: portOneCustomer,
     redirectUrl: new URL(
       '/me/credit?tab=billing-method',
       window.location.origin
@@ -112,8 +145,10 @@ export async function issueCardBillingKey({
 export async function requestOneTimeCardPayment({
   orderName,
   totalAmount,
+  customer,
 }: RequestOneTimePaymentParams): Promise<OneTimePaymentResult> {
   const paymentId = createId('payment')
+  const portOneCustomer = toPortOneCustomer(customer)
 
   if (isMockPaymentEnabled()) {
     return { paymentId, isMock: true }
@@ -135,6 +170,7 @@ export async function requestOneTimeCardPayment({
     totalAmount,
     currency: 'KRW',
     payMethod: 'CARD',
+    customer: portOneCustomer,
     redirectUrl: new URL(
       '/me/credit?tab=history',
       window.location.origin
