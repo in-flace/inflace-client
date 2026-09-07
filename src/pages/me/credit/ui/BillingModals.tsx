@@ -16,6 +16,7 @@ import {
   useStartSubscription,
   type BillingSummary,
   type CreditPurchaseOption,
+  type PaymentCustomer,
 } from '@/features/me/credit'
 import CheckIcon from '@/shared/assets/check-bold.svg'
 import { cn } from '@/shared/lib/utils'
@@ -24,6 +25,7 @@ import { Dialog } from '@/shared/ui/shadcn/dialog'
 import { ModalContent } from './BillingPrimitives'
 import {
   EMPTY_PAYER_INFO,
+  isPayerInfoComplete,
   type ModalState,
   type PayerInfo,
 } from './billingPageTypes'
@@ -36,6 +38,28 @@ function getErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
     : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.'
+}
+
+function toPaymentCustomer(payerInfo: PayerInfo): PaymentCustomer {
+  return {
+    fullName: payerInfo.name,
+    phoneNumber: payerInfo.phone,
+    email: payerInfo.email,
+  }
+}
+
+/* 결제창 호출 실패는 화면을 거의 덮는 모달 위에서 발생한다. 상단 토스트는
+ * 모달에 시선이 묶인 사용자가 놓치기 쉬워 버튼 바로 위에 인라인으로 붙인다. */
+function FormErrorNotice({ message }: { message: string | null }) {
+  if (!message) return null
+
+  return (
+    <p
+      role='alert'
+      className='rounded-12 bg-[rgba(224,47,82,0.1)] px-16 py-12 text-noto-body-xs-normal text-feedback-error'>
+      {message}
+    </p>
+  )
 }
 
 function AgreementCheckbox({
@@ -99,6 +123,7 @@ export function BillingModals({
   )
   const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
   const [payerInfo, setPayerInfo] = useState<PayerInfo>(EMPTY_PAYER_INFO)
+  const [formError, setFormError] = useState<string | null>(null)
   const registerBillingMethodIdempotencyKeyRef = useRef<string | null>(null)
   const startSubscriptionIdempotencyKeyRef = useRef<string | null>(null)
   const purchaseCreditsIdempotencyKeyRef = useRef<string | null>(null)
@@ -115,6 +140,7 @@ export function BillingModals({
     setAgreedWithdrawalLimit(false)
     setCancelReason('사용 빈도가 낮아요')
     setPayerInfo(EMPTY_PAYER_INFO)
+    setFormError(null)
     setSelectedOptionId(
       summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
     )
@@ -172,24 +198,23 @@ export function BillingModals({
                   !agreedAutoPay ||
                   !agreedWithdrawalLimit ||
                   startSubscriptionMutation.isPending ||
-                  registerBillingMethodMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
+                  /* 카드가 없으면 결제창을 바로 띄우지 않는다. 포트원이 이름·
+                   * 전화번호·이메일을 필수로 요구하므로 본인 정보 입력 모달을
+                   * 먼저 거친다. 등록이 끝나면 그 모달이 구독까지 이어서 마친다. */
+                  if (summary.billingMethod.status === 'none') {
+                    setFormError(null)
+                    onOpenModal({
+                      type: 'billingRegister',
+                      pendingPlan: modal.plan,
+                    })
+                    return
+                  }
+
                   setIsPaymentWindowPending(true)
                   try {
-                    if (summary.billingMethod.status === 'none') {
-                      const { billingKey } = await issueCardBillingKey({
-                        issueName: `${modal.plan.name} 정기결제 카드 등록`,
-                        displayAmount: modal.plan.price,
-                      })
-                      await registerBillingMethodMutation.mutateAsync({
-                        idempotencyKey: getStableIdempotencyKey(
-                          registerBillingMethodIdempotencyKeyRef
-                        ),
-                        payload: { billingKey },
-                      })
-                    }
                     await startSubscriptionMutation.mutateAsync({
                       idempotencyKey: getStableIdempotencyKey(
                         startSubscriptionIdempotencyKeyRef
@@ -316,7 +341,11 @@ export function BillingModals({
       {modal?.type === 'billingRegister' && (
         <ModalContent
           title='본인 정보를 입력해주세요.'
-          description='입력한 정보를 기반으로 카드 등록을 시작합니다.'
+          description={
+            modal.pendingPlan
+              ? '입력한 정보로 카드를 등록한 뒤 바로 구독 결제가 진행됩니다.'
+              : '입력한 정보를 기반으로 카드 등록을 시작합니다.'
+          }
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <PayerInfoFields value={payerInfo} onChange={setPayerInfo} />
@@ -333,6 +362,7 @@ export function BillingModals({
                 카드 등록 시뮬레이션: •••• •••• •••• 5588
               </div>
             </div>
+            <FormErrorNotice message={formError} />
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -349,14 +379,19 @@ export function BillingModals({
                 size='lg'
                 variant='filled'
                 disabled={
+                  !isPayerInfoComplete(payerInfo) ||
                   registerBillingMethodMutation.isPending ||
+                  startSubscriptionMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
+                  setFormError(null)
                   setIsPaymentWindowPending(true)
                   try {
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 등록',
+                      displayAmount: modal.pendingPlan?.price,
+                      customer: toPaymentCustomer(payerInfo),
                     })
                     await registerBillingMethodMutation.mutateAsync({
                       idempotencyKey: getStableIdempotencyKey(
@@ -364,15 +399,34 @@ export function BillingModals({
                       ),
                       payload: { billingKey },
                     })
+
+                    /* 구독 모달에서 넘어왔다면 카드 등록에서 멈추지 않고
+                     * 원래 하려던 구독 결제까지 이어서 마친다. */
+                    if (modal.pendingPlan) {
+                      await startSubscriptionMutation.mutateAsync({
+                        idempotencyKey: getStableIdempotencyKey(
+                          startSubscriptionIdempotencyKeyRef
+                        ),
+                        payload: { planCode: modal.pendingPlan.code },
+                      })
+                      toast.success('구독이 시작되었습니다.')
+                      handleClose()
+                      return
+                    }
+
                     onOpenModal({ type: 'billingRegistered' })
                   } catch (error) {
-                    toast.error(getErrorMessage(error))
+                    setFormError(getErrorMessage(error))
                   } finally {
                     setIsPaymentWindowPending(false)
                   }
                 }}
                 className='h-44 w-full'>
-                {isPaymentWindowPending ? '등록 중…' : '등록하기'}
+                {isPaymentWindowPending
+                  ? '등록 중…'
+                  : modal.pendingPlan
+                    ? '등록하고 결제하기'
+                    : '등록하기'}
               </Button>
             </div>
           </div>
@@ -384,9 +438,16 @@ export function BillingModals({
           description='새 카드로 포트원 결제창을 호출해 빌링키가 재발급됩니다. 기존 빌링키는 교체 후 폐기됩니다.'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
+            <div className='flex flex-col gap-12'>
+              <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
+                본인 정보를 입력해주세요.
+              </span>
+              <PayerInfoFields value={payerInfo} onChange={setPayerInfo} />
+            </div>
             <div className='rounded-16 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
               새 카드 •••• •••• •••• 5588
             </div>
+            <FormErrorNotice message={formError} />
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -403,21 +464,24 @@ export function BillingModals({
                 size='lg'
                 variant='filled'
                 disabled={
+                  !isPayerInfoComplete(payerInfo) ||
                   changeBillingMethodMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
+                  setFormError(null)
                   setIsPaymentWindowPending(true)
                   try {
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 변경',
+                      customer: toPaymentCustomer(payerInfo),
                     })
                     await changeBillingMethodMutation.mutateAsync({
                       billingKey,
                     })
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
-                    toast.error(getErrorMessage(error))
+                    setFormError(getErrorMessage(error))
                   } finally {
                     setIsPaymentWindowPending(false)
                   }

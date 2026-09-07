@@ -2,6 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { issueCardBillingKey, requestOneTimeCardPayment } from './portone'
 
+const payer = {
+  fullName: '홍길동',
+  phoneNumber: '010-1234-5678',
+  email: 'test@example.com',
+}
+
 describe('portone adapter', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
@@ -12,6 +18,7 @@ describe('portone adapter', () => {
 
     const result = await issueCardBillingKey({
       issueName: '테스트 카드 등록',
+      customer: payer,
     })
 
     expect(result.isMock).toBe(true)
@@ -24,10 +31,12 @@ describe('portone adapter', () => {
     const first = await requestOneTimeCardPayment({
       orderName: '10 크레딧',
       totalAmount: 3900,
+      customer: payer,
     })
     const second = await requestOneTimeCardPayment({
       orderName: '10 크레딧',
       totalAmount: 3900,
+      customer: payer,
     })
 
     expect(first.isMock).toBe(true)
@@ -41,7 +50,28 @@ describe('portone adapter', () => {
     vi.stubEnv('NEXT_PUBLIC_PORTONE_CHANNEL_KEY', '')
 
     await expect(
-      issueCardBillingKey({ issueName: '테스트 카드 등록' })
+      issueCardBillingKey({ issueName: '테스트 카드 등록', customer: payer })
     ).rejects.toMatchObject({ code: 'PORTONE_CONFIG_MISSING' })
+  })
+
+  /* 포트원은 이 세 필드가 비면 INVALID_REQUEST로 거부하며 필드명이 영어로
+   * 노출된다. mock 환경에서도 먼저 걸러 로컬에서만 통과하는 일이 없게 한다. */
+  it('구매자 정보가 비어 있으면 결제창을 호출하기 전에 막는다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'true')
+
+    await expect(
+      issueCardBillingKey({
+        issueName: '테스트 카드 등록',
+        customer: { ...payer, phoneNumber: '' },
+      })
+    ).rejects.toMatchObject({ code: 'CUSTOMER_INFO_MISSING' })
+
+    await expect(
+      requestOneTimeCardPayment({
+        orderName: '10 크레딧',
+        totalAmount: 3900,
+        customer: { ...payer, fullName: '   ' },
+      })
+    ).rejects.toMatchObject({ code: 'CUSTOMER_INFO_MISSING' })
   })
 })
