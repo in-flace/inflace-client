@@ -16,6 +16,7 @@ import { GoogleAuthNoticeModal } from '@/widgets/googleAuthNotice'
 import { InquiryWidget } from '@/widgets/inquiry'
 import { GtmPageView } from '@/shared/analytics'
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/shared/config/site'
+import { Toaster } from '@/shared/ui/sonner'
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID
 
@@ -108,10 +109,11 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
             <OnboardingModal />
             <GoogleAuthNoticeModal />
             <InquiryWidget />
+            <Toaster position='top-center' />
             <div className='flex flex-1'>
               <SidebarStoreProvider>
                 <AppSidebar />
-                <main className='relative flex min-h-screen flex-1 flex-col'>
+                <main className='relative flex min-h-screen min-w-0 flex-1 flex-col'>
                   <SidebarTrigger />
                   <Header />
                   <div className='flex-1'>{children}</div>

@@ -17,7 +17,7 @@ export function MyPageLayout({ children }: Props) {
   }, [setOpen])
 
   return (
-    <div className='flex size-full bg-background-gray-default'>
+    <div className='flex size-full min-w-0 flex-col bg-background-gray-default lg:flex-row'>
       <MyPageSidebar />
       {children}
     </div>

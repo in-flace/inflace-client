@@ -24,6 +24,7 @@ import { brandAnalysisHandlers } from './brandAnalysisHandlers'
 import { myProfileHandlers } from './myProfileHandlers'
 import { myAlarmHandlers } from './myAlarmHandlers'
 import { feedbackHandlers } from './feedbackHandlers'
+import { billingHandlers } from './billingHandlers'
 
 export const handlers = [
   ...authHandlers,
@@ -52,4 +53,5 @@ export const handlers = [
   ...myProfileHandlers,
   ...myAlarmHandlers,
   ...feedbackHandlers,
+  ...billingHandlers,
 ]
