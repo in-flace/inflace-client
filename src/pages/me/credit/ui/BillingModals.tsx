@@ -385,13 +385,22 @@ export function BillingModals({
                   isPaymentWindowPending
                 }
                 onClick={async () => {
+                  /* 모달이 열려 있으면 Radix Dialog가 body의 pointer-events를
+                   * 잠그고 포커스를 가두는 탓에, body에 iframe으로 붙는 결제창에
+                   * 클릭·입력이 닿지 않는다. 호출 전에 닫아 간섭을 없앤다.
+                   * 닫은 뒤에도 쓸 값은 미리 지역 변수로 확보한다. */
+                  const pendingPlan = modal.pendingPlan
+                  const customer = toPaymentCustomer(payerInfo)
+
                   setFormError(null)
                   setIsPaymentWindowPending(true)
+                  onClose()
+
                   try {
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 등록',
-                      displayAmount: modal.pendingPlan?.price,
-                      customer: toPaymentCustomer(payerInfo),
+                      displayAmount: pendingPlan?.price,
+                      customer,
                     })
                     await registerBillingMethodMutation.mutateAsync({
                       idempotencyKey: getStableIdempotencyKey(
@@ -402,12 +411,12 @@ export function BillingModals({
 
                     /* 구독 모달에서 넘어왔다면 카드 등록에서 멈추지 않고
                      * 원래 하려던 구독 결제까지 이어서 마친다. */
-                    if (modal.pendingPlan) {
+                    if (pendingPlan) {
                       await startSubscriptionMutation.mutateAsync({
                         idempotencyKey: getStableIdempotencyKey(
                           startSubscriptionIdempotencyKeyRef
                         ),
-                        payload: { planCode: modal.pendingPlan.code },
+                        payload: { planCode: pendingPlan.code },
                       })
                       toast.success('구독이 시작되었습니다.')
                       handleClose()
@@ -416,7 +425,10 @@ export function BillingModals({
 
                     onOpenModal({ type: 'billingRegistered' })
                   } catch (error) {
+                    /* 모달을 닫아둔 상태라 인라인으로 보여줄 자리가 없다.
+                     * 입력값이 남아 있는 모달을 다시 열어 에러와 함께 보여준다. */
                     setFormError(getErrorMessage(error))
+                    onOpenModal({ type: 'billingRegister', pendingPlan })
                   } finally {
                     setIsPaymentWindowPending(false)
                   }
@@ -469,12 +481,17 @@ export function BillingModals({
                   isPaymentWindowPending
                 }
                 onClick={async () => {
+                  /* 등록 모달과 같은 이유로 결제창 호출 전에 모달을 닫는다. */
+                  const customer = toPaymentCustomer(payerInfo)
+
                   setFormError(null)
                   setIsPaymentWindowPending(true)
+                  onClose()
+
                   try {
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 변경',
-                      customer: toPaymentCustomer(payerInfo),
+                      customer,
                     })
                     await changeBillingMethodMutation.mutateAsync({
                       billingKey,
@@ -482,6 +499,7 @@ export function BillingModals({
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
                     setFormError(getErrorMessage(error))
+                    onOpenModal({ type: 'billingChange' })
                   } finally {
                     setIsPaymentWindowPending(false)
                   }
@@ -819,6 +837,10 @@ const PAYER_INFO_FIELDS: {
   type: 'text' | 'tel' | 'email'
   autoComplete: string
   inputMode?: 'text' | 'tel' | 'email'
+  placeholder?: string
+  /* 입력 시점에 값을 정규화한다. maxLength 속성으로 자르면 하이픈이 섞인 값을
+   * 붙여넣을 때 숫자까지 함께 잘려나가므로, 숫자만 남긴 뒤 길이를 맞춘다. */
+  sanitize?: (value: string) => string
 }[] = [
   { key: 'name', label: '이름', type: 'text', autoComplete: 'name' },
   {
@@ -827,6 +849,9 @@ const PAYER_INFO_FIELDS: {
     type: 'tel',
     autoComplete: 'tel',
     inputMode: 'tel',
+    placeholder: '전화번호 (숫자만)',
+    /* PG는 하이픈 없는 숫자만 받는다. 표기가 갈리지 않게 입력 단계에서 통일한다. */
+    sanitize: (value) => value.replace(/\D/g, '').slice(0, 11),
   },
   {
     key: 'email',
@@ -864,9 +889,14 @@ function PayerInfoFields({
               inputMode={field.inputMode}
               value={value[field.key]}
               onChange={(event) =>
-                onChange({ ...value, [field.key]: event.target.value })
+                onChange({
+                  ...value,
+                  [field.key]: field.sanitize
+                    ? field.sanitize(event.target.value)
+                    : event.target.value,
+                })
               }
-              placeholder={field.label}
+              placeholder={field.placeholder ?? field.label}
               autoComplete={field.autoComplete}
               spellCheck={field.key === 'email' ? false : undefined}
               className='h-44 w-full min-w-0 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-label-md-normal text-text-and-icon-primary placeholder:text-text-and-icon-disabled focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'
