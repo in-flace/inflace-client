@@ -28,7 +28,9 @@ export function MyPageSidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    'flex h-full min-h-36 w-full items-center justify-center gap-6 rounded-6 p-8 text-center lg:justify-start lg:gap-8 lg:text-left',
+                    /* spacing 스케일에 36이 없어 min-h-36은 Tailwind 기본 배수(0.25rem*36=9rem)로
+                     * 폴백해 90px가 된다. 시안의 36px를 지키려면 임의값으로 지정해야 한다. */
+                    'flex h-full min-h-[3.6rem] w-full items-center justify-center gap-6 rounded-6 p-8 text-center lg:justify-start lg:gap-8 lg:text-left',
                     isActive
                       ? 'bg-[#5A44F214] text-noto-label-md-bold text-brand-primary'
                       : 'bg-white text-noto-label-md-thin text-text-and-icon-primary'
