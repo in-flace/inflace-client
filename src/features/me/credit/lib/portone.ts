@@ -65,6 +65,12 @@ function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID().replace(/-/g, '')}`
 }
 
+/* PC 결제창을 iframe으로 띄우면 우리 모달(Radix Dialog)이 body의 pointer-events를
+ * 잠그고 포커스를 가두는 탓에 결제창에 입력이 닿지 않는다. 별도 창으로 열어
+ * 우리 문서 밖에 두면 그 간섭을 받지 않는다.
+ * 모바일은 PG 기본값(리디렉션)을 그대로 쓰고 redirectUrl로 돌아온다. */
+const PAYMENT_WINDOW_TYPE = { pc: 'POPUP' } as const
+
 /* 포트원이 돌려주는 원문 에러는 필드명이 영어로 노출되므로 결제창 호출 전에
  * 우리 문구로 막는다. mock 모드에서도 같은 검증을 거치게 두어야 로컬에서
  * 통과한 흐름이 실서비스에서 처음 깨지는 일을 막을 수 있다. */
@@ -115,6 +121,7 @@ export async function issueCardBillingKey({
     displayAmount,
     currency: displayAmount ? 'KRW' : undefined,
     customer: portOneCustomer,
+    windowType: PAYMENT_WINDOW_TYPE,
     redirectUrl: new URL(
       '/me/credit?tab=billing-method',
       window.location.origin
@@ -174,6 +181,7 @@ export async function requestOneTimeCardPayment({
     currency: 'KRW',
     payMethod: 'CARD',
     customer: portOneCustomer,
+    windowType: PAYMENT_WINDOW_TYPE,
     redirectUrl: new URL(
       '/me/credit?tab=history',
       window.location.origin
