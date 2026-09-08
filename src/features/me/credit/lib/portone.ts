@@ -43,9 +43,12 @@ export class PortOnePaymentError extends Error {
   }
 }
 
-function getPortOneConfig(): PortOneConfig | null {
+/* 정기 구독(빌링키 발급)과 일반 결제(단건)는 서로 다른 PG 계약을 쓰므로
+ * 포트원 채널이 분리되어 있다. 호출하는 쪽이 자기 채널키를 넘긴다. */
+function getPortOneConfig(
+  channelKey: string | undefined
+): PortOneConfig | null {
   const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
-  const channelKey = process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY
 
   if (!storeId || !channelKey) {
     return null
@@ -98,7 +101,9 @@ export async function issueCardBillingKey({
     }
   }
 
-  const config = getPortOneConfig()
+  const config = getPortOneConfig(
+    process.env.NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY
+  )
   if (!config) {
     throw new PortOnePaymentError(
       '포트원 결제 설정을 확인해주세요.',
@@ -157,7 +162,9 @@ export async function requestOneTimeCardPayment({
     return { paymentId, isMock: true }
   }
 
-  const config = getPortOneConfig()
+  const config = getPortOneConfig(
+    process.env.NEXT_PUBLIC_PORTONE_PAYMENT_CHANNEL_KEY
+  )
   if (!config) {
     throw new PortOnePaymentError(
       '포트원 결제 설정을 확인해주세요.',
