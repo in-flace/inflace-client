@@ -61,10 +61,28 @@ describe('portone adapter', () => {
   it('실결제 환경에서 설정이 없으면 목 결제로 우회하지 않는다', async () => {
     vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'false')
     vi.stubEnv('NEXT_PUBLIC_PORTONE_STORE_ID', '')
-    vi.stubEnv('NEXT_PUBLIC_PORTONE_CHANNEL_KEY', '')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY', '')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_PAYMENT_CHANNEL_KEY', '')
 
     await expect(
       issueCardBillingKey({ issueName: '테스트 카드 등록', customer: payer })
+    ).rejects.toMatchObject({ code: 'PORTONE_CONFIG_MISSING' })
+  })
+
+  /* 정기 구독과 일반 결제는 채널이 분리되어 있다. 한쪽 채널키만 설정된
+   * 상태에서 다른 쪽을 호출하면 조용히 성공하지 않고 막혀야 한다. */
+  it('정기 구독 채널키만 있으면 일반 결제는 설정 누락으로 막는다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'false')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_STORE_ID', 'store-test')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY', 'channel-key-billing')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_PAYMENT_CHANNEL_KEY', '')
+
+    await expect(
+      requestOneTimeCardPayment({
+        orderName: '10 크레딧',
+        totalAmount: 3900,
+        customer: payer,
+      })
     ).rejects.toMatchObject({ code: 'PORTONE_CONFIG_MISSING' })
   })
 
