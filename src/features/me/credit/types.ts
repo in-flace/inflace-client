@@ -102,7 +102,17 @@ export interface CancelSubscriptionPayload {
   reason: string
 }
 
+/* 서버 RegisterPaymentMethodRequest와 1:1로 맞춘다. 네 필드 모두 @NotBlank이고
+ * phoneNumber는 ^[0-9-]{10,13}$, email은 @Email 검증을 받는다. */
 export interface RegisterBillingMethodPayload {
+  billingKey: string
+  name: string
+  phoneNumber: string
+  email: string
+}
+
+/* 변경은 ChangePaymentMethodRequest가 billingKey만 받는다. */
+export interface ChangeBillingMethodPayload {
   billingKey: string
 }
 

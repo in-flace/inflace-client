@@ -7,6 +7,7 @@ import type {
   BillingHistoryItem,
   BillingSummary,
   CancelSubscriptionPayload,
+  ChangeBillingMethodPayload,
   CreditBatch,
   CreditBatchActionPayload,
   CreditPurchaseOption,
@@ -503,7 +504,7 @@ export async function registerBillingMethod(
 }
 
 export async function changeBillingMethod(
-  payload: RegisterBillingMethodPayload
+  payload: ChangeBillingMethodPayload
 ): Promise<BillingSummary> {
   await axiosInstance.patch<ApiResponse<PaymentMethodResponse>>(
     '/payment-methods/active',

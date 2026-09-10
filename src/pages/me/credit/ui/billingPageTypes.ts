@@ -16,12 +16,13 @@ export const EMPTY_PAYER_INFO: PayerInfo = {
   email: '',
 }
 
-/* 포트원이 필수로 요구하는 세 필드가 모두 유효한지. 결제창을 띄우기 전에
- * 버튼을 잠그는 데 쓴다. 이메일은 포트원이 형식까지 검사하므로 함께 본다. */
+/* 포트원과 백엔드가 모두 필수로 요구하는 세 필드가 유효한지. 결제창을
+ * 띄우기 전에 버튼을 잠그는 데 쓴다. 전화번호 하한 10자리는 서버
+ * RegisterPaymentMethodRequest의 ^[0-9-]{10,13}$ 를 따른 것이다. */
 export function isPayerInfoComplete(payerInfo: PayerInfo) {
   return (
     payerInfo.name.trim() !== '' &&
-    payerInfo.phone.replace(/\D/g, '').length >= 9 &&
+    payerInfo.phone.replace(/\D/g, '').length >= 10 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payerInfo.email.trim())
   )
 }

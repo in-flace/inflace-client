@@ -40,11 +40,13 @@ function getErrorMessage(error: unknown) {
     : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.'
 }
 
+/* 포트원과 백엔드가 같은 값을 받아야 한다. 백엔드 phoneNumber 검증이
+ * ^[0-9-]{10,13}$ 이므로 숫자만 남긴 값을 그대로 쓴다. */
 function toPaymentCustomer(payerInfo: PayerInfo): PaymentCustomer {
   return {
-    fullName: payerInfo.name,
-    phoneNumber: payerInfo.phone,
-    email: payerInfo.email,
+    fullName: payerInfo.name.trim(),
+    phoneNumber: payerInfo.phone.replace(/\D/g, ''),
+    email: payerInfo.email.trim(),
   }
 }
 
@@ -401,7 +403,12 @@ export function BillingModals({
                     })
                     await registerBillingMethodMutation.mutateAsync({
                       idempotencyKey: createIdempotencyKey(),
-                      payload: { billingKey },
+                      payload: {
+                        billingKey,
+                        name: customer.fullName,
+                        phoneNumber: customer.phoneNumber,
+                        email: customer.email,
+                      },
                     })
 
                     /* 구독 모달에서 넘어왔다면 카드 등록에서 멈추지 않고
