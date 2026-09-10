@@ -9,6 +9,7 @@ import {
   getNearestExpiryDate,
   getTotalCredits,
   usePaymentHistory,
+  useRequestTaxInvoice,
   useResumeSubscription,
   type BillingHistoryItem,
   type BillingHistoryStatus,
@@ -30,7 +31,7 @@ import {
   TableRow,
 } from '@/shared/ui/table'
 import { SectionCard, StatusBadge } from './BillingPrimitives'
-import type { ModalState } from './billingPageTypes'
+import { getErrorMessage, type ModalState } from './billingPageTypes'
 
 /* 서버가 구매 불가로 내려준 이유를 사용자 문구로 옮긴다. */
 const PLAN_UNAVAILABLE_LABEL: Record<PlanUnavailableReason, string> = {
@@ -588,6 +589,7 @@ export function HistoryTab({
 }) {
   const [page, setPage] = useState(0)
   const { data, isLoading, isError, refetch } = usePaymentHistory(page)
+  const requestTaxInvoiceMutation = useRequestTaxInvoice()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
 
   const history = data?.items ?? []
@@ -615,6 +617,21 @@ export function HistoryTab({
       return
     }
     onOpenModal({ type: 'document', item: selectedItem, documentType })
+  }
+
+  /* 디자인상 입력 폼 없이 행을 고르면 바로 신청하고 완료 모달을 띄운다. */
+  const requestTaxInvoice = async () => {
+    if (!selectedItem) {
+      toast.info('내역을 선택해주세요.')
+      return
+    }
+    try {
+      await requestTaxInvoiceMutation.mutateAsync(selectedItem.orderId)
+      setSelectedIds(new Set())
+      onOpenModal({ type: 'taxInvoiceRequested' })
+    } catch (error) {
+      toast.error(getErrorMessage(error))
+    }
   }
 
   if (isLoading) {
@@ -669,8 +686,8 @@ export function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={!selectedItem}
-          onClick={() => openDocumentModal('세금계산서')}>
+          disabled={!selectedItem || requestTaxInvoiceMutation.isPending}
+          onClick={() => void requestTaxInvoice()}>
           세금계산서 신청
         </Button>
         <Button
@@ -755,10 +772,10 @@ export function HistoryTab({
         </Table>
         <div className='mt-32 flex items-center justify-between gap-12'>
           <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-            <strong className='mr-8 text-brand-primary'>
+            결과
+            <strong className='ml-8 text-brand-primary'>
               {data?.totalElements ?? 0}
             </strong>
-            results
           </span>
           <div className='flex gap-12'>
             <Button
