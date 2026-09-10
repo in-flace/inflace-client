@@ -3,7 +3,9 @@ import { isAxiosError } from 'axios'
 import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
 import type {
-  BillingHistoryItem,
+  BillingHistoryPage,
+  BillingHistoryStatus,
+  BillingHistoryType,
   BillingPlan,
   BillingPlanCode,
   BillingSummary,
@@ -38,6 +40,28 @@ interface UserCreditBatchDto {
   status: UserCreditStatus
   grantedAt: string
   expiresAt: string | null
+}
+
+interface PaymentHistoryDto {
+  paymentId: number | null
+  refundId: number | null
+  orderId: number
+  type: BillingHistoryType
+  description: string
+  amount: number
+  status: BillingHistoryStatus
+  statusLabel: string
+  occurredAt: string
+}
+
+interface PageResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
 }
 
 interface SubscriptionPlanDto {
@@ -241,40 +265,6 @@ function toCreditBatches(
   })
 }
 
-function toCreditHistory(
-  transactions: CreditTransactionDto[],
-  batches: CreditBatch[]
-): BillingHistoryItem[] {
-  const batchById = new Map(batches.map((batch) => [batch.id, batch]))
-
-  return transactions.flatMap((transaction) => {
-    const batch = batchById.get(String(transaction.userCreditId))
-    if (
-      batch?.type !== 'purchase' ||
-      (transaction.transactionType !== 'GRANT' &&
-        transaction.transactionType !== 'REVOKE')
-    ) {
-      return []
-    }
-
-    const isPurchase = transaction.transactionType === 'GRANT'
-    return [
-      {
-        id: String(transaction.creditTransactionId),
-        date: toDate(transaction.createdAt),
-        title: isPurchase
-          ? `${batch.purchasedCredits}크레딧`
-          : '크레딧 구매 환불',
-        type: isPurchase ? 'creditPurchase' : 'creditRefund',
-        amount: isPurchase ? batch.purchaseAmount : -batch.purchaseAmount,
-        status: isPurchase ? 'paid' : 'refunded',
-        receiptAvailable: isPurchase && batch.purchaseAmount > 0,
-        taxInvoiceAvailable: isPurchase && batch.purchaseAmount > 0,
-      } satisfies BillingHistoryItem,
-    ]
-  })
-}
-
 function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
   const details = overview.subscription
   if (!details || overview.viewStatus === 'FREE') {
@@ -413,7 +403,6 @@ function composeBillingSummary({
     billingMethod: toBillingMethod(paymentMethod),
     creditOptions,
     creditBatches,
-    history: toCreditHistory(transactions.transactions, creditBatches),
   }
 }
 
@@ -464,6 +453,42 @@ async function waitForCreditPurchase(orderId: number) {
   }
 
   throw new Error('결제 확인이 지연되고 있습니다. 잠시 후 다시 확인해주세요.')
+}
+
+export const PAYMENT_HISTORY_PAGE_SIZE = 10
+
+/* 결제·환불 내역은 서버가 구독 결제·크레딧 구매·환불을 한 곳에 모아
+ * 페이지 단위로 준다. 크레딧 거래에서 만들어 쓰던 이전 방식은 구독 결제가
+ * 빠져 있었다. */
+export async function fetchPaymentHistory(
+  page: number
+): Promise<BillingHistoryPage> {
+  const response = await axiosInstance.get<
+    ApiResponse<PageResponse<PaymentHistoryDto>>
+  >('/payment-history', {
+    params: { page, size: PAYMENT_HISTORY_PAGE_SIZE },
+  })
+
+  const data = response.data.responseDto
+
+  return {
+    items: data.content.map((item) => ({
+      /* 결제 건과 환불 건이 같은 orderId를 공유하므로 둘을 합쳐 키를 만든다. */
+      id: `${item.orderId}-${item.refundId ?? item.paymentId ?? 'unknown'}`,
+      orderId: item.orderId,
+      date: toDate(item.occurredAt),
+      title: item.description,
+      type: item.type,
+      amount: item.amount,
+      status: item.status,
+      statusLabel: item.statusLabel,
+    })),
+    totalElements: data.totalElements,
+    totalPages: data.totalPages,
+    page: data.number,
+    first: data.first,
+    last: data.last,
+  }
 }
 
 export async function fetchBillingSummary(): Promise<BillingSummary> {

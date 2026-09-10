@@ -1,4 +1,8 @@
-import type { BillingSummary } from '../types'
+import type {
+  BillingHistoryStatus,
+  BillingHistoryType,
+  BillingSummary,
+} from '../types'
 
 export const mockBillingSummary: BillingSummary = {
   plans: [
@@ -100,48 +104,6 @@ export const mockBillingSummary: BillingSummary = {
       refundedAt: null,
     },
   ],
-  history: [
-    {
-      id: 'history-1',
-      date: '2026-08-01',
-      title: 'PRO 얼리버드 월 구독',
-      type: 'subscription',
-      amount: 9900,
-      status: 'paid',
-      receiptAvailable: true,
-      taxInvoiceAvailable: true,
-    },
-    {
-      id: 'history-2',
-      date: '2026-07-20',
-      title: '크레딧 5개 구매',
-      type: 'creditPurchase',
-      amount: 24000,
-      status: 'paid',
-      receiptAvailable: true,
-      taxInvoiceAvailable: true,
-    },
-    {
-      id: 'history-3',
-      date: '2026-07-01',
-      title: 'PRO 얼리버드 월 구독',
-      type: 'subscription',
-      amount: 9900,
-      status: 'paid',
-      receiptAvailable: true,
-      taxInvoiceAvailable: true,
-    },
-    {
-      id: 'history-4',
-      date: '2026-06-12',
-      title: '크레딧 구매 환불',
-      type: 'creditRefund',
-      amount: -12000,
-      status: 'refunded',
-      receiptAvailable: false,
-      taxInvoiceAvailable: false,
-    },
-  ],
   creditOptions: [
     {
       id: 'credit-option-10',
@@ -168,3 +130,62 @@ export const mockBillingSummary: BillingSummary = {
     },
   ],
 }
+
+/* GET /payment-history 목 데이터. 서버는 구독 결제·크레딧 구매·환불을
+ * 한 목록으로 내려주므로 목도 세 유형을 모두 담는다. */
+export const mockPaymentHistory: {
+  paymentId: number | null
+  refundId: number | null
+  orderId: number
+  type: BillingHistoryType
+  description: string
+  amount: number
+  status: BillingHistoryStatus
+  statusLabel: string
+  occurredAt: string
+}[] = [
+  {
+    paymentId: 101,
+    refundId: null,
+    orderId: 1001,
+    type: 'SUBSCRIPTION_PAYMENT',
+    description: '월 구독료',
+    amount: 9900,
+    status: 'PAYMENT_COMPLETED',
+    statusLabel: '결제 완료',
+    occurredAt: '2026-08-01T09:00:00',
+  },
+  {
+    paymentId: 102,
+    refundId: null,
+    orderId: 1002,
+    type: 'CREDIT_PURCHASE',
+    description: '30크레딧',
+    amount: 9900,
+    status: 'PAYMENT_COMPLETED',
+    statusLabel: '결제 완료',
+    occurredAt: '2026-07-20T09:00:00',
+  },
+  {
+    paymentId: 103,
+    refundId: null,
+    orderId: 1003,
+    type: 'SUBSCRIPTION_PAYMENT',
+    description: '월 구독료',
+    amount: 9900,
+    status: 'PAYMENT_FAILED',
+    statusLabel: '결제 실패',
+    occurredAt: '2026-07-01T09:00:00',
+  },
+  {
+    paymentId: null,
+    refundId: 201,
+    orderId: 1002,
+    type: 'REFUND',
+    description: '크레딧 미사용분 환급',
+    amount: -3900,
+    status: 'REFUND_COMPLETED',
+    statusLabel: '환불 완료',
+    occurredAt: '2026-06-15T09:00:00',
+  },
+]
