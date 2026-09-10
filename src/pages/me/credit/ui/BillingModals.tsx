@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
-import { isAxiosError } from 'axios'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import {
+  formatDate,
   formatWon,
   issueCardBillingKey,
   useCancelSubscription,
@@ -27,20 +28,11 @@ import { Dialog } from '@/shared/ui/shadcn/dialog'
 import { ModalContent } from './BillingPrimitives'
 import {
   EMPTY_PAYER_INFO,
+  getErrorMessage,
   isPayerInfoComplete,
   type ModalState,
   type PayerInfo,
 } from './billingPageTypes'
-
-function getErrorMessage(error: unknown) {
-  if (isAxiosError(error)) {
-    const message = error.response?.data?.error?.message
-    if (typeof message === 'string') return message
-  }
-  return error instanceof Error
-    ? error.message
-    : '요청을 처리하지 못했습니다. 잠시 후 다시 시도해주세요.'
-}
 
 /* 포트원과 백엔드가 같은 값을 받아야 한다. 백엔드 phoneNumber 검증이
  * ^[0-9-]{10,13}$ 이므로 숫자만 남긴 값을 그대로 쓴다. */
@@ -119,6 +111,7 @@ export function BillingModals({
   onClose: () => void
   onOpenModal: (modal: ModalState) => void
 }) {
+  const router = useRouter()
   const [agreedAutoPay, setAgreedAutoPay] = useState(false)
   const [agreedWithdrawalLimit, setAgreedWithdrawalLimit] = useState(false)
   const [cancelReason, setCancelReason] = useState<SubscriptionExitReason>(
@@ -249,13 +242,13 @@ export function BillingModals({
       )}
       {modal?.type === 'cancelReason' && (
         <ModalContent
-          title='구독을 해지하시겠어요?'
-          description='해지해도 결제 완료 기간까지 플랜을 이용할 수 있습니다.'
+          title='해지 사유를 알려주세요'
+          description='소중한 피드백은 서비스 개선에 활용됩니다'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <label className='flex flex-col gap-8'>
               <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
-                해지 사유
+                해지 사유 <span className='font-normal'>(필수)</span>
               </span>
               <select
                 value={cancelReason}
@@ -298,12 +291,19 @@ export function BillingModals({
         </ModalContent>
       )}
       {modal?.type === 'cancelNotice' && (
-        <ModalContent title='해지 전 확인해주세요' className='sm:w-[50rem]'>
+        <ModalContent title='해지 전 꼭 확인하세요' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <div className='rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
-              해지 후 재가입하면 얼리버드 혜택이 종료되고 정상가 29,000원이
-              적용됩니다.
-            </div>
+            <ul className='flex flex-col gap-8 rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
+              <li>
+                다음 결제일
+                {summary.subscription.nextPaymentDate
+                  ? `(${formatDate(summary.subscription.nextPaymentDate)})`
+                  : ''}
+                까지는 계속 이용할 수 있어요.
+              </li>
+              <li>월 제공 크레딧은 해지 시 소멸됩니다.</li>
+              <li>구매한 크레딧은 유효기간까지 그대로 유지됩니다.</li>
+            </ul>
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -319,29 +319,60 @@ export function BillingModals({
                 color='primary'
                 size='lg'
                 variant='filled'
-                disabled={cancelSubscriptionMutation.isPending}
-                onClick={async () => {
-                  try {
-                    await cancelSubscriptionMutation.mutateAsync({
-                      reason: cancelReason,
-                    })
-                    onOpenModal({ type: 'cancelDone' })
-                  } catch (error) {
-                    toast.error(getErrorMessage(error))
-                  }
-                }}
+                onClick={() => onOpenModal({ type: 'cancelConfirm' })}
                 className='h-44 w-full'>
-                해지 예약
+                다음
               </Button>
             </div>
+          </div>
+        </ModalContent>
+      )}
+      {modal?.type === 'cancelConfirm' && (
+        <ModalContent
+          title='정말 해지하시겠어요?'
+          description='해지 후에도 결제 완료된 기간까지는 서비스를 이용할 수 있습니다.'
+          className='sm:w-[50rem]'>
+          <div className='mt-32 grid grid-cols-2 gap-12'>
+            <Button
+              type='button'
+              color='gray'
+              size='lg'
+              variant='filled'
+              onClick={handleClose}
+              className='h-44 w-full'>
+              계속 이용하기
+            </Button>
+            <Button
+              type='button'
+              color='primary'
+              size='lg'
+              variant='filled'
+              disabled={cancelSubscriptionMutation.isPending}
+              onClick={async () => {
+                try {
+                  await cancelSubscriptionMutation.mutateAsync({
+                    reason: cancelReason,
+                  })
+                  onOpenModal({ type: 'cancelDone' })
+                } catch (error) {
+                  toast.error(getErrorMessage(error))
+                }
+              }}
+              className='h-44 w-full bg-feedback-error'>
+              해지 완료하기
+            </Button>
           </div>
         </ModalContent>
       )}
       {modal?.type === 'cancelDone' && (
         <NoticeModal
           title='해지가 완료되었습니다.'
-          buttonText='확인'
-          onConfirm={handleClose}
+          description='지금까지 인플레이스를 이용해주셔서 감사합니다.'
+          buttonText='홈으로 이동하기'
+          onConfirm={() => {
+            handleClose()
+            router.push('/')
+          }}
         />
       )}
       {modal?.type === 'billingRegister' && (
@@ -704,6 +735,14 @@ export function BillingModals({
               toast.error(getErrorMessage(error))
             }
           }}
+        />
+      )}
+      {modal?.type === 'taxInvoiceRequested' && (
+        <NoticeModal
+          title='세금계산서 신청 완료'
+          description='영업일 기준 3일 이내 발급되며, 등록된 이메일로 발송됩니다.'
+          buttonText='확인'
+          onConfirm={handleClose}
         />
       )}
       {modal?.type === 'document' && (

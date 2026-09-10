@@ -615,6 +615,14 @@ export async function changeBillingMethod(
   return fetchBillingSummary()
 }
 
+/* 디자인상 별도 입력 폼 없이 행을 고르고 바로 신청한다.
+ * 서버도 orderId만 받는다(POST /payment-history/{orderId}/tax-invoice). */
+export async function requestTaxInvoice(orderId: number): Promise<void> {
+  await axiosInstance.post<ApiResponse<unknown>>(
+    `/payment-history/${orderId}/tax-invoice`
+  )
+}
+
 export async function deleteBillingMethod(): Promise<BillingSummary> {
   await axiosInstance.delete<ApiResponse<null>>('/payment-methods/active')
   return fetchBillingSummary()

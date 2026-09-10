@@ -10,6 +10,7 @@ import {
   fetchPaymentHistory,
   purchaseCredits,
   registerBillingMethod,
+  requestTaxInvoice,
   resumeSubscription,
   startSubscription,
 } from '../api/billingApi'
@@ -83,6 +84,13 @@ export function useRegisterBillingMethod() {
 
 export function useChangeBillingMethod() {
   return useBillingMutation(changeBillingMethod)
+}
+
+/* 발행 신청은 요약·내역 데이터를 바꾸지 않으므로 캐시를 건드리지 않는다. */
+export function useRequestTaxInvoice() {
+  return useMutation({
+    mutationFn: (orderId: number) => requestTaxInvoice(orderId),
+  })
 }
 
 export function useDeleteBillingMethod() {
