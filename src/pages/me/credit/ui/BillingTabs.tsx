@@ -14,6 +14,7 @@ import {
   type BillingPlan,
   type BillingSummary,
   type CreditBatch,
+  type PlanUnavailableReason,
 } from '@/features/me/credit'
 import CheckIcon from '@/shared/assets/check-bold.svg'
 import PaymentIcon from '@/shared/assets/payment-bold.svg'
@@ -29,6 +30,13 @@ import {
 } from '@/shared/ui/table'
 import { SectionCard, StatusBadge } from './BillingPrimitives'
 import type { ModalState } from './billingPageTypes'
+
+/* 서버가 구매 불가로 내려준 이유를 사용자 문구로 옮긴다. */
+const PLAN_UNAVAILABLE_LABEL: Record<PlanUnavailableReason, string> = {
+  SOLD_OUT: '준비된 수량이 모두 소진되었습니다.',
+  NOT_ON_SALE: '현재 판매하지 않는 플랜입니다.',
+  REJOIN_NOT_ALLOWED: '이전 구독 이력이 있어 다시 선택할 수 없습니다.',
+}
 
 function PlanCard({
   plan,
@@ -76,16 +84,23 @@ function PlanCard({
           ))}
         </ul>
       </div>
-      <Button
-        type='button'
-        color={plan.code === 'EARLY_BIRD' ? 'primary' : 'gray'}
-        size='lg'
-        variant='filled'
-        disabled={disabled}
-        onClick={onSubscribe}
-        className='h-44 w-full'>
-        선택하기
-      </Button>
+      <div className='flex flex-col gap-8'>
+        <Button
+          type='button'
+          color={plan.code === 'EARLY_BIRD' ? 'primary' : 'gray'}
+          size='lg'
+          variant='filled'
+          disabled={disabled || !plan.available}
+          onClick={onSubscribe}
+          className='h-44 w-full'>
+          선택하기
+        </Button>
+        {!plan.available && plan.unavailableReason && (
+          <p className='text-center text-noto-body-xs-normal text-text-and-icon-secondary'>
+            {PLAN_UNAVAILABLE_LABEL[plan.unavailableReason]}
+          </p>
+        )}
+      </div>
     </article>
   )
 }

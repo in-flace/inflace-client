@@ -21,6 +21,29 @@ describe('fetchBillingSummary', () => {
 
   it('거래 이력으로 연장 상태를 복원하고 결제 관련 이력만 노출한다', async () => {
     getMock.mockImplementation((url: string) => {
+      if (url === '/subscriptions/plans') {
+        return Promise.resolve(
+          apiResponse({
+            plans: [
+              {
+                code: 'PRO',
+                name: 'PRO',
+                price: 29900,
+                billingPeriod: 'MONTHLY',
+                available: true,
+              },
+              {
+                code: 'EARLY_BIRD',
+                name: 'PRO 얼리버드',
+                price: 9900,
+                billingPeriod: 'MONTHLY',
+                available: false,
+                unavailableReason: 'SOLD_OUT',
+              },
+            ],
+          })
+        )
+      }
       if (url === '/credits') {
         return Promise.resolve(
           apiResponse({
@@ -126,6 +149,28 @@ describe('fetchBillingSummary', () => {
     })
 
     const summary = await fetchBillingSummary()
+
+    /* 플랜은 서버 응답으로 만든다. 할인 표기는 정상가(PRO) 대비로 계산되고,
+     * 설명·혜택은 서버에 없으므로 코드별 로컬 문구가 붙는다. */
+    expect(summary.plans).toEqual([
+      expect.objectContaining({
+        code: 'PRO',
+        price: 29900,
+        available: true,
+        unavailableReason: null,
+        originalPrice: undefined,
+        badge: undefined,
+      }),
+      expect.objectContaining({
+        code: 'EARLY_BIRD',
+        price: 9900,
+        originalPrice: 29900,
+        badge: '기간한정 67% 할인, 곧 종료!',
+        available: false,
+        unavailableReason: 'SOLD_OUT',
+      }),
+    ])
+    expect(summary.plans[0].features.length).toBeGreaterThan(0)
 
     expect(summary.creditBatches[0]).toMatchObject({
       type: 'purchase',

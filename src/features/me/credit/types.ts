@@ -22,6 +22,10 @@ export type BillingHistoryType =
 export type BillingHistoryStatus =
   'paid' | 'failed' | 'refunded' | 'scheduled' | 'completed'
 
+/* 서버 PlanUnavailableReason과 1:1 */
+export type PlanUnavailableReason =
+  'SOLD_OUT' | 'NOT_ON_SALE' | 'REJOIN_NOT_ALLOWED'
+
 export interface BillingPlan {
   code: BillingPlanCode
   name: string
@@ -30,6 +34,9 @@ export interface BillingPlan {
   badge?: string
   description: string
   features: string[]
+  /* 서버가 판정한 구매 가능 여부. false면 구매 버튼을 잠근다. */
+  available: boolean
+  unavailableReason: PlanUnavailableReason | null
 }
 
 export interface Subscription {
@@ -98,8 +105,19 @@ export interface StartSubscriptionPayload {
   planCode: BillingPlanCode
 }
 
+/* 서버 SubscriptionExitReason과 1:1 */
+export type SubscriptionExitReason =
+  | 'PRICE_TOO_HIGH'
+  | 'NOT_USING_SERVICE'
+  | 'MISSING_FEATURES'
+  | 'SWITCHED_TO_ANOTHER_SERVICE'
+  | 'TEMPORARY_PAUSE'
+  | 'OTHER'
+
 export interface CancelSubscriptionPayload {
-  reason: string
+  reason: SubscriptionExitReason
+  /* 서버 @Size(max = 500). 현재 UI에는 입력란이 없어 보내지 않는다. */
+  reasonDetail?: string
 }
 
 /* 서버 RegisterPaymentMethodRequest와 1:1로 맞춘다. 네 필드 모두 @NotBlank이고

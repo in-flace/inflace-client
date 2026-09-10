@@ -14,9 +14,11 @@ import {
   usePurchaseCredits,
   useRegisterBillingMethod,
   useStartSubscription,
+  SUBSCRIPTION_EXIT_REASONS,
   type BillingSummary,
   type CreditPurchaseOption,
   type PaymentCustomer,
+  type SubscriptionExitReason,
 } from '@/features/me/credit'
 import CheckIcon from '@/shared/assets/check-bold.svg'
 import { cn } from '@/shared/lib/utils'
@@ -119,7 +121,9 @@ export function BillingModals({
 }) {
   const [agreedAutoPay, setAgreedAutoPay] = useState(false)
   const [agreedWithdrawalLimit, setAgreedWithdrawalLimit] = useState(false)
-  const [cancelReason, setCancelReason] = useState('사용 빈도가 낮아요')
+  const [cancelReason, setCancelReason] = useState<SubscriptionExitReason>(
+    SUBSCRIPTION_EXIT_REASONS[0].value
+  )
   const [selectedOptionId, setSelectedOptionId] = useState(
     summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
   )
@@ -142,7 +146,7 @@ export function BillingModals({
   const handleClose = () => {
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
-    setCancelReason('사용 빈도가 낮아요')
+    setCancelReason(SUBSCRIPTION_EXIT_REASONS[0].value)
     setPayerInfo(EMPTY_PAYER_INFO)
     setFormError(null)
     setSelectedOptionId(
@@ -255,14 +259,17 @@ export function BillingModals({
               </span>
               <select
                 value={cancelReason}
-                onChange={(event) => setCancelReason(event.target.value)}
+                onChange={(event) =>
+                  setCancelReason(event.target.value as SubscriptionExitReason)
+                }
                 name='cancelReason'
                 autoComplete='off'
                 className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-body-sm-normal text-text-and-icon-primary focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'>
-                <option>사용 빈도가 낮아요</option>
-                <option>가격이 부담돼요</option>
-                <option>원하는 기능이 부족해요</option>
-                <option>다른 서비스를 이용해요</option>
+                {SUBSCRIPTION_EXIT_REASONS.map((reason) => (
+                  <option key={reason.value} value={reason.value}>
+                    {reason.label}
+                  </option>
+                ))}
               </select>
             </label>
             <div className='grid grid-cols-2 gap-12'>
