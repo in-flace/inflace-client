@@ -1,10 +1,11 @@
 import { isAxiosError } from 'axios'
 
-import { mockBillingSummary } from '@/features/me/credit/mock/mockBilling'
 import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
 import type {
   BillingHistoryItem,
+  BillingPlan,
+  BillingPlanCode,
   BillingSummary,
   CancelSubscriptionPayload,
   ChangeBillingMethodPayload,
@@ -13,6 +14,7 @@ import type {
   CreditPurchaseOption,
   PurchaseCreditsPayload,
   RegisterBillingMethodPayload,
+  PlanUnavailableReason,
   StartSubscriptionPayload,
   Subscription,
 } from '../types'
@@ -36,6 +38,20 @@ interface UserCreditBatchDto {
   status: UserCreditStatus
   grantedAt: string
   expiresAt: string | null
+}
+
+interface SubscriptionPlanDto {
+  code: BillingPlanCode
+  name: string
+  price: number
+  billingPeriod: string
+  available: boolean
+  /* 구매 가능한 경우 응답에서 제외된다(@JsonInclude NON_NULL) */
+  unavailableReason?: PlanUnavailableReason
+}
+
+interface SubscriptionPlansResponse {
+  plans: SubscriptionPlanDto[]
 }
 
 interface GetUserCreditsResponse {
@@ -319,13 +335,65 @@ function toBillingMethod(paymentMethod: PaymentMethodResponse | null) {
   }
 }
 
+/* 서버 SubscriptionPlansResponse는 code·name·price·available만 준다.
+ * 설명과 혜택 목록은 마케팅 문구라 서버에 없으므로 코드별로 여기서 붙인다. */
+const PLAN_COPY: Record<
+  BillingPlanCode,
+  { description: string; features: string[] }
+> = {
+  PRO: {
+    description: '모든 인플루언서 검색 기능을 제한 없이 사용합니다.',
+    features: [
+      '인플루언서 검색 탭 내 모든 기능 무제한',
+      '경쟁 채널 분석이 가능한 3 크레딧 무료 제공',
+    ],
+  },
+  EARLY_BIRD: {
+    description: '초기 고객을 위한 월 구독 할인 플랜입니다.',
+    features: [
+      '인플루언서 검색 탭 내 모든 기능 무제한',
+      '경쟁 채널 분석이 가능한 3 크레딧 무료 제공',
+    ],
+  },
+}
+
+function toPlans(plans: SubscriptionPlanDto[]): BillingPlan[] {
+  /* 할인 표기는 정상가(PRO) 대비로 계산한다. 서버 가격이 바뀌어도
+   * 취소선 금액과 할인율이 따라가도록 하드코딩하지 않는다. */
+  const listPrice = plans.find((plan) => plan.code === 'PRO')?.price ?? null
+
+  return plans.map((plan) => {
+    const isDiscounted =
+      plan.code !== 'PRO' && listPrice !== null && listPrice > plan.price
+    const discountRate = isDiscounted
+      ? Math.round((1 - plan.price / listPrice) * 100)
+      : null
+
+    return {
+      code: plan.code,
+      name: plan.name,
+      price: plan.price,
+      originalPrice: isDiscounted ? listPrice : undefined,
+      badge:
+        discountRate !== null
+          ? `기간한정 ${discountRate}% 할인, 곧 종료!`
+          : undefined,
+      available: plan.available,
+      unavailableReason: plan.unavailableReason ?? null,
+      ...PLAN_COPY[plan.code],
+    }
+  })
+}
+
 function composeBillingSummary({
+  plans,
   credits,
   products,
   transactions,
   subscription,
   paymentMethod,
 }: {
+  plans: SubscriptionPlansResponse
   credits: GetUserCreditsResponse
   products: GetCreditProductsResponse
   transactions: GetCreditTransactionsResponse
@@ -340,7 +408,7 @@ function composeBillingSummary({
   )
 
   return {
-    plans: mockBillingSummary.plans,
+    plans: toPlans(plans.plans),
     subscription: toSubscription(subscription),
     billingMethod: toBillingMethod(paymentMethod),
     creditOptions,
@@ -400,12 +468,16 @@ async function waitForCreditPurchase(orderId: number) {
 
 export async function fetchBillingSummary(): Promise<BillingSummary> {
   const [
+    plansResponse,
     creditsResponse,
     productsResponse,
     transactionsResponse,
     subscriptionResponse,
     paymentMethod,
   ] = await Promise.all([
+    axiosInstance.get<ApiResponse<SubscriptionPlansResponse>>(
+      '/subscriptions/plans'
+    ),
     axiosInstance.get<ApiResponse<GetUserCreditsResponse>>('/credits'),
     axiosInstance.get<ApiResponse<GetCreditProductsResponse>>(
       '/credit-products'
@@ -420,6 +492,7 @@ export async function fetchBillingSummary(): Promise<BillingSummary> {
   ])
 
   return composeBillingSummary({
+    plans: plansResponse.data.responseDto,
     credits: creditsResponse.data.responseDto,
     products: productsResponse.data.responseDto,
     transactions: transactionsResponse.data.responseDto,
@@ -476,11 +549,15 @@ export async function startSubscription(
 export async function cancelSubscription(
   payload: CancelSubscriptionPayload
 ): Promise<BillingSummary> {
-  if (!payload.reason.trim()) {
+  if (!payload.reason) {
     throw new Error('해지 사유를 선택해주세요.')
   }
+  /* 서버 SubscriptionCancellationRequest가 사유까지 받는다.
+   * 이 값을 빼면 해지 사유 집계가 비어버린다. */
   await axiosInstance.patch<ApiResponse<null>>('/subscriptions/me', {
     cancelAtPeriodEnd: true,
+    reason: payload.reason,
+    reasonDetail: payload.reasonDetail,
   })
   return fetchBillingSummary()
 }

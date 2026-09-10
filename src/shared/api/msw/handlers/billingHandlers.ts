@@ -280,6 +280,21 @@ export const billingHandlers = [
     }
   ),
 
+  http.get(`${process.env.NEXT_PUBLIC_API_URL}/subscriptions/plans`, () =>
+    apiResponse({
+      plans: mockBillingSummary.plans.map((plan) => ({
+        code: plan.code,
+        name: plan.name,
+        price: plan.price,
+        billingPeriod: 'MONTHLY',
+        available: plan.available,
+        ...(plan.unavailableReason
+          ? { unavailableReason: plan.unavailableReason }
+          : {}),
+      })),
+    })
+  ),
+
   http.get(`${process.env.NEXT_PUBLIC_API_URL}/subscriptions/me`, () =>
     apiResponse(getSubscriptionOverview())
   ),

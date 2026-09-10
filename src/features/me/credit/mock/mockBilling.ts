@@ -5,7 +5,9 @@ export const mockBillingSummary: BillingSummary = {
     {
       code: 'PRO',
       name: 'PRO',
-      price: 29000,
+      price: 29900,
+      available: true,
+      unavailableReason: null,
       description: '모든 인플루언서 검색 기능을 제한 없이 사용합니다.',
       features: [
         '인플루언서 검색 탭 내 모든 기능 무제한',
@@ -16,8 +18,10 @@ export const mockBillingSummary: BillingSummary = {
       code: 'EARLY_BIRD',
       name: 'PRO 얼리버드',
       price: 9900,
-      originalPrice: 29000,
-      badge: '기간한정 66% 할인, 곧 종료!',
+      originalPrice: 29900,
+      badge: '기간한정 67% 할인, 곧 종료!',
+      available: true,
+      unavailableReason: null,
       description: '초기 고객을 위한 월 구독 할인 플랜입니다.',
       features: [
         '인플루언서 검색 탭 내 모든 기능 무제한',
