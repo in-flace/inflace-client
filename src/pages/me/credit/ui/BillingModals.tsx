@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { isAxiosError } from 'axios'
 import { toast } from 'sonner'
 
@@ -94,9 +94,14 @@ function AgreementCheckbox({
   )
 }
 
-function getStableIdempotencyKey(ref: { current: string | null }) {
-  ref.current ??= crypto.randomUUID()
-  return ref.current
+/* 백엔드는 idempotency 키를 payload와 무관하게 "이미 본 키인가"로만 판정하고,
+ * 원래 응답을 재생해주지 않는다. 게다가 preHandle에서 키를 먼저 소모하므로
+ * 요청이 실패해도 1시간(TTL) 동안 그 키는 되살아나지 않는다
+ * (서버 IdempotencyKeyInterceptor). 키를 재사용하면 재시도가 전부
+ * COMMON_409_IDEMPOTENCY로 막히므로 시도마다 새로 만든다.
+ * 같은 시도가 중복 전송되는 것은 버튼 비활성화로 막는다. */
+function createIdempotencyKey() {
+  return crypto.randomUUID()
 }
 
 export function BillingModals({
@@ -124,9 +129,6 @@ export function BillingModals({
   const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
   const [payerInfo, setPayerInfo] = useState<PayerInfo>(EMPTY_PAYER_INFO)
   const [formError, setFormError] = useState<string | null>(null)
-  const registerBillingMethodIdempotencyKeyRef = useRef<string | null>(null)
-  const startSubscriptionIdempotencyKeyRef = useRef<string | null>(null)
-  const purchaseCreditsIdempotencyKeyRef = useRef<string | null>(null)
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
@@ -144,9 +146,6 @@ export function BillingModals({
     setSelectedOptionId(
       summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
     )
-    registerBillingMethodIdempotencyKeyRef.current = null
-    startSubscriptionIdempotencyKeyRef.current = null
-    purchaseCreditsIdempotencyKeyRef.current = null
     setPaymentMethod(
       summary.billingMethod.status === 'registered'
         ? 'registeredCard'
@@ -216,9 +215,7 @@ export function BillingModals({
                   setIsPaymentWindowPending(true)
                   try {
                     await startSubscriptionMutation.mutateAsync({
-                      idempotencyKey: getStableIdempotencyKey(
-                        startSubscriptionIdempotencyKeyRef
-                      ),
+                      idempotencyKey: createIdempotencyKey(),
                       payload: {
                         planCode: modal.plan.code,
                       },
@@ -403,9 +400,7 @@ export function BillingModals({
                       customer,
                     })
                     await registerBillingMethodMutation.mutateAsync({
-                      idempotencyKey: getStableIdempotencyKey(
-                        registerBillingMethodIdempotencyKeyRef
-                      ),
+                      idempotencyKey: createIdempotencyKey(),
                       payload: { billingKey },
                     })
 
@@ -413,9 +408,7 @@ export function BillingModals({
                      * 원래 하려던 구독 결제까지 이어서 마친다. */
                     if (pendingPlan) {
                       await startSubscriptionMutation.mutateAsync({
-                        idempotencyKey: getStableIdempotencyKey(
-                          startSubscriptionIdempotencyKeyRef
-                        ),
+                        idempotencyKey: createIdempotencyKey(),
                         payload: { planCode: pendingPlan.code },
                       })
                       toast.success('구독이 시작되었습니다.')
@@ -657,9 +650,7 @@ export function BillingModals({
                 setIsPaymentWindowPending(true)
                 try {
                   await purchaseCreditsMutation.mutateAsync({
-                    idempotencyKey: getStableIdempotencyKey(
-                      purchaseCreditsIdempotencyKeyRef
-                    ),
+                    idempotencyKey: createIdempotencyKey(),
                     payload: {
                       optionId: selectedOption.id,
                       paymentMethod,
