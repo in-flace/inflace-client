@@ -10,17 +10,19 @@ export type BillingMethodStatus = 'none' | 'registered'
 
 export type CreditBatchType = 'subscription' | 'purchase'
 
+/* 서버 PaymentHistoryType과 1:1 */
 export type BillingHistoryType =
-  | 'subscription'
-  | 'creditPurchase'
-  | 'creditRefund'
-  | 'creditUsage'
-  | 'creditRestore'
-  | 'creditExtension'
-  | 'creditExpiration'
+  'SUBSCRIPTION_PAYMENT' | 'CREDIT_PURCHASE' | 'REFUND'
 
+/* 서버 PaymentHistoryStatus와 1:1 */
 export type BillingHistoryStatus =
-  'paid' | 'failed' | 'refunded' | 'scheduled' | 'completed'
+  | 'PAYMENT_PENDING'
+  | 'PAYMENT_COMPLETED'
+  | 'PAYMENT_FAILED'
+  | 'REFUND_REQUESTED'
+  | 'REFUND_PROCESSING'
+  | 'REFUND_COMPLETED'
+  | 'REFUND_FAILED'
 
 /* 서버 PlanUnavailableReason과 1:1 */
 export type PlanUnavailableReason =
@@ -74,13 +76,25 @@ export interface CreditBatch {
 
 export interface BillingHistoryItem {
   id: string
+  /* 세금계산서·현금영수증 신청이 주문 단위라 함께 들고 있는다. */
+  orderId: number
   date: string
   title: string
   type: BillingHistoryType
   amount: number
   status: BillingHistoryStatus
-  receiptAvailable: boolean
-  taxInvoiceAvailable: boolean
+  /* 서버가 내려주는 상태 문구. 프론트에서 매핑을 중복 관리하지 않는다. */
+  statusLabel: string
+}
+
+/* 결제·환불 내역은 페이지네이션이라 요약(BillingSummary)과 분리해 조회한다. */
+export interface BillingHistoryPage {
+  items: BillingHistoryItem[]
+  totalElements: number
+  totalPages: number
+  page: number
+  first: boolean
+  last: boolean
 }
 
 export interface CreditPurchaseOption {
@@ -97,7 +111,6 @@ export interface BillingSummary {
   subscription: Subscription
   billingMethod: BillingMethod
   creditBatches: CreditBatch[]
-  history: BillingHistoryItem[]
   creditOptions: CreditPurchaseOption[]
 }
 

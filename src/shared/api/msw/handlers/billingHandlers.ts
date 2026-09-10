@@ -1,6 +1,9 @@
 import { http, HttpResponse } from 'msw'
 
-import { mockBillingSummary } from '@/features/me/credit/mock/mockBilling'
+import {
+  mockBillingSummary,
+  mockPaymentHistory,
+} from '@/features/me/credit/mock/mockBilling'
 import type {
   BillingPlanCode,
   BillingSummary,
@@ -276,6 +279,31 @@ export const billingHandlers = [
       return apiResponse({
         userCreditId,
         expiresAt: target?.expiryDate ? `${target.expiryDate}T00:00:00` : null,
+      })
+    }
+  ),
+
+  http.get(
+    `${process.env.NEXT_PUBLIC_API_URL}/payment-history`,
+    ({ request }) => {
+      const url = new URL(request.url)
+      const page = Number(url.searchParams.get('page') ?? 0)
+      const size = Number(url.searchParams.get('size') ?? 10)
+      const start = page * size
+      const content = mockPaymentHistory.slice(start, start + size)
+      const totalPages = Math.max(
+        Math.ceil(mockPaymentHistory.length / size),
+        1
+      )
+
+      return apiResponse({
+        content,
+        totalElements: mockPaymentHistory.length,
+        totalPages,
+        number: page,
+        size,
+        first: page === 0,
+        last: page >= totalPages - 1,
       })
     }
   ),

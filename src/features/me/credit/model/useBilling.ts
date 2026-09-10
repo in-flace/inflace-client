@@ -7,6 +7,7 @@ import {
   deleteBillingMethod,
   extendCreditBatch,
   fetchBillingSummary,
+  fetchPaymentHistory,
   purchaseCredits,
   registerBillingMethod,
   resumeSubscription,
@@ -16,6 +17,23 @@ import type { BillingSummary } from '../types'
 
 export const billingQueryKeys = {
   summary: (userId: string | null) => ['billing', 'summary', userId] as const,
+  paymentHistory: (userId: string | null, page: number) =>
+    ['billing', 'paymentHistory', userId, page] as const,
+}
+
+/* 내역은 페이지 단위로 따로 조회한다. 요약(summary)에 묶으면 페이지를 넘길
+ * 때마다 크레딧·구독·결제수단까지 다시 받아오게 된다. */
+export function usePaymentHistory(page: number) {
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
+
+  return useQuery({
+    queryKey: billingQueryKeys.paymentHistory(userId, page),
+    queryFn: () => fetchPaymentHistory(page),
+    enabled: !!accessToken && !!userId,
+    /* 페이지를 넘기는 동안 이전 페이지를 남겨 표가 비어 보이지 않게 한다. */
+    placeholderData: (previous) => previous,
+  })
 }
 
 function useBillingUserId() {

@@ -8,6 +8,7 @@ import {
   formatWon,
   getNearestExpiryDate,
   getTotalCredits,
+  usePaymentHistory,
   useResumeSubscription,
   type BillingHistoryItem,
   type BillingHistoryStatus,
@@ -579,17 +580,25 @@ function EmptyActionCard({
 }
 
 export function HistoryTab({
-  history,
   onOpenModal,
   onRequestSubscription,
 }: {
-  history: BillingHistoryItem[]
   onOpenModal: (modal: ModalState) => void
   onRequestSubscription: () => void
 }) {
+  const [page, setPage] = useState(0)
+  const { data, isLoading, isError, refetch } = usePaymentHistory(page)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+
+  const history = data?.items ?? []
   const selectedItem = history.find((item) => selectedIds.has(item.id))
   const allSelected = history.length > 0 && selectedIds.size === history.length
+
+  /* 페이지를 넘기면 이전 페이지에서 고른 행은 화면에 없으므로 선택을 비운다. */
+  const goToPage = (next: number) => {
+    setSelectedIds(new Set())
+    setPage(next)
+  }
 
   const toggleItem = (itemId: string) => {
     setSelectedIds((current) => {
@@ -606,6 +615,39 @@ export function HistoryTab({
       return
     }
     onOpenModal({ type: 'document', item: selectedItem, documentType })
+  }
+
+  if (isLoading) {
+    return (
+      <SectionCard className='flex min-h-[44.8rem] items-center justify-center'>
+        <span
+          role='status'
+          aria-live='polite'
+          className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          결제·환불 내역을 불러오는 중입니다…
+        </span>
+      </SectionCard>
+    )
+  }
+
+  if (isError) {
+    return (
+      <SectionCard className='flex min-h-[44.8rem] flex-col items-center justify-center gap-20'>
+        <p
+          role='alert'
+          className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          결제·환불 내역을 불러오지 못했습니다.
+        </p>
+        <Button
+          type='button'
+          color='primary'
+          size='lg'
+          variant='filled'
+          onClick={() => void refetch()}>
+          다시 불러오기
+        </Button>
+      </SectionCard>
+    )
   }
 
   if (history.length === 0) {
@@ -627,7 +669,7 @@ export function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={selectedItem ? !selectedItem.taxInvoiceAvailable : false}
+          disabled={!selectedItem}
           onClick={() => openDocumentModal('세금계산서')}>
           세금계산서 신청
         </Button>
@@ -636,7 +678,7 @@ export function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={selectedItem ? !selectedItem.receiptAvailable : false}
+          disabled={!selectedItem}
           onClick={() => openDocumentModal('현금영수증')}>
           현금영수증 신청
         </Button>
@@ -702,7 +744,10 @@ export function HistoryTab({
                   {formatWon(item.amount)}
                 </TableCell>
                 <TableCell>
-                  <HistoryStatusBadge status={item.status} />
+                  <HistoryStatusBadge
+                    status={item.status}
+                    label={item.statusLabel}
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -711,7 +756,7 @@ export function HistoryTab({
         <div className='mt-32 flex items-center justify-between gap-12'>
           <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
             <strong className='mr-8 text-brand-primary'>
-              {history.length}
+              {data?.totalElements ?? 0}
             </strong>
             results
           </span>
@@ -721,7 +766,8 @@ export function HistoryTab({
               color='gray'
               size='md'
               variant='filled'
-              disabled>
+              disabled={data?.first ?? true}
+              onClick={() => goToPage(page - 1)}>
               이전
             </Button>
             <Button
@@ -729,7 +775,8 @@ export function HistoryTab({
               color='secondary'
               size='md'
               variant='outlined'
-              disabled>
+              disabled={data?.last ?? true}
+              onClick={() => goToPage(page + 1)}>
               다음
             </Button>
           </div>
@@ -739,36 +786,40 @@ export function HistoryTab({
   )
 }
 
+/* 기획의 유형 값(구독 결제 / 크레딧 구매 / 환불)과 서버 PaymentHistoryType이
+ * 그대로 대응한다. */
 function getHistoryTypeLabel(type: BillingHistoryItem['type']) {
   switch (type) {
-    case 'subscription':
+    case 'SUBSCRIPTION_PAYMENT':
       return '구독 결제'
-    case 'creditPurchase':
+    case 'CREDIT_PURCHASE':
       return '크레딧 구매'
-    case 'creditRefund':
+    case 'REFUND':
       return '환불'
-    case 'creditUsage':
-      return '크레딧 사용'
-    case 'creditRestore':
-      return '크레딧 복원'
-    case 'creditExtension':
-      return '크레딧 연장'
-    case 'creditExpiration':
-      return '크레딧 만료'
   }
 }
 
-function HistoryStatusBadge({ status }: { status: BillingHistoryStatus }) {
-  switch (status) {
-    case 'paid':
-      return <StatusBadge tone='success'>결제 완료</StatusBadge>
-    case 'failed':
-      return <StatusBadge tone='error'>결제 실패</StatusBadge>
-    case 'refunded':
-      return <StatusBadge tone='warning'>환불 완료</StatusBadge>
-    case 'scheduled':
-      return <StatusBadge tone='error'>해지 예약</StatusBadge>
-    case 'completed':
-      return <StatusBadge tone='neutral'>완료</StatusBadge>
-  }
+/* 문구는 서버 statusLabel을 그대로 쓰고 색만 상태로 고른다.
+ * 프론트에 문구를 복제해두면 서버가 상태를 늘릴 때 조용히 어긋난다. */
+function HistoryStatusBadge({
+  status,
+  label,
+}: {
+  status: BillingHistoryStatus
+  label: string
+}) {
+  const tone = {
+    PAYMENT_PENDING: 'neutral',
+    PAYMENT_COMPLETED: 'success',
+    PAYMENT_FAILED: 'error',
+    REFUND_REQUESTED: 'neutral',
+    REFUND_PROCESSING: 'neutral',
+    REFUND_COMPLETED: 'warning',
+    REFUND_FAILED: 'error',
+  } as const satisfies Record<
+    BillingHistoryStatus,
+    'success' | 'error' | 'warning' | 'neutral'
+  >
+
+  return <StatusBadge tone={tone[status]}>{label}</StatusBadge>
 }

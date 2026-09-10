@@ -120,7 +120,6 @@ export function MyCreditPage() {
             )}
             {activeTab === 'history' && (
               <HistoryTab
-                history={summary.history}
                 onOpenModal={setModal}
                 onRequestSubscription={() => handleTabChange('subscription')}
               />
