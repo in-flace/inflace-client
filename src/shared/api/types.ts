@@ -21,5 +21,3 @@ export interface PageInfo {
   hasNext: boolean
 }
 
-// 유저가 결제한 플랜
-export type UserPlan = 'FREE' | 'STARTER' | 'GROWTH'

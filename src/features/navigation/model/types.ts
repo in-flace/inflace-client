@@ -1,4 +1,4 @@
-import { UserPlan } from '@/shared/api/types'
+import type { UserPlan } from '@/entities/user'
 
 export type IconName =
   | 'sidebar'

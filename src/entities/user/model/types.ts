@@ -1,5 +1,3 @@
-import type { UserPlan } from '@/shared/api/types'
-
 /* -------유저 역할/니즈-------- */
 export type UserRole =
   | 'YOUTUBER'
@@ -38,6 +36,10 @@ export const NEED_LABEL: Record<Need, string> = {
 }
 
 /* -------유저 정보-------- */
+// 유저가 결제한 플랜 (백엔드 UserDetailsResponse.plan과 동일)
+// PRO/EARLYBIRD는 결제 시기만 다른 동일한 유료 등급, ADMIN은 내부 관리자
+export type UserPlan = 'FREE' | 'PRO' | 'EARLYBIRD' | 'ADMIN'
+
 // 유저 기본 정보
 export interface UserDetails {
   id: string

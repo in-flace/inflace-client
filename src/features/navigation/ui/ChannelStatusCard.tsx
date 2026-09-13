@@ -54,7 +54,7 @@ export const ChannelStatusCard = () => {
         </div>
 
         {/* 플랜 업그레이드 버튼 — 젝트 광고 기간 동안 노출 중단
-        {plan !== 'GROWTH' && (
+        {plan !== 'PRO' && plan !== 'EARLYBIRD' && (
           <Button
             color='primary'
             variant='filled'
