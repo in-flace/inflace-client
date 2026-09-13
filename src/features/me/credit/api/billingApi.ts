@@ -42,6 +42,16 @@ interface UserCreditBatchDto {
   expiresAt: string | null
 }
 
+/* POST /credit-purchases/checkout 응답.
+ * 결제창에 넘길 paymentId·주문명·금액을 서버가 정해서 주므로 프론트가
+ * 따로 계산하지 않는다. 폴링은 orderId로 한다. */
+interface CreditCheckoutResponse {
+  orderId: number
+  paymentId: string
+  orderName: string
+  amount: number
+}
+
 interface PaymentHistoryDto {
   paymentId: number | null
   refundId: number | null
@@ -628,11 +638,12 @@ export async function deleteBillingMethod(): Promise<BillingSummary> {
   return fetchBillingSummary()
 }
 
+/* 등록 카드 구매. 서버가 빌링키로 바로 승인하므로 결제창을 띄우지 않는다. */
 export async function purchaseCredits(
   request: IdempotentMutation<PurchaseCreditsPayload>
 ): Promise<BillingSummary> {
   if (request.payload.paymentMethod !== 'registeredCard') {
-    throw new Error('현재는 등록된 결제수단으로만 크레딧을 구매할 수 있습니다.')
+    throw new Error('등록된 결제수단 구매에만 쓸 수 있습니다.')
   }
 
   const response = await axiosInstance.post<
@@ -644,6 +655,31 @@ export async function purchaseCredits(
   )
 
   await waitForCreditPurchase(response.data.responseDto.orderId)
+  return fetchBillingSummary()
+}
+
+/* 타 결제수단 구매 1단계. 주문을 만들고 결제창에 넘길 값을 받아온다.
+ * 결제창 호출은 브라우저 SDK라 화면에서 이어서 한다. */
+export async function checkoutCredits(
+  request: IdempotentMutation<{ optionId: string }>
+): Promise<CreditCheckoutResponse> {
+  const response = await axiosInstance.post<
+    ApiResponse<CreditCheckoutResponse>
+  >(
+    '/credit-purchases/checkout',
+    { productCode: request.payload.optionId },
+    idempotencyHeaders(request.idempotencyKey)
+  )
+
+  return response.data.responseDto
+}
+
+/* 타 결제수단 구매 2단계. 결제창을 닫고 돌아오면 서버 승인이 끝날 때까지
+ * 기다린 뒤 요약을 새로 받는다. */
+export async function confirmCreditCheckout(
+  orderId: number
+): Promise<BillingSummary> {
+  await waitForCreditPurchase(orderId)
   return fetchBillingSummary()
 }
 

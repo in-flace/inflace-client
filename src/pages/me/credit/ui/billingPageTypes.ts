@@ -4,6 +4,7 @@ import type {
   BillingHistoryItem,
   BillingPlan,
   CreditBatch,
+  CreditPurchaseOption,
 } from '@/features/me/credit'
 
 export type PayerInfo = {
@@ -46,6 +47,12 @@ export type ModalState =
   | { type: 'billingDelete' }
   | { type: 'billingDeleted'; last4: string | null }
   | { type: 'creditPurchase' }
+  /* 기획·디자인상 구매는 선택 → 결제 내역 확인 → 구매하기 2단계다. */
+  | {
+      type: 'creditConfirm'
+      option: CreditPurchaseOption
+      paymentMethod: 'registeredCard' | 'oneTime'
+    }
   | { type: 'creditExtend'; batch: CreditBatch }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | { type: 'taxInvoiceRequested' }

@@ -29,11 +29,13 @@ describe('portone adapter', () => {
     vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'true')
 
     const first = await requestOneTimeCardPayment({
+      paymentId: 'pay-11111111111111111111111111111111',
       orderName: '10 크레딧',
       totalAmount: 3900,
       customer: payer,
     })
     const second = await requestOneTimeCardPayment({
+      paymentId: 'pay-22222222222222222222222222222222',
       orderName: '10 크레딧',
       totalAmount: 3900,
       customer: payer,
@@ -50,11 +52,14 @@ describe('portone adapter', () => {
     vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'true')
 
     const { paymentId } = await requestOneTimeCardPayment({
+      paymentId: 'pay-55555555555555555555555555555555',
       orderName: '10 크레딧',
       totalAmount: 3900,
       customer: payer,
     })
 
+    /* 서버가 준 값을 그대로 쓴다. 프론트가 다시 만들면 서버 주문과 어긋난다. */
+    expect(paymentId).toBe('pay-55555555555555555555555555555555')
     expect(paymentId.length).toBeLessThanOrEqual(40)
   })
 
@@ -79,6 +84,7 @@ describe('portone adapter', () => {
 
     await expect(
       requestOneTimeCardPayment({
+        paymentId: 'pay-44444444444444444444444444444444',
         orderName: '10 크레딧',
         totalAmount: 3900,
         customer: payer,
@@ -100,10 +106,26 @@ describe('portone adapter', () => {
 
     await expect(
       requestOneTimeCardPayment({
+        paymentId: 'pay-33333333333333333333333333333333',
         orderName: '10 크레딧',
         totalAmount: 3900,
         customer: { ...payer, fullName: '   ' },
       })
     ).rejects.toMatchObject({ code: 'CUSTOMER_INFO_MISSING' })
+  })
+
+  /* 서버가 접두사를 붙이거나 형식을 바꾸면 40자를 넘길 수 있다. 그러면
+   * 이니시스가 결제창 자체를 열지 않으므로 호출 전에 막는다. */
+  it('서버가 준 paymentId가 40자를 넘으면 결제창을 열지 않는다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'true')
+
+    await expect(
+      requestOneTimeCardPayment({
+        paymentId: `payment-${'0'.repeat(40)}`,
+        orderName: '10 크레딧',
+        totalAmount: 3900,
+        customer: payer,
+      })
+    ).rejects.toMatchObject({ code: 'PAYMENT_ID_TOO_LONG' })
   })
 })
