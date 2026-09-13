@@ -1,6 +1,7 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import { useAuthStore } from '@/entities/user'
 import type { ChannelProfileDto } from '@/entities/main/channelProfile'
@@ -21,6 +22,7 @@ export function useDisconnectChannel() {
     },
     onError: (_error, _variables, context) => {
       queryClient.setQueryData(['channelProfile'], context?.previousProfile)
+      toast.error('채널 연동 해제에 실패했습니다. 다시 시도해주세요.')
     },
     onSuccess: () => {
       const { accessToken, user } = useAuthStore.getState()
