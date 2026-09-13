@@ -5,7 +5,7 @@ export interface TypeEngagementSummaryDto {
 
 export interface TypeEngagementVideoDto {
   rank: number
-  videoId: string
+  videoId: number
   title: string
   thumbnailUrl: string
   contentType: string
