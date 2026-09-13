@@ -44,7 +44,7 @@ export type UserPlan = 'FREE' | 'PRO' | 'EARLYBIRD' | 'ADMIN'
 export interface UserDetails {
   id: string
   profileImage: string | null
-  userRoles: string[]
+  userRoles: UserRole[]
   plan: UserPlan
   isOnboardingCompleted: boolean
 }
