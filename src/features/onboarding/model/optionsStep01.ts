@@ -1,4 +1,4 @@
-import { ROLE_LABEL } from '@/shared/api/types'
+import { ROLE_LABEL } from '@/entities/user'
 import { OptionItem } from './types'
 
 import IconYoutuber from '../assets/IconYoutuber.png'

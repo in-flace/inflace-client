@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { UserRole, Need } from '@/shared/api/types'
+import type { UserRole, Need } from '@/entities/user'
 
 interface EditPreferencesModalState {
   isOpen: boolean
