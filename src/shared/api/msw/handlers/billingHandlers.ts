@@ -283,6 +283,35 @@ export const billingHandlers = [
     }
   ),
 
+  /* 타 결제수단 구매 1단계. 서버가 주문을 만들고 결제창에 넘길 값을 준다.
+   * paymentId는 이니시스 oid 제한(40자)을 넘지 않는 UUID 형태로 만든다. */
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/checkout`,
+    async ({ request }) => {
+      const idempotencyError = requireIdempotencyKey(request)
+      if (idempotencyError) return idempotencyError
+
+      const body = (await request.json()) as { productCode: string }
+      const option = currentSummary.creditOptions.find(
+        (item) => creditProductCode(item.credits) === body.productCode
+      )
+      if (!option) {
+        return errorResponse(
+          'CREDIT_PRODUCT_NOT_FOUND',
+          '크레딧 상품을 찾을 수 없습니다.',
+          404
+        )
+      }
+
+      return apiResponse({
+        orderId: Date.now(),
+        paymentId: crypto.randomUUID(),
+        orderName: `${option.credits} 크레딧`,
+        amount: option.price,
+      })
+    }
+  ),
+
   http.get(
     `${process.env.NEXT_PUBLIC_API_URL}/payment-history`,
     ({ request }) => {

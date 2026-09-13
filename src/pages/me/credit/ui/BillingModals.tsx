@@ -14,7 +14,10 @@ import {
   useExtendCreditBatch,
   usePurchaseCredits,
   useRegisterBillingMethod,
+  useCheckoutCredits,
+  useConfirmCreditCheckout,
   useStartSubscription,
+  requestOneTimeCardPayment,
   SUBSCRIPTION_EXIT_REASONS,
   type BillingSummary,
   type CreditPurchaseOption,
@@ -134,6 +137,8 @@ export function BillingModals({
   const changeBillingMethodMutation = useChangeBillingMethod()
   const deleteBillingMethodMutation = useDeleteBillingMethod()
   const purchaseCreditsMutation = usePurchaseCredits()
+  const checkoutCreditsMutation = useCheckoutCredits()
+  const confirmCreditCheckoutMutation = useConfirmCreditCheckout()
   const extendCreditBatchMutation = useExtendCreditBatch()
 
   const handleClose = () => {
@@ -672,8 +677,7 @@ export function BillingModals({
                   }
                 />
                 <PaymentChoice
-                  disabled
-                  selected={false}
+                  selected={paymentMethod === 'oneTime'}
                   onSelect={() => setPaymentMethod('oneTime')}
                   title='다른 결제수단으로 구매'
                   description='인증결제(1회성 결제창) · 매번 카드 정보 입력'
@@ -686,34 +690,127 @@ export function BillingModals({
               size='lg'
               variant='filled'
               disabled={
-                paymentMethod !== 'registeredCard' ||
-                summary.billingMethod.status !== 'registered' ||
-                purchaseCreditsMutation.isPending ||
-                isPaymentWindowPending
+                (paymentMethod === 'registeredCard' &&
+                  summary.billingMethod.status !== 'registered') ||
+                (paymentMethod === 'oneTime' && !isPayerInfoComplete(payerInfo))
               }
-              onClick={async () => {
-                setIsPaymentWindowPending(true)
-                try {
-                  await purchaseCreditsMutation.mutateAsync({
-                    idempotencyKey: createIdempotencyKey(),
-                    payload: {
-                      optionId: selectedOption.id,
-                      paymentMethod,
-                    },
-                  })
-                  toast.success('크레딧 구매가 완료되었습니다.')
-                  handleClose()
-                } catch (error) {
-                  toast.error(getErrorMessage(error))
-                } finally {
-                  setIsPaymentWindowPending(false)
-                }
-              }}
+              onClick={() =>
+                onOpenModal({
+                  type: 'creditConfirm',
+                  option: selectedOption,
+                  paymentMethod,
+                })
+              }
               className='h-44 w-full'>
-              {purchaseCreditsMutation.isPending
-                ? '결제 확인 중…'
-                : '결제 내역 확인하기'}
+              결제 내역 확인하기
             </Button>
+          </div>
+        </ModalContent>
+      )}
+      {modal?.type === 'creditConfirm' && (
+        <ModalContent title='결제 내역' className='sm:w-[50rem]'>
+          <div className='mt-32 flex flex-col gap-32'>
+            <dl className='flex flex-col gap-12 rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal'>
+              <div className='flex justify-between gap-12'>
+                <dt className='text-text-and-icon-secondary'>상품</dt>
+                <dd className='text-text-and-icon-primary'>
+                  {modal.option.credits} 크레딧
+                </dd>
+              </div>
+              <div className='flex justify-between gap-12'>
+                <dt className='text-text-and-icon-secondary'>결제 금액</dt>
+                <dd className='text-text-and-icon-primary'>
+                  {formatWon(modal.option.price)}
+                </dd>
+              </div>
+              <div className='flex justify-between gap-12'>
+                <dt className='text-text-and-icon-secondary'>결제 수단</dt>
+                <dd className='text-text-and-icon-primary'>
+                  {modal.paymentMethod === 'registeredCard'
+                    ? `등록 카드 ···· ${summary.billingMethod.last4 ?? ''}`
+                    : '다른 결제수단 (1회성 결제창)'}
+                </dd>
+              </div>
+            </dl>
+            <FormErrorNotice message={formError} />
+            <div className='grid grid-cols-2 gap-12'>
+              <Button
+                type='button'
+                color='gray'
+                size='lg'
+                variant='filled'
+                onClick={handleClose}
+                className='h-44 w-full'>
+                취소
+              </Button>
+              <Button
+                type='button'
+                color='primary'
+                size='lg'
+                variant='filled'
+                disabled={
+                  purchaseCreditsMutation.isPending ||
+                  checkoutCreditsMutation.isPending ||
+                  confirmCreditCheckoutMutation.isPending ||
+                  isPaymentWindowPending
+                }
+                onClick={async () => {
+                  const option = modal.option
+                  const method = modal.paymentMethod
+                  const customer = toPaymentCustomer(payerInfo)
+
+                  setFormError(null)
+                  setIsPaymentWindowPending(true)
+
+                  try {
+                    if (method === 'registeredCard') {
+                      await purchaseCreditsMutation.mutateAsync({
+                        idempotencyKey: createIdempotencyKey(),
+                        payload: { optionId: option.id, paymentMethod: method },
+                      })
+                      toast.success('크레딧 구매가 완료되었습니다.')
+                      handleClose()
+                      return
+                    }
+
+                    /* 서버가 주문을 먼저 만들고 결제창에 넘길 값을 준다. */
+                    const checkout = await checkoutCreditsMutation.mutateAsync({
+                      idempotencyKey: createIdempotencyKey(),
+                      payload: { optionId: option.id },
+                    })
+
+                    /* 결제창은 모달이 열려 있으면 입력이 닿지 않는다.
+                     * 빌링키 발급과 같은 이유로 호출 직전에 닫는다. */
+                    onClose()
+
+                    await requestOneTimeCardPayment({
+                      paymentId: checkout.paymentId,
+                      orderName: checkout.orderName,
+                      totalAmount: checkout.amount,
+                      customer,
+                    })
+
+                    await confirmCreditCheckoutMutation.mutateAsync(
+                      checkout.orderId
+                    )
+                    toast.success('크레딧 구매가 완료되었습니다.')
+                    handleClose()
+                  } catch (error) {
+                    /* 결제창 단계에서 모달을 닫았으므로 다시 열어 보여준다. */
+                    setFormError(getErrorMessage(error))
+                    onOpenModal({
+                      type: 'creditConfirm',
+                      option,
+                      paymentMethod: method,
+                    })
+                  } finally {
+                    setIsPaymentWindowPending(false)
+                  }
+                }}
+                className='h-44 w-full'>
+                {isPaymentWindowPending ? '결제 확인 중…' : '구매하기'}
+              </Button>
+            </div>
           </div>
         </ModalContent>
       )}

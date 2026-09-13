@@ -4,6 +4,8 @@ import { useAuthStore } from '@/shared/api/authStore'
 import {
   cancelSubscription,
   changeBillingMethod,
+  checkoutCredits,
+  confirmCreditCheckout,
   deleteBillingMethod,
   extendCreditBatch,
   fetchBillingSummary,
@@ -87,6 +89,15 @@ export function useChangeBillingMethod() {
 }
 
 /* 발행 신청은 요약·내역 데이터를 바꾸지 않으므로 캐시를 건드리지 않는다. */
+/* 결제창을 띄우기 전 주문을 만드는 단계라 요약 캐시는 건드리지 않는다. */
+export function useCheckoutCredits() {
+  return useMutation({ mutationFn: checkoutCredits })
+}
+
+export function useConfirmCreditCheckout() {
+  return useBillingMutation(confirmCreditCheckout)
+}
+
 export function useRequestTaxInvoice() {
   return useMutation({
     mutationFn: (orderId: number) => requestTaxInvoice(orderId),

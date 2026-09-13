@@ -4,6 +4,7 @@ import type {
   BillingHistoryItem,
   BillingPlan,
   CreditBatch,
+  CreditPurchaseOption,
 } from '@/features/me/credit'
 
 export type PayerInfo = {
@@ -46,10 +47,24 @@ export type ModalState =
   | { type: 'billingDelete' }
   | { type: 'billingDeleted'; last4: string | null }
   | { type: 'creditPurchase' }
+  /* 기획·디자인상 구매는 선택 → 결제 내역 확인 → 구매하기 2단계다. */
+  | {
+      type: 'creditConfirm'
+      option: CreditPurchaseOption
+      paymentMethod: 'registeredCard' | 'oneTime'
+    }
   | { type: 'creditExtend'; batch: CreditBatch }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | { type: 'taxInvoiceRequested' }
   | null
+
+export function getErrorCode(error: unknown) {
+  if (isAxiosError(error)) {
+    const code = error.response?.data?.error?.code
+    if (typeof code === 'string') return code
+  }
+  return null
+}
 
 /* 서버가 내려준 error.message를 우선 보여준다. 결제는 실패 사유가
  * 사용자 행동으로 이어지는 경우가 많아 일반 문구로 덮으면 안 된다. */

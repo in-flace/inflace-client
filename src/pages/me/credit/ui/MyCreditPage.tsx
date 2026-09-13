@@ -106,7 +106,11 @@ export function MyCreditPage() {
         ) : (
           <>
             {activeTab === 'subscription' && (
-              <SubscriptionTab summary={summary} onOpenModal={setModal} />
+              <SubscriptionTab
+                summary={summary}
+                onOpenModal={setModal}
+                onRetry={() => void refetch()}
+              />
             )}
             {activeTab === 'billing-method' && (
               <BillingMethodTab summary={summary} onOpenModal={setModal} />

@@ -18,6 +18,10 @@ type IssueBillingKeyParams = {
 }
 
 type RequestOneTimePaymentParams = {
+  /* 서버가 주문을 만들며 발급한 값. 프론트에서 만들면 결제창이 열리는
+   * 시점에 서버가 그 주문을 모르는 상태가 된다.
+   * KG이니시스 oid 제한(1~40자)을 서버 값도 지켜야 한다. */
+  paymentId: string
   orderName: string
   totalAmount: number
   customer: PaymentCustomer
@@ -64,6 +68,8 @@ function isMockPaymentEnabled() {
 /* KG이니시스(INICIS_V2)는 oid를 1~40자로 제한한다. 포트원의 issueId·paymentId가
  * 그대로 oid로 넘어가는데 UUID는 하이픈까지 36자라, 접두사를 붙이면 한계를 넘어
  * 결제창이 열리지 않는다. 하이픈을 지워 32자로 줄이고 접두사도 짧게 둔다. */
+export const MAX_MERCHANT_ID_LENGTH = 40
+
 function createId(prefix: string) {
   return `${prefix}-${crypto.randomUUID().replace(/-/g, '')}`
 }
@@ -151,12 +157,19 @@ export async function issueCardBillingKey({
 }
 
 export async function requestOneTimeCardPayment({
+  paymentId,
   orderName,
   totalAmount,
   customer,
 }: RequestOneTimePaymentParams): Promise<OneTimePaymentResult> {
-  const paymentId = createId('pay')
   const portOneCustomer = toPortOneCustomer(customer)
+
+  if (paymentId.length > MAX_MERCHANT_ID_LENGTH) {
+    throw new PortOnePaymentError(
+      '결제 요청 정보가 올바르지 않습니다.',
+      'PAYMENT_ID_TOO_LONG'
+    )
+  }
 
   if (isMockPaymentEnabled()) {
     return { paymentId, isMock: true }
