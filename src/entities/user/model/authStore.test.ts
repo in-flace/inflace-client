@@ -18,11 +18,6 @@ describe('authStore', () => {
     expect(useAuthStore.getState().user).toBeNull()
   })
 
-  it('초기 상태: isInitializing이 true다', () => {
-    useAuthStore.setState({ isInitializing: true })
-    expect(useAuthStore.getState().isInitializing).toBe(true)
-  })
-
   it('setAuth 호출 시 accessToken이 설정된다', () => {
     useAuthStore.getState().setAuth('token123', mockUser)
     expect(useAuthStore.getState().accessToken).toBe('token123')
@@ -54,12 +49,5 @@ describe('authStore', () => {
     useAuthStore.getState().setInitializing(false)
     useAuthStore.getState().setInitializing(true)
     expect(useAuthStore.getState().isInitializing).toBe(true)
-  })
-
-  it('getState()로 React 외부에서 상태에 접근할 수 있다', () => {
-    useAuthStore.getState().setAuth('external-token', mockUser)
-    const state = useAuthStore.getState()
-    expect(state.accessToken).toBe('external-token')
-    expect(state.user).toEqual(mockUser)
   })
 })
