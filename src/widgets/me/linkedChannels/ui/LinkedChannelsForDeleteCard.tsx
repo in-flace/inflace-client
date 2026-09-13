@@ -10,7 +10,10 @@ import { formatDate } from '@/shared/lib/format'
 import { useAuthStore } from '@/entities/user'
 import { useChannelProfile } from '@/features/main/channelProfile'
 import type { ChannelProfileDto } from '@/entities/main/channelProfile'
-import { useDisconnectChannel, useYoutubeConnectModal } from '@/features/auth'
+import {
+  useDisconnectChannel,
+  useYoutubeConnectModal,
+} from '@/features/channelConnect'
 import { ChannelDisconnectModal } from './ChannelDisconnectModal'
 
 export function LinkedChannelsForDeleteCard() {

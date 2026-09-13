@@ -1,6 +1,6 @@
 'use client'
 
-import { SocialLoginButton } from './SocialLoginButton'
+import { SocialLoginButton } from '@/shared/ui/social-login-button'
 import YouTubeIcon from '@/shared/assets/youtube.svg'
 
 interface YoutubeConnectActionsProps {

@@ -7,7 +7,7 @@ import {
 import { TrendingVideosSection } from '@/widgets/main/trendingVideos'
 import { TestTrendMagazineSection } from '@/widgets/main/testTrendMagazine'
 import { useAuth } from '@/features/auth'
-import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 
 export function ChannelProfilePage() {
   const { user } = useAuth()

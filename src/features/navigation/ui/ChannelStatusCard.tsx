@@ -7,7 +7,7 @@ import { UserIcon } from '@/features/userStatus/ui/UserIcon'
 import { Button } from '@/shared/ui/button'
 import IconYoutube from '@/shared/assets/youtube.svg'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
-import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 
 // 젝트 광고 기간 동안 플랜 업그레이드 버튼 노출 중단 — 임시 주석 처리
 // import IconLock from '@/shared/assets/unlock-filled-bold.svg'
