@@ -1,4 +1,5 @@
-import { useAuthStore, isPlanBelow } from '@/shared/api'
+import { isPlanBelow } from '@/shared/api'
+import { useAuthStore } from '@/entities/user'
 import type { UserPlan } from '@/shared/api/types'
 
 export function usePlanGate(requiredPlan: UserPlan) {

@@ -1,9 +1,6 @@
 import type { AuthProvider, LoginModalTrigger } from '@/shared/analytics'
-import type {
-  UserDetails,
-  UserChannelDetails,
-  ApiResponse,
-} from '@/shared/api/types'
+import type { UserDetails, UserChannelDetails } from '@/entities/user'
+import type { ApiResponse } from '@/shared/api/types'
 
 /* 로그인 모달 상태 */
 export interface LoginModalState {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useShallow } from 'zustand/react/shallow'
-import { isLoggedIn, useAuthStore } from '@/shared/api/authStore'
+import { isLoggedIn, useAuthStore } from '@/entities/user'
 import { UserIcon } from '@/features/userStatus/ui/UserIcon'
 
 import { Button } from '@/shared/ui/button'

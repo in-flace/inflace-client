@@ -2,7 +2,7 @@ import {
   mockAccessToken,
   mockUserDetails,
   mockUserChannelDetails,
-} from '@/shared/api/mock/mockUser'
+} from '@/entities/user/mock/mockUser'
 
 import type { LoginResponse } from '../model/types'
 import type { ApiResponse } from '@/shared/api/types'

@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-import { useAuthStore } from './authStore'
+import { useAuthStore } from '@/entities/user'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
 
 const axiosInstance = axios.create({

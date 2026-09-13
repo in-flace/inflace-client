@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
-import { mockUser } from '@/shared/api/mock/mockUser'
+import { mockUser } from '@/entities/user/mock/mockUser'
 import { LoginButton } from './LoginButton'
 
 const mockLogout = vi.fn()

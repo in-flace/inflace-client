@@ -2,7 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query'
 
-import { useAuthStore } from '@/shared/api/authStore'
+import { useAuthStore } from '@/entities/user'
 import { connectChannel, fetchConnectedChannelProfile } from '../api/channelApi'
 import { useYoutubeConnectModal } from './useYoutubeConnectModal'
 

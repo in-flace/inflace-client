@@ -3,8 +3,7 @@
 import { useEffect } from 'react'
 
 import { useOnboardingModal } from '@/features/onboarding/model/useOnboardingModal'
-import { useAuthStore } from '@/shared/api'
-import { fetchCurrentUser } from '@/shared/api/userApi'
+import { useAuthStore, fetchCurrentUser } from '@/entities/user'
 
 //화면 새로고침 시 실행되는 함수
 export function useAuthInit() {

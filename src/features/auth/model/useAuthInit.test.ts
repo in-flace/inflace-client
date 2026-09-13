@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 
-import { useAuthStore } from '@/shared/api'
-import { fetchCurrentUser } from '@/shared/api/userApi'
-import { mockUser, mockAccessToken } from '@/shared/api/mock/mockUser'
+import { useAuthStore, fetchCurrentUser } from '@/entities/user'
+import { mockUser, mockAccessToken } from '@/entities/user/mock/mockUser'
 import { useAuthInit } from './useAuthInit'
 
 /* 훅은 유저 정보를 /auth/refresh 응답에서 꺼내지 않는다.
@@ -11,9 +10,13 @@ import { useAuthInit } from './useAuthInit'
  * axiosInstance를 쓴다. globalThis.fetch만 모킹하면 이 호출이 실패하고 훅의 catch가
  * 삼켜서 user가 끝내 null로 남는다(= 기존 실패 1건의 원인).
  * 응답 본문도 accessToken만 둔다. user를 넣어두면 훅이 그걸 쓰는 것처럼 읽힌다. */
-vi.mock('@/shared/api/userApi', () => ({
-  fetchCurrentUser: vi.fn(),
-}))
+vi.mock('@/entities/user', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/entities/user')>()
+  return {
+    ...actual,
+    fetchCurrentUser: vi.fn(),
+  }
+})
 
 function mockRefreshSuccess() {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(

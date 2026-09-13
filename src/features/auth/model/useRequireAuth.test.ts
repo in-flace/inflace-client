@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act, waitFor } from '@testing-library/react'
 
-import { useAuthStore } from '@/shared/api'
-import { mockAccessToken, mockUser } from '@/shared/api/mock/mockUser'
+import { useAuthStore } from '@/entities/user'
+import { mockAccessToken, mockUser } from '@/entities/user/mock/mockUser'
 import { useLoginModal } from './useLoginModal'
 import { useRequireAuth } from './useRequireAuth'
 

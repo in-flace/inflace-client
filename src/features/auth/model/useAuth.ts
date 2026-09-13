@@ -3,9 +3,9 @@
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useShallow } from 'zustand/react/shallow'
-import { isLoggedIn, useAuthStore } from '@/shared/api/authStore'
+import { isLoggedIn, useAuthStore } from '@/entities/user'
 
-//로그인 정보(access token, 유저 정보 등)를 shared/api/authStore를 통해 가져와서 사용
+//로그인 정보(access token, 유저 정보 등)를 entities/user의 authStore를 통해 가져와서 사용
 export function useAuth() {
   const router = useRouter()
 

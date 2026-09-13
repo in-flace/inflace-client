@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-import { mockRefreshToken } from '@/shared/api/mock/mockUser'
+import { mockRefreshToken } from '@/entities/user/mock/mockUser'
 
 const mockCookieStore = {
   set: vi.fn(),

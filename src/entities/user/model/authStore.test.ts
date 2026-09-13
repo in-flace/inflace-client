@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 
 import { useAuthStore } from './authStore'
 
-import { mockUser } from './mock/mockUser'
+import { mockUser } from '../mock/mockUser'
 
 describe('authStore', () => {
   beforeEach(() => {

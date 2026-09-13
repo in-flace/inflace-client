@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { fetchAlarm, postAlarm } from '../api/alarmApi'
 import type { Alarms } from '../model/types'
-import { useAuthStore } from '@/shared/api'
+import { useAuthStore } from '@/entities/user'
 
 export function useAlarm() {
   const accessToken = useAuthStore((state) => state.accessToken)

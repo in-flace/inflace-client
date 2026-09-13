@@ -5,7 +5,7 @@ import IconYoutube from '@/shared/assets/youtube.svg?react'
 import { Avatar, AvatarImage, AvatarBadge } from '@/shared/ui/shadcn/avatar'
 import { UserAvatarProps } from '../model/types'
 import LogoIcon from '@/shared/assets/favicon.svg'
-import { useAuthStore } from '@/shared/api'
+import { useAuthStore } from '@/entities/user'
 
 export const UserIcon = ({ size, showBadge = false }: UserAvatarProps) => {
   const router = useRouter()

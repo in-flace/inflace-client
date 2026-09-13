@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import axios, { type AxiosInstance } from 'axios'
 
-import { mockAccessToken, mockUser } from './mock/mockUser'
+import { mockAccessToken, mockUser } from '@/entities/user/mock/mockUser'
 
 type InterceptorHandler = { fulfilled?: unknown; rejected?: unknown }
 
@@ -39,7 +39,7 @@ describe('axiosInstance', () => {
 
   describe('Request interceptor', () => {
     it('AT가 있을 때 Authorization: Bearer 헤더를 주입한다', async () => {
-      const { useAuthStore } = await import('./authStore')
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
       useAuthStore.getState().setAuth(mockAccessToken, null)
 
       const { axiosInstance } = await import('./axiosInstance')
@@ -54,7 +54,7 @@ describe('axiosInstance', () => {
     })
 
     it('AT가 없을 때 Authorization 헤더를 포함하지 않는다', async () => {
-      const { useAuthStore } = await import('./authStore')
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
       useAuthStore.getState().reset()
 
       const { axiosInstance } = await import('./axiosInstance')
@@ -125,7 +125,7 @@ describe('axiosInstance', () => {
     })
 
     it('401 응답 시 refresh 성공 후 새 토큰으로 재시도한다', async () => {
-      const { useAuthStore } = await import('./authStore')
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
       const { axiosInstance } = await import('./axiosInstance')
 
       vi.spyOn(axios, 'post').mockResolvedValueOnce({
@@ -152,7 +152,7 @@ describe('axiosInstance', () => {
     })
 
     it('refresh 실패 시 authStore.reset()을 호출한다', async () => {
-      const { useAuthStore } = await import('./authStore')
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
       useAuthStore.getState().setAuth(mockAccessToken, null)
 
       const { axiosInstance } = await import('./axiosInstance')

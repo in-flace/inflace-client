@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
-import { useAuthStore } from '@/shared/api'
+import { useAuthStore } from '@/entities/user'
 import { useLoginModal } from './useLoginModal'
 import { usePopupOAuth } from './usePopupOAuth'
 

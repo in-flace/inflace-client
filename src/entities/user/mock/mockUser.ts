@@ -1,4 +1,4 @@
-import type { UserDetails, UserChannelDetails, UserInfo } from '../types'
+import type { UserDetails, UserChannelDetails, UserInfo } from '../model/types'
 
 const mockProfileImageUrl =
   'https://i.pinimg.com/736x/e2/bc/39/e2bc3977ccf24e3de850deba26cd58b3.jpg'

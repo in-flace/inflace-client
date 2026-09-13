@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-import { useAuthStore } from '@/shared/api/authStore'
+import { useAuthStore } from '@/entities/user'
 import type { ChannelProfileDto } from '@/entities/main/channelProfile'
 import { disconnectChannel } from '../api/channelApi'
 
