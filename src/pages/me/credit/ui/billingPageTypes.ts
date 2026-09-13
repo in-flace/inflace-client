@@ -51,6 +51,14 @@ export type ModalState =
   | { type: 'taxInvoiceRequested' }
   | null
 
+export function getErrorCode(error: unknown) {
+  if (isAxiosError(error)) {
+    const code = error.response?.data?.error?.code
+    if (typeof code === 'string') return code
+  }
+  return null
+}
+
 /* 서버가 내려준 error.message를 우선 보여준다. 결제는 실패 사유가
  * 사용자 행동으로 이어지는 경우가 많아 일반 문구로 덮으면 안 된다. */
 export function getErrorMessage(error: unknown) {

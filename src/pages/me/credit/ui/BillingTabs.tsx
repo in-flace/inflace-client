@@ -31,7 +31,11 @@ import {
   TableRow,
 } from '@/shared/ui/table'
 import { SectionCard, StatusBadge } from './BillingPrimitives'
-import { getErrorMessage, type ModalState } from './billingPageTypes'
+import {
+  getErrorCode,
+  getErrorMessage,
+  type ModalState,
+} from './billingPageTypes'
 
 /* 서버가 구매 불가로 내려준 이유를 사용자 문구로 옮긴다. */
 const PLAN_UNAVAILABLE_LABEL: Record<PlanUnavailableReason, string> = {
@@ -110,9 +114,11 @@ function PlanCard({
 export function SubscriptionTab({
   summary,
   onOpenModal,
+  onRetry,
 }: {
   summary: BillingSummary
   onOpenModal: (modal: ModalState) => void
+  onRetry: () => void
 }) {
   const { subscription, plans } = summary
   const resumeSubscriptionMutation = useResumeSubscription()
@@ -125,16 +131,39 @@ export function SubscriptionTab({
   if (!isSubscribed) {
     return (
       <SectionCard className='flex min-h-[64.2rem] flex-col gap-40 px-20 py-32 sm:px-32 sm:py-48'>
-        <div className='grid grid-cols-1 gap-40 lg:grid-cols-2 lg:gap-16'>
-          {plans.map((plan) => (
-            <PlanCard
-              key={plan.code}
-              plan={plan}
-              disabled={false}
-              onSubscribe={() => onOpenModal({ type: 'subscribe', plan })}
-            />
-          ))}
-        </div>
+        {plans.length === 0 ? (
+          /* 플랜은 서버에서 받는다. 목록이 비면 카드 자리가 통째로 비어
+           * 화면이 깨진 것처럼 보이므로 상태를 드러낸다. */
+          <div className='flex flex-1 flex-col items-center justify-center gap-20 text-center'>
+            <div className='flex flex-col gap-8'>
+              <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+                플랜 정보를 불러오지 못했습니다
+              </h3>
+              <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+                잠시 후 다시 시도해주세요.
+              </p>
+            </div>
+            <Button
+              type='button'
+              color='primary'
+              size='lg'
+              variant='filled'
+              onClick={onRetry}>
+              다시 불러오기
+            </Button>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 gap-40 lg:grid-cols-2 lg:gap-16'>
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.code}
+                plan={plan}
+                disabled={false}
+                onSubscribe={() => onOpenModal({ type: 'subscribe', plan })}
+              />
+            ))}
+          </div>
+        )}
         <div className='flex flex-col gap-20'>
           <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
             플랜 구독과 크레딧, 무엇이 다른가요?
@@ -630,7 +659,14 @@ export function HistoryTab({
       setSelectedIds(new Set())
       onOpenModal({ type: 'taxInvoiceRequested' })
     } catch (error) {
-      toast.error(getErrorMessage(error))
+      /* 사업자 정보가 없으면 서버가 404로 알려준다. 원문 대신 다음에 뭘
+       * 해야 하는지 담은 문구로 바꾼다. 등록 화면은 아직 디자인 대기 중이라
+       * 안내까지만 한다. PG 승인 전 단계의 502/503은 원문을 그대로 보여준다. */
+      toast.error(
+        getErrorCode(error) === 'PAYMENT_404_BUSINESS_INFO'
+          ? '세금계산서 발행에 필요한 사업자 정보가 등록되어 있지 않습니다.'
+          : getErrorMessage(error)
+      )
     }
   }
 
