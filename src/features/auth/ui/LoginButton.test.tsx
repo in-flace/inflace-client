@@ -16,9 +16,13 @@ vi.mock('../model/useLoginModal', () => ({
   useLoginModal: vi.fn(),
 }))
 
-vi.mock('@/features/userStatus', () => ({
-  UserIcon: () => <div data-testid='user-avatar' />,
-}))
+vi.mock('@/entities/user', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/entities/user')>()
+  return {
+    ...actual,
+    UserIcon: () => <div data-testid='user-avatar' />,
+  }
+})
 
 import { useAuth } from '../model/useAuth'
 import { useLoginModal } from '../model/useLoginModal'

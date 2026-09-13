@@ -3,11 +3,15 @@
 import { useRouter } from 'next/navigation'
 import IconYoutube from '@/shared/assets/youtube.svg?react'
 import { Avatar, AvatarImage, AvatarBadge } from '@/shared/ui/shadcn/avatar'
-import { UserAvatarProps } from '../model/types'
 import LogoIcon from '@/shared/assets/favicon.svg'
-import { useAuthStore } from '@/entities/user'
+import { useAuthStore } from '../model/authStore'
 
-export const UserIcon = ({ size, showBadge = false }: UserAvatarProps) => {
+interface UserIconProps {
+  size?: number
+  showBadge?: boolean
+}
+
+export const UserIcon = ({ size, showBadge = false }: UserIconProps) => {
   const router = useRouter()
   const youtubeChannelProfileImage = useAuthStore(
     (state) => state.user?.userDetails?.profileImage
