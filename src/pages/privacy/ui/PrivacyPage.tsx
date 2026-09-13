@@ -1,20 +1,41 @@
+import { LegalDocument, LegalSection } from '@/shared/ui/legal-document'
+
 export default function PrivacyPage() {
   return (
-    <article className='mx-auto w-full max-w-5xl px-32 py-64 text-[17px] text-gray-800'>
-      <header className='mb-56 border-b border-gray-200 pb-40'>
-        <h1 className='text-4xl font-bold text-gray-900'>
-          INFLACE 개인정보처리방침
-        </h1>
-        <p className='mt-16 text-base text-gray-500'>시행일: 2026년 6월 1일</p>
-      </header>
-
-      <p className='mb-56 leading-32 text-gray-700'>
-        인플레이스(이하 &ldquo;회사&rdquo; 또는 &ldquo;우리&rdquo;)는 개인정보
-        보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고
-        원활하게 처리하기 위하여 다음과 같이 개인정보처리방침을 수립합니다.
-      </p>
-
-      <Section title='1조. 개인정보의 처리 목적'>
+    <LegalDocument
+      title='INFLACE 개인정보처리방침'
+      effectiveDate='2026년 6월 1일'
+      intro={
+        <p className='mb-56 leading-32 text-gray-700'>
+          인플레이스(이하 &ldquo;회사&rdquo; 또는 &ldquo;우리&rdquo;)는 개인정보
+          보호법에 따라 이용자의 개인정보를 보호하고, 이와 관련한 고충을 신속하고
+          원활하게 처리하기 위하여 다음과 같이 개인정보처리방침을 수립합니다.
+        </p>
+      }
+      footer={
+        <>
+          <h2 className='mb-12 text-xl font-semibold text-gray-900'>부칙</h2>
+          <p className='leading-32 text-gray-700'>
+            이 개인정보처리방침은 2026년 6월 1일부터 시행합니다.
+          </p>
+          <p className='mt-8 leading-32 text-gray-700'>
+            제11조(YouTube API Services 이용 및 데이터 처리)는 2026년 8월 26일부터
+            시행합니다.
+          </p>
+          <p className='mt-16 text-sm text-gray-500'>
+            <strong>개인정보보호위 처리</strong>:{' '}
+            <a
+              href='http://www.privacy.go.kr'
+              target='_blank'
+              rel='noopener noreferrer'
+              className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+              www.privacy.go.kr
+            </a>{' '}
+            / 182 (국번 없이 연락 가능)
+          </p>
+        </>
+      }>
+      <LegalSection title='1조. 개인정보의 처리 목적'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 다음의 목적으로 개인정보를 처리합니다.
         </p>
@@ -42,9 +63,9 @@ export default function PrivacyPage() {
             분석 및 신규 기능 연구
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='2조. 처리하는 개인정보의 항목'>
+      <LegalSection title='2조. 처리하는 개인정보의 항목'>
         <h3 className='mt-24 mb-12 text-lg font-semibold text-gray-900'>
           필수 수집 항목
         </h3>
@@ -81,9 +102,9 @@ export default function PrivacyPage() {
           <li>접속 로그: 서비스 개선 및 부정 이용 탐지</li>
           <li>기기 정보: 서비스 회원 활동 분석</li>
         </ul>
-      </Section>
+      </LegalSection>
 
-      <Section title='3조. 개인정보의 제3자 제공'>
+      <LegalSection title='3조. 개인정보의 제3자 제공'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 이용자의 개인정보를 원칙적으로 외부에 제공, 공유 또는 제3자가
           이용하도록 하지 않습니다. 다만, 다음의 경우에는 필요한 범위 내에서
@@ -110,9 +131,9 @@ export default function PrivacyPage() {
             <li>법령에 특별한 규정이 있는 경우</li>
           </ul>
         </Callout>
-      </Section>
+      </LegalSection>
 
-      <Section title='4조. 개인정보의 처리 위탁'>
+      <LegalSection title='4조. 개인정보의 처리 위탁'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 서비스 운영을 위해 다음과 같이 개인정보 처리 업무를 위탁합니다.
         </p>
@@ -128,9 +149,9 @@ export default function PrivacyPage() {
           회사는 수탁업체가 개인정보를 안전하게 처리하도록 관리감독하며, 수탁
           범위 외의 개인정보를 취급하지 않도록 계약을 체결합니다.
         </p>
-      </Section>
+      </LegalSection>
 
-      <Section title='5조. 정보주체의 권리'>
+      <LegalSection title='5조. 정보주체의 권리'>
         <p className='mb-16 leading-32 text-gray-700'>
           이용자(정보주체)는 다음과 같은 권리를 언제든지 행사할 수 있습니다.
         </p>
@@ -164,9 +185,9 @@ export default function PrivacyPage() {
           희망 사항에 대한 처리가 어려울 때는 개인정보보호위에 불제를 신청할 수
           있습니다.
         </Callout>
-      </Section>
+      </LegalSection>
 
-      <Section title='6조. 개인정보의 파기'>
+      <LegalSection title='6조. 개인정보의 파기'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회사는 이용자의 개인정보를 보유 기간 만료 시 지체없이 파기(복구할 수
@@ -181,9 +202,9 @@ export default function PrivacyPage() {
             전자상거래법 5년)는 해당 기업과 관계 당 보유됩니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='7조. 쿠키 및 접속 로그 수집'>
+      <LegalSection title='7조. 쿠키 및 접속 로그 수집'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 서비스 운영 및 프라이버시 보호를 위해 쿠키(Cookie)를
           사용합니다.
@@ -202,9 +223,9 @@ export default function PrivacyPage() {
           이용자는 브라우저 설정을 통해 쿠키 저장을 거부할 수 있으나, 이 경우
           서비스 일부 기능 이용이 제한될 수 있습니다.
         </p>
-      </Section>
+      </LegalSection>
 
-      <Section title='8조. 개인정보의 안전성 확보'>
+      <LegalSection title='8조. 개인정보의 안전성 확보'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 이용자의 개인정보를 안전하게 유지하기 위해 다음과 같은 안전성
           확보 조치를 취하고 있습니다.
@@ -231,9 +252,9 @@ export default function PrivacyPage() {
             정기적 보안 평가를 실시합니다.
           </li>
         </ul>
-      </Section>
+      </LegalSection>
 
-      <Section title='9조. 개인정보 보호책임자'>
+      <LegalSection title='9조. 개인정보 보호책임자'>
         <p className='mb-16 leading-32 text-gray-700'>
           회사는 개인정보 처리에 관한 업무를 열람하고 무제하기 위해 아래와 같이
           개인정보 보호책임자를 지정하고 있습니다.
@@ -265,9 +286,9 @@ export default function PrivacyPage() {
           개인정보 보호 관련 문의사항은 위 책임자에게 연락주시면 신속하게 답변
           드리겠습니다.
         </p>
-      </Section>
+      </LegalSection>
 
-      <Section title='10조. 개인정보처리방침의 변경'>
+      <LegalSection title='10조. 개인정보처리방침의 변경'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             이 개인정보처리방침은 법령의 개정, 정부의 지침 또는 회사내부 방침의
@@ -283,8 +304,8 @@ export default function PrivacyPage() {
             개인정보 제공을 중단할 수 있습니다.
           </li>
         </ol>
-      </Section>
-      <Section title='11조. YouTube API Services 이용 및 데이터 처리'>
+      </LegalSection>
+      <LegalSection title='11조. YouTube API Services 이용 및 데이터 처리'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             YouTube API Services 사용 회사는 채널 연동, 데이터 조회 및 분석
@@ -347,45 +368,8 @@ export default function PrivacyPage() {
             이용자가 YouTube에서 직접 삭제해야 합니다.
           </li>
         </ol>
-      </Section>
-
-      <footer className='mt-64 border-t border-gray-200 pt-40'>
-        <h2 className='mb-12 text-xl font-semibold text-gray-900'>부칙</h2>
-        <p className='leading-32 text-gray-700'>
-          이 개인정보처리방침은 2026년 6월 1일부터 시행합니다.
-        </p>
-        <p className='mt-8 leading-32 text-gray-700'>
-          제11조(YouTube API Services 이용 및 데이터 처리)는 2026년 8월 26일부터
-          시행합니다.
-        </p>
-        <p className='mt-16 text-sm text-gray-500'>
-          <strong>개인정보보호위 처리</strong>:{' '}
-          <a
-            href='http://www.privacy.go.kr'
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
-            www.privacy.go.kr
-          </a>{' '}
-          / 182 (국번 없이 연락 가능)
-        </p>
-      </footer>
-    </article>
-  )
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className='mb-56'>
-      <h2 className='mb-20 text-2xl font-semibold text-gray-900'>{title}</h2>
-      {children}
-    </section>
+      </LegalSection>
+    </LegalDocument>
   )
 }
 

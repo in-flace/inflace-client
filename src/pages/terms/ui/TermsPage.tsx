@@ -1,20 +1,47 @@
+import { LegalDocument, LegalSection } from '@/shared/ui/legal-document'
+
 export default function TermsPage() {
   return (
-    <article className='mx-auto w-full max-w-5xl px-32 py-64 text-[17px] text-gray-800'>
-      <header className='mb-56 border-b border-gray-200 pb-40'>
-        <h1 className='text-4xl font-bold text-gray-900'>INFLACE 이용약관</h1>
-        <p className='mt-16 text-base text-gray-500'>시행일: 2026년 6월 1일</p>
-      </header>
-
-      <Section title='제1조 (목적)'>
+    <LegalDocument
+      title='INFLACE 이용약관'
+      effectiveDate='2026년 6월 1일'
+      footer={
+        <>
+          <h2 className='mb-12 text-xl font-semibold text-gray-900'>부칙</h2>
+          <p className='leading-32 text-gray-700'>
+            이 약관은 2026년 6월 1일부터 시행합니다.
+          </p>
+          <p className='mt-8 leading-32 text-gray-700'>
+            제16조(YouTube API Services 및 YouTube 이용약관)는 2026년 8월 26일부터
+            시행합니다.
+          </p>
+          <div className='mt-24 rounded-md bg-gray-50 px-24 py-20 text-base'>
+            <p className='mb-8 font-semibold text-gray-900'>
+              문의처: 인플레이스 고객센터
+            </p>
+            <ul className='space-y-4 text-gray-700'>
+              <li>
+                이메일:{' '}
+                <a
+                  href='mailto:inflaceproject@gmail.com'
+                  className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
+                  inflaceproject@gmail.com
+                </a>
+              </li>
+              <li>운영시간: 평일 10:00 ~ 18:00 (주말 및 공휴일 제외)</li>
+            </ul>
+          </div>
+        </>
+      }>
+      <LegalSection title='제1조 (목적)'>
         <p className='leading-32 text-gray-700'>
           이 약관은 인플레이스(이하 &ldquo;회사&rdquo;)가 제공하는 INFLACE
           서비스(이하 &ldquo;서비스&rdquo;)의 이용과 관련하여 회사와 이용자 간의
           권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.
         </p>
-      </Section>
+      </LegalSection>
 
-      <Section title='제2조 (정의)'>
+      <LegalSection title='제2조 (정의)'>
         <p className='mb-16 leading-32 text-gray-700'>
           이 약관에서 사용하는 용어의 정의는 다음과 같습니다.
         </p>
@@ -45,9 +72,9 @@ export default function TermsPage() {
             매거진, 분석 데이터, 보고서 등 일체의 정보를 의미합니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제3조 (약관의 효력 및 변경)'>
+      <LegalSection title='제3조 (약관의 효력 및 변경)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             이 약관은 서비스를 이용하고자 하는 모든 이용자에 대하여 효력을
@@ -68,9 +95,9 @@ export default function TermsPage() {
             이용계약을 해지할 수 있습니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제4조 (서비스의 제공 및 변경)'>
+      <LegalSection title='제4조 (서비스의 제공 및 변경)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             회사가 제공하는 서비스는 다음과 같습니다.
@@ -94,9 +121,9 @@ export default function TermsPage() {
             사전에 공지합니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제5조 (서비스 이용계약의 성립)'>
+      <LegalSection title='제5조 (서비스 이용계약의 성립)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             이용계약은 이용자가 이 약관 및 개인정보처리방침에 동의하고
@@ -118,9 +145,9 @@ export default function TermsPage() {
             </ul>
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제6조 (회원 계정 및 정보 관리)'>
+      <LegalSection title='제6조 (회원 계정 및 정보 관리)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회원은 자신의 계정 정보(이메일, 비밀번호 등)를 스스로 관리할 책임이
@@ -136,9 +163,9 @@ export default function TermsPage() {
             정보를 수정하여야 합니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제7조 (회원 탈퇴 및 자격 상실)'>
+      <LegalSection title='제7조 (회원 탈퇴 및 자격 상실)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             회원은 언제든지 서비스 내 설정 메뉴를 통해 탈퇴를 신청할 수
@@ -162,9 +189,9 @@ export default function TermsPage() {
             </ul>
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제8조 (이용요금 및 결제)'>
+      <LegalSection title='제8조 (이용요금 및 결제)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             유료 서비스의 이용요금은 다음과 같습니다.
@@ -197,9 +224,9 @@ export default function TermsPage() {
             보관하지 않습니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제9조 (무료 체험)'>
+      <LegalSection title='제9조 (무료 체험)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회사는 Starter 및 Growth 플랜에 대해 최초 1회에 한하여 30일 무료
@@ -219,9 +246,9 @@ export default function TermsPage() {
           </li>
           <li>동일 계정으로 동일 플랜의 무료 체험은 1회로 제한됩니다.</li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제10조 (구독 플랜 변경)'>
+      <LegalSection title='제10조 (구독 플랜 변경)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             <strong>업그레이드</strong> (하위 플랜 → 상위 플랜): 즉시 적용되며,
@@ -233,9 +260,9 @@ export default function TermsPage() {
           </li>
           <li>Free 플랜으로의 변경은 구독 해지와 동일하게 처리됩니다.</li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제11조 (환불 정책)'>
+      <LegalSection title='제11조 (환불 정책)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             구독 서비스의 특성상{' '}
@@ -256,9 +283,9 @@ export default function TermsPage() {
             무료 체험 기간 중에는 결제가 발생하지 않으므로 환불 대상이 아닙니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제12조 (서비스 이용 제한 및 중단)'>
+      <LegalSection title='제12조 (서비스 이용 제한 및 중단)'>
         <ol className='list-decimal space-y-12 pl-24 leading-32 text-gray-700'>
           <li>
             회사는 다음 각 호에 해당하는 경우 서비스 제공을 일시적으로 중단할 수
@@ -280,9 +307,9 @@ export default function TermsPage() {
             책임을 지지 않습니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제13조 (저작권 및 지식재산권)'>
+      <LegalSection title='제13조 (저작권 및 지식재산권)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             서비스 내 회사가 제공하는 모든 콘텐츠(매거진, 분석 데이터, UI/디자인
@@ -299,9 +326,9 @@ export default function TermsPage() {
             콘텐츠를 사용할 수 있도록 비독점적 라이선스를 부여합니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제14조 (면책조항)'>
+      <LegalSection title='제14조 (면책조항)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회사는 천재지변, 전쟁, 기간통신사업자의 서비스 중단 등 불가항력으로
@@ -323,9 +350,9 @@ export default function TermsPage() {
             없습니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제15조 (분쟁 해결 및 준거법)'>
+      <LegalSection title='제15조 (분쟁 해결 및 준거법)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회사와 이용자 간 발생한 분쟁에 대해 상호 협의를 통해 해결하는 것을
@@ -340,9 +367,9 @@ export default function TermsPage() {
             소재지를 관할하는 법원을 합의관할 법원으로 합니다.
           </li>
         </ol>
-      </Section>
+      </LegalSection>
 
-      <Section title='제16조 (YouTube API Services 및 YouTube 이용약관)'>
+      <LegalSection title='제16조 (YouTube API Services 및 YouTube 이용약관)'>
         <ol className='list-decimal space-y-8 pl-24 leading-32 text-gray-700'>
           <li>
             회사는 채널 연동, 데이터 조회 및 분석 기능을 제공하기 위해 YouTube
@@ -361,49 +388,7 @@ export default function TermsPage() {
             )에 동의하고 이를 준수합니다.
           </li>
         </ol>
-      </Section>
-
-      <footer className='mt-64 border-t border-gray-200 pt-40'>
-        <h2 className='mb-12 text-xl font-semibold text-gray-900'>부칙</h2>
-        <p className='leading-32 text-gray-700'>
-          이 약관은 2026년 6월 1일부터 시행합니다.
-        </p>
-        <p className='mt-8 leading-32 text-gray-700'>
-          제16조(YouTube API Services 및 YouTube 이용약관)는 2026년 8월 26일부터
-          시행합니다.
-        </p>
-        <div className='mt-24 rounded-md bg-gray-50 px-24 py-20 text-base'>
-          <p className='mb-8 font-semibold text-gray-900'>
-            문의처: 인플레이스 고객센터
-          </p>
-          <ul className='space-y-4 text-gray-700'>
-            <li>
-              이메일:{' '}
-              <a
-                href='mailto:inflaceproject@gmail.com'
-                className='text-blue-600 underline underline-offset-2 hover:text-blue-700'>
-                inflaceproject@gmail.com
-              </a>
-            </li>
-            <li>운영시간: 평일 10:00 ~ 18:00 (주말 및 공휴일 제외)</li>
-          </ul>
-        </div>
-      </footer>
-    </article>
-  )
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string
-  children: React.ReactNode
-}) {
-  return (
-    <section className='mb-56'>
-      <h2 className='mb-20 text-2xl font-semibold text-gray-900'>{title}</h2>
-      {children}
-    </section>
+      </LegalSection>
+    </LegalDocument>
   )
 }
