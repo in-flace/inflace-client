@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 import { Button } from '@/shared/ui/button'
 import { useScrollToTopVisible } from '@/shared/ui/scroll-to-top'
@@ -9,6 +10,7 @@ import {
   useInquiryPanel,
   useSubmitInquiry,
   INQUIRY_CONTENT_MAX,
+  INQUIRY_LOCATION_MAX,
   INQUIRY_SUCCESS_CLOSE_DELAY,
   INQUIRY_PANEL_ID,
 } from '@/features/inquiry'
@@ -24,6 +26,7 @@ export function InquiryPanel() {
   const close = useInquiryPanel((s) => s.close)
   const setSubmitting = useInquiryPanel((s) => s.setSubmitting)
   const isScrollTopVisible = useScrollToTopVisible((s) => s.isVisible)
+  const pathname = usePathname()
 
   const [content, setContent] = useState('')
   /* isError가 아니라 이 값으로 실패 화면을 그린다.
@@ -72,7 +75,17 @@ export function InquiryPanel() {
 
     setSubmitting(true)
     mutate(
-      { content: trimmed },
+      {
+        content: trimmed,
+        /* 관리자 CS 목록에 그대로 노출되는 값이라 origin을 붙인다.
+         * 경로만으로는 운영·스테이징 구분이 안 된다.
+         * 쿼리스트링은 검색어가 섞일 수 있어 제외한다.
+         * 서버가 100자로 검증하므로 잘라서 보낸다. */
+        submissionLocation: `${window.location.origin}${pathname ?? ''}`.slice(
+          0,
+          INQUIRY_LOCATION_MAX
+        ),
+      },
       {
         onError: () => setHasFailed(true),
         onSettled: () => setSubmitting(false),
