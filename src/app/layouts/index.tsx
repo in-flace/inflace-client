@@ -12,7 +12,6 @@ import { Header, Footer, AppSidebar } from '@/widgets/layout'
 import { AuthInitializer } from '@/features/auth'
 import { LoginModal, YoutubeConnectModal } from '@/widgets/auth'
 import { OnboardingModal } from '@/widgets/onboarding'
-import { GoogleAuthNoticeModal } from '@/widgets/googleAuthNotice'
 import { InquiryWidget } from '@/widgets/inquiry'
 import { Toaster } from '@/shared/ui/sonner'
 import { GtmPageView } from '@/shared/analytics'
@@ -93,7 +92,6 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
             <LoginModal />
             <YoutubeConnectModal />
             <OnboardingModal />
-            <GoogleAuthNoticeModal />
             <InquiryWidget />
             <Toaster />
             <div className='flex flex-1'>
