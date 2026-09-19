@@ -39,8 +39,8 @@ imported — untouched files are excluded from the denominator, not scored as 0.
   gzip out of the bundle. Changing MSW import paths silently undoes this — update the alias too.
 - SEO canonical host is `SITE_URL` in `src/shared/config/site.ts`, not `NEXT_PUBLIC_APP_URL`
   (the latter varies per environment).
-- Access tokens live in memory only (`src/shared/api/authStore.ts`); refresh tokens are httpOnly cookies.
-  Do not persist tokens to localStorage.
+- Access tokens live in memory only (`src/entities/user/model/authStore.ts`); refresh tokens are httpOnly
+  cookies. Do not persist tokens to localStorage.
 - **`src/proxy.ts` has `FORCE_LOGIN = true`, which disables the middleware auth guard entirely** (issue #14).
   Protected routes are currently gated on the client only.
 - ESLint 9 flat config does not read `.gitignore` — add new build output dirs to `globalIgnores` by hand.

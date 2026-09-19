@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { useLoginModal } from '@/features/auth'
-import { useAuthStore } from '@/shared/api/authStore'
+import { useAuthStore } from '@/entities/user'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
@@ -73,7 +73,6 @@ describe('CompetitorPage 로그인 게이트', () => {
     useLoginModal.getState().close()
     useAuthStore.setState({
       accessToken: null,
-      user: null,
       isInitializing: false,
     })
   })

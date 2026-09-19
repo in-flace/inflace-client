@@ -1,7 +1,7 @@
 import { SidebarMenuItem, SidebarMenuButton } from '@/shared/ui/shadcn/sidebar'
 import { SidebarIcon } from '@/features/navigation/ui/NavSidebarIcon'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
-import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 import { useAuth } from '@/features/auth/model/useAuth'
 import type { NavItem } from '../model/types'
 import Link from 'next/link'

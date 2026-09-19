@@ -10,38 +10,47 @@ import { cn } from '@/shared/lib/utils'
 import RedirectIcon from '@/shared/assets/redirect-bold.svg'
 import { HashtagBox } from '@/shared/ui'
 import { HeartButton } from '@/shared/ui/heart-button'
+import { QueryBoundary } from '@/shared/ui/query-boundary'
 
 export function InfluencerBaseInfo({ channelId }: { channelId: string }) {
-  const { data, isFetching, isError } = useInfluencerDetail(channelId)
-  const toggleBookmark = useBookmarkToggle()
+  return (
+    <QueryBoundary fallback={<InfluencerBaseInfoSkeleton />}>
+      <InfluencerBaseInfoContent channelId={channelId} />
+    </QueryBoundary>
+  )
+}
 
-  if (isFetching || isError || !data) {
-    return (
-      <div className='h-fit w-full overflow-hidden rounded-10 bg-white shadow-[0_2px_6px_0_rgba(13,13,13,0.04)]'>
-        <Skeleton className='relative h-[25.2rem] w-full' />
-        <div className='relative'>
-          <div className='absolute -top-[5rem] left-40 h-[10rem] w-[10rem] overflow-hidden rounded-full border-4 border-white'>
-            <Skeleton className='h-full w-full' />
-          </div>
-          <div className='flex justify-between p-40 pt-[5.8rem]'>
-            <div className='flex flex-col gap-20'>
-              <div className='flex flex-col gap-10'>
-                <div className='flex items-center'>
-                  <Skeleton className='h-[3.2rem] w-[40rem]' />
-                </div>
-                <div className='flex gap-16'>
-                  <Skeleton className='h-16 w-[20rem]' />
-                </div>
+function InfluencerBaseInfoSkeleton() {
+  return (
+    <div className='h-fit w-full overflow-hidden rounded-10 bg-white shadow-[0_2px_6px_0_rgba(13,13,13,0.04)]'>
+      <Skeleton className='relative h-[25.2rem] w-full' />
+      <div className='relative'>
+        <div className='absolute -top-[5rem] left-40 h-[10rem] w-[10rem] overflow-hidden rounded-full border-4 border-white'>
+          <Skeleton className='h-full w-full' />
+        </div>
+        <div className='flex justify-between p-40 pt-[5.8rem]'>
+          <div className='flex flex-col gap-20'>
+            <div className='flex flex-col gap-10'>
+              <div className='flex items-center'>
+                <Skeleton className='h-[3.2rem] w-[40rem]' />
               </div>
-              <div className='flex'>
-                <Skeleton className='h-28 w-[11.7rem]' />
+              <div className='flex gap-16'>
+                <Skeleton className='h-16 w-[20rem]' />
               </div>
+            </div>
+            <div className='flex'>
+              <Skeleton className='h-28 w-[11.7rem]' />
             </div>
           </div>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
+
+function InfluencerBaseInfoContent({ channelId }: { channelId: string }) {
+  const { data } = useInfluencerDetail(channelId)
+  const toggleBookmark = useBookmarkToggle()
 
   return (
     <div className='h-fit w-full overflow-hidden rounded-10 bg-white shadow-[0_2px_6px_0_rgba(13,13,13,0.04)]'>

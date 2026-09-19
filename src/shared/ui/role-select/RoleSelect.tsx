@@ -1,7 +1,7 @@
 'use client'
 
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group'
-import { ROLE_LABEL, UserRole } from '@/shared/api/types'
+import { ROLE_LABEL, UserRole } from '@/entities/user'
 
 import IconYoutuber from '@/shared/assets/IconYoutuber.png'
 import IconMarketer from '@/shared/assets/IconMarketer.png'

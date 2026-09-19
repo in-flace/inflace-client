@@ -2,13 +2,12 @@ import { create } from 'zustand'
 
 import type { AuthState } from './types'
 
-//access token, 유저 정보, 초기화 상태를 메모리에 보관
+// access token과 인증 초기화 상태만 메모리에 보관
 export const useAuthStore = create<AuthState>((set) => ({
   accessToken: null,
-  user: null,
   isInitializing: true,
-  setAuth: (accessToken, user) => set({ accessToken, user }),
-  reset: () => set({ accessToken: null, user: null }),
+  setAccessToken: (accessToken) => set({ accessToken }),
+  reset: () => set({ accessToken: null }),
   setInitializing: (value) => set({ isInitializing: value }),
 }))
 

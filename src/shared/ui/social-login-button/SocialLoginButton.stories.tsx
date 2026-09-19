@@ -30,7 +30,7 @@ const YouTubeIcon = () => (
 )
 
 const meta = {
-  title: 'Features/Auth/SocialLoginButton',
+  title: 'Shared/UI/SocialLoginButton',
   component: SocialLoginButton,
   tags: ['autodocs'],
   argTypes: {

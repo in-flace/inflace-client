@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
   putPreferences,
   EditPreferencesPayload,
@@ -42,6 +43,7 @@ export function useEditPreferences() {
       if (context?.previous) {
         queryClient.setQueryData(['myProfile'], context.previous)
       }
+      toast.error('직업/관심사 변경에 실패했습니다. 다시 시도해주세요.')
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['myProfile'] })

@@ -1,13 +1,16 @@
 'use client'
 
-import { useShallow } from 'zustand/react/shallow'
-import { isLoggedIn, useAuthStore } from '@/shared/api/authStore'
-import { UserIcon } from '@/features/userStatus/ui/UserIcon'
+import {
+  isLoggedIn,
+  useAuthStore,
+  useCurrentUser,
+  UserIcon,
+} from '@/entities/user'
 
 import { Button } from '@/shared/ui/button'
 import IconYoutube from '@/shared/assets/youtube.svg'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
-import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 
 // 젝트 광고 기간 동안 플랜 업그레이드 버튼 노출 중단 — 임시 주석 처리
 // import IconLock from '@/shared/assets/unlock-filled-bold.svg'
@@ -15,13 +18,10 @@ import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectM
 /* 사이드바에 표시되는 유저의 상태 (유튜브 채널 정보, 현재 플랜 등) */
 export const ChannelStatusCard = () => {
   /* 유저의 정보를 불러옵니다. */
-  const { loggedIn, plan, userChannelDetails } = useAuthStore(
-    useShallow((state) => ({
-      loggedIn: isLoggedIn(state),
-      plan: state.user?.userDetails.plan,
-      userChannelDetails: state.user?.userChannelDetails,
-    }))
-  )
+  const loggedIn = useAuthStore(isLoggedIn)
+  const { data: user } = useCurrentUser()
+  const plan = user?.userDetails.plan
+  const userChannelDetails = user?.userChannelDetails
 
   /*  유튜브 채널 연동 여부를 채널 정보 존재 유무로 확인합니다. */
   const isChannelConnected = loggedIn && Boolean(userChannelDetails)
@@ -54,7 +54,7 @@ export const ChannelStatusCard = () => {
         </div>
 
         {/* 플랜 업그레이드 버튼 — 젝트 광고 기간 동안 노출 중단
-        {plan !== 'GROWTH' && (
+        {plan !== 'PRO' && plan !== 'EARLYBIRD' && (
           <Button
             color='primary'
             variant='filled'

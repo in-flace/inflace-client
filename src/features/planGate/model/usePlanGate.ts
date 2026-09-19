@@ -1,9 +1,9 @@
-import { useAuthStore, isPlanBelow } from '@/shared/api'
-import type { UserPlan } from '@/shared/api/types'
+import { isPaidPlan, useCurrentUser } from '@/entities/user'
+import type { UserPlan } from '@/entities/user'
 
-export function usePlanGate(requiredPlan: UserPlan) {
-  const user = useAuthStore((s) => s.user)
+export function usePlanGate() {
+  const { data: user } = useCurrentUser()
   const userPlan: UserPlan = (user?.userDetails.plan as UserPlan) ?? 'FREE'
-  const isLocked = isPlanBelow(userPlan, requiredPlan)
+  const isLocked = !isPaidPlan(userPlan)
   return { isLocked }
 }

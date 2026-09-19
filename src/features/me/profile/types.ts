@@ -1,4 +1,4 @@
-import type { UserRole, Need } from '@/shared/api/types'
+import type { UserRole, Need } from '@/entities/user'
 
 export type { UserRole, Need }
 
