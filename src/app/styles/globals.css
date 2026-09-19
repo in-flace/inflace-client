@@ -97,7 +97,7 @@
 
 @theme inline {
   --font-sans: var(--font-noto);
-  --font-point: var(--font-ibm);
+  --font-point: var(--font-ibm), var(--font-noto);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

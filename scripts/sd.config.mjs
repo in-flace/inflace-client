@@ -386,7 +386,7 @@ ${opacityVars}
 /** fontFamily 참조값 → CSS 변수명 매핑 */
 const FONT_VAR_MAP = {
   'Noto Sans KR': 'var(--font-noto)',
-  'IBM Plex Sans KR': 'var(--font-ibm)',
+  'IBM Plex Sans KR': 'var(--font-ibm), var(--font-noto)',
 }
 
 /**
