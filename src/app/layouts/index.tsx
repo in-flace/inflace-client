@@ -10,12 +10,11 @@ import { SidebarTrigger } from '@/shared/ui/shadcn/sidebar'
 import { SidebarStoreProvider } from './SidebarStoreProvider'
 import { Header, Footer, AppSidebar } from '@/widgets/layout'
 import { AuthInitializer } from '@/features/auth'
-import { LoginModal, YoutubeConnectModal } from '@/widgets/auth'
-import { OnboardingModal } from '@/widgets/onboarding'
 import { InquiryWidget } from '@/widgets/inquiry'
 import { Toaster } from '@/shared/ui/sonner'
 import { GtmPageView } from '@/shared/analytics'
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/shared/config/site'
+import { GlobalModalLayer } from './GlobalModalLayer'
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID
 
@@ -89,9 +88,7 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
         <MSWProvider>
           <QueryProvider>
             <AuthInitializer />
-            <LoginModal />
-            <YoutubeConnectModal />
-            <OnboardingModal />
+            <GlobalModalLayer />
             <InquiryWidget />
             <Toaster />
             <div className='flex flex-1'>
