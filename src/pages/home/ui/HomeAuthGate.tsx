@@ -52,12 +52,9 @@ export function HomeAuthGate() {
   //   isReady: !isInitializing && !isLoggedIn,
   // })
 
-  /* auth 초기화 완료 후 snap 클래스를 추가하도록 함
-   * isInitializing 중에 snap을 활성화하면 컨텐츠 렌더 시점에 snap-start로 강제 스크롤됨
-   * 로딩 중 스클롤을 인식해 화면 최하단으로 랜더링 되는 것을 방지함.
-   */
+  // 인증 응답 시점에 snap을 켜면 느린 refresh 이후 레이아웃과 LCP가 바뀐다.
   useEffect(() => {
-    if (isInitializing || isLoggedIn) return
+    window.scrollTo(0, 0)
     document.documentElement.classList.add('snap-landing')
     const footer = document.querySelector('footer')
     footer?.classList.add('snap-start')
@@ -65,7 +62,7 @@ export function HomeAuthGate() {
       document.documentElement.classList.remove('snap-landing')
       footer?.classList.remove('snap-start')
     }
-  }, [isInitializing, isLoggedIn])
+  }, [])
 
   return (
     <Suspense fallback={null}>
