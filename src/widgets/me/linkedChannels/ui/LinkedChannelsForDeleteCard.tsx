@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/shadcn/avatar'
 import IconPlus from '@/shared/assets/plus-bold.svg'
 import { Button } from '@/shared/ui/button'
 import { formatDate } from '@/shared/lib/format'
-import { useAuthStore } from '@/entities/user'
+import { useCurrentUser } from '@/entities/user'
 import { useChannelProfile } from '@/features/main/channelProfile'
 import type { ChannelProfileDto } from '@/entities/main/channelProfile'
 import {
@@ -18,9 +18,8 @@ import { ChannelDisconnectModal } from './ChannelDisconnectModal'
 
 export function LinkedChannelsForDeleteCard() {
   const { data: channel } = useChannelProfile()
-  const channelId = useAuthStore(
-    (s) => s.user?.userChannelDetails?.channelId ?? null
-  )
+  const { data: user } = useCurrentUser()
+  const channelId = user?.userChannelDetails?.channelId ?? null
   const [isDisconnectModalOpen, setDisconnectModalOpen] = useState(false)
   const { mutate: disconnectChannel, isPending: isDisconnecting } =
     useDisconnectChannel()

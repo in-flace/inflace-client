@@ -66,9 +66,8 @@ export interface UserInfo {
 // 유저의 상태
 export interface AuthState {
   accessToken: string | null
-  user: UserInfo | null
   isInitializing: boolean
-  setAuth: (accessToken: string, user: UserInfo | null) => void
+  setAccessToken: (accessToken: string) => void
   reset: () => void
   setInitializing: (value: boolean) => void
 }

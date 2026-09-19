@@ -73,7 +73,6 @@ describe('CompetitorPage 로그인 게이트', () => {
     useLoginModal.getState().close()
     useAuthStore.setState({
       accessToken: null,
-      user: null,
       isInitializing: false,
     })
   })

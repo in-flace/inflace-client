@@ -34,8 +34,9 @@ const mockUseLoginModal = vi.mocked(useLoginModal)
 describe('LoginButton', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseLoginModal.mockImplementation((selector: (state: LoginModalState) => unknown) =>
-      selector({ isOpen: false, open: mockOpenModal, close: vi.fn() })
+    mockUseLoginModal.mockImplementation(
+      (selector: (state: LoginModalState) => unknown) =>
+        selector({ isOpen: false, open: mockOpenModal, close: vi.fn() })
     )
   })
 
@@ -43,6 +44,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: false,
       isInitializing: true,
+      isUserLoading: false,
       user: null,
       logout: mockLogout,
     })
@@ -58,6 +60,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: true,
       isInitializing: false,
+      isUserLoading: false,
       user: mockUser,
       logout: mockLogout,
     })
@@ -71,6 +74,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: true,
       isInitializing: false,
+      isUserLoading: false,
       user: mockUser,
       logout: mockLogout,
     })
@@ -84,6 +88,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: true,
       isInitializing: false,
+      isUserLoading: false,
       user: null,
       logout: mockLogout,
     })
@@ -98,6 +103,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: false,
       isInitializing: false,
+      isUserLoading: false,
       user: null,
       logout: mockLogout,
     })
@@ -111,6 +117,7 @@ describe('LoginButton', () => {
     mockUseAuth.mockReturnValue({
       isLoggedIn: false,
       isInitializing: false,
+      isUserLoading: false,
       user: null,
       logout: mockLogout,
     })

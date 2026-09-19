@@ -40,7 +40,7 @@ describe('axiosInstance', () => {
   describe('Request interceptor', () => {
     it('AT가 있을 때 Authorization: Bearer 헤더를 주입한다', async () => {
       const { useAuthStore } = await import('@/entities/user/model/authStore')
-      useAuthStore.getState().setAuth(mockAccessToken, null)
+      useAuthStore.getState().setAccessToken(mockAccessToken)
 
       const { axiosInstance } = await import('./axiosInstance')
       const { fulfilled } = getRequestHandler(axiosInstance)
@@ -94,13 +94,13 @@ describe('axiosInstance', () => {
     })
 
     it('401 응답 시 /auth/refresh를 호출한다', async () => {
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
+      useAuthStore.getState().setAccessToken('expired-token')
       const { axiosInstance } = await import('./axiosInstance')
 
-      const axiosPostSpy = vi
-        .spyOn(axios, 'post')
-        .mockResolvedValueOnce({
-          data: { accessToken: mockAccessToken, user: mockUser },
-        })
+      const axiosPostSpy = vi.spyOn(axios, 'post').mockResolvedValueOnce({
+        data: { accessToken: mockAccessToken, user: mockUser },
+      })
 
       // 재시도 요청은 axiosInstance 어댑터를 mock하여 실제 HTTP 요청 방지
       axiosInstance.defaults.adapter = vi.fn().mockResolvedValueOnce({
@@ -126,6 +126,7 @@ describe('axiosInstance', () => {
 
     it('401 응답 시 refresh 성공 후 새 토큰으로 재시도한다', async () => {
       const { useAuthStore } = await import('@/entities/user/model/authStore')
+      useAuthStore.getState().setAccessToken('expired-token')
       const { axiosInstance } = await import('./axiosInstance')
 
       vi.spyOn(axios, 'post').mockResolvedValueOnce({
@@ -153,7 +154,7 @@ describe('axiosInstance', () => {
 
     it('refresh 실패 시 authStore.reset()을 호출한다', async () => {
       const { useAuthStore } = await import('@/entities/user/model/authStore')
-      useAuthStore.getState().setAuth(mockAccessToken, null)
+      useAuthStore.getState().setAccessToken(mockAccessToken)
 
       const { axiosInstance } = await import('./axiosInstance')
 
@@ -173,6 +174,8 @@ describe('axiosInstance', () => {
     })
 
     it('동시 401 요청 시 refresh는 한 번만 호출된다', async () => {
+      const { useAuthStore } = await import('@/entities/user/model/authStore')
+      useAuthStore.getState().setAccessToken('expired-token')
       const { axiosInstance } = await import('./axiosInstance')
 
       let resolveRefresh!: (val: unknown) => void
@@ -205,6 +208,21 @@ describe('axiosInstance', () => {
       await Promise.all([p1, p2])
 
       expect(axiosPostSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('로그아웃으로 AT가 제거된 뒤 도착한 401은 refresh하지 않는다', async () => {
+      const { axiosInstance } = await import('./axiosInstance')
+      const axiosPostSpy = vi.spyOn(axios, 'post')
+      const { rejected } = getResponseHandler(axiosInstance)
+      const error = {
+        response: { status: 401 },
+        config: { headers: new axios.AxiosHeaders(), _retry: false },
+      }
+
+      await expect(
+        (rejected as (e: unknown) => Promise<unknown>)(error)
+      ).rejects.toEqual(error)
+      expect(axiosPostSpy).not.toHaveBeenCalled()
     })
   })
 })
