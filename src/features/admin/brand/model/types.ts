@@ -48,7 +48,7 @@ export interface BrandsQuery {
 }
 
 /* Swagger에는 brandNames/targetBrandIds가 object로만 나온다.
- * 브랜드 id를 키로 한 맵으로 가정 — 백엔드와 확인 필요 */
+ * 브랜드 id를 키로 한 맵. 직접 승인 브랜드는 brandNames 필수 (AdminService 참고) */
 export interface ApproveBrandsRequest {
   brandIds: number[]
   brandNames: Record<number, string>

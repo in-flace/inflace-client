@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/shared/ui/button'
 import {
   useApproveBrands,
@@ -55,12 +56,17 @@ export function PendingBrandQueue() {
       brandNames: {},
       targetBrandIds: {},
     }
-    // 입력한 것만 보낸다 — 원래 이름 그대로면 굳이 덮어쓸 필요 없음
+    /* 서버(AdminService.validateAndNormalizeBrandNames)는 병합 대상이 없는 브랜드마다
+     * brandNames에 이름이 있어야 승인한다 — 수정 안 했어도 원래 이름을 그대로 보낸다 */
     for (const id of brandIds) {
       const edit = edits[id]
       const original = brands.find((b) => b.id === id)
-      if (edit?.name && edit.name !== original?.name)
-        body.brandNames[id] = edit.name
+      const name = (edit?.name ?? original?.name ?? '').trim()
+      if (!name) {
+        toast.error(`Brand ID ${id}의 승인 이름을 입력해주세요.`)
+        return
+      }
+      body.brandNames[id] = name
       if (edit?.targetBrandId)
         body.targetBrandIds[id] = Number(edit.targetBrandId)
     }
@@ -68,6 +74,13 @@ export function PendingBrandQueue() {
   }
 
   function handleReject() {
+    // 반려된 브랜드는 서버에서 다시 승인할 수 없다(PENDING만 검수 가능)
+    if (
+      !window.confirm(
+        `${selected.size}개 브랜드를 반려합니다. 되돌릴 수 없습니다.`
+      )
+    )
+      return
     reject.mutate([...selected], { onSuccess: clearSelection })
   }
 

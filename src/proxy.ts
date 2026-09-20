@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PROTECTED_PATHS = ['/main', '/videos', '/channel', '/influencer/']
+const PROTECTED_PATHS = ['/main', '/videos', '/channel', '/influencer/', '/admin']
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
