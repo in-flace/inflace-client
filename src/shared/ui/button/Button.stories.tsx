@@ -20,6 +20,12 @@ const meta: Meta<typeof Button> = {
   title: 'Shared/Button',
   component: Button,
   tags: ['autodocs'],
+  parameters: {
+    design: {
+      type: 'figma',
+      url: 'https://www.figma.com/design/zPupSufnlb9xmEdfs4vkql/-PD--inflace?node-id=378-747',
+    },
+  },
   argTypes: {
     color: {
       control: 'select',
