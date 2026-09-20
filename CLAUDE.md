@@ -17,18 +17,6 @@ slice root `index.ts`.
 
 `app/` is routing only — metadata plus a re-export of `src/pages/*`. Never put components there.
 
-## Testing
-
-**On Windows, `npm test` silently skips 7 of 25 test files.** Workers time out, the files never run, and the
-summary still prints `Test Files 18 passed (18)`. Always use:
-
-```bash
-npx vitest run --project unit --no-file-parallelism
-```
-
-Vitest has no `coverage.all`/`include` config, so the reported percentage counts only files the tests
-imported — untouched files are excluded from the denominator, not scored as 0.
-
 ## Gotchas
 
 - **`react-hook-form`, `zod`, and `framer-motion` are not installed.** Propose before adding either forms
