@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { LinkedChannelsForDeleteCard } from './LinkedChannelsForDeleteCard'
 
@@ -17,11 +16,9 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <QueryClientProvider client={new QueryClient()}>
-        <div className='max-w-[80rem] bg-background-gray-default p-32'>
-          <Story />
-        </div>
-      </QueryClientProvider>
+      <div className='max-w-[80rem] bg-background-gray-default p-32'>
+        <Story />
+      </div>
     ),
   ],
 } satisfies Meta<typeof LinkedChannelsForDeleteCard>

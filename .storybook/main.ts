@@ -4,6 +4,11 @@ import svgr from 'vite-plugin-svgr'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
+/* Windows에서 cwd 드라이브가 소문자(c:)면 builder-vite가 번들한 pathe.relative가
+ * 인자만 대문자 정규화하고 cwd는 안 해서 절대경로 키를 만들고,
+ * docs 렌더 시 "importers[path] is not a function"이 난다. 대문자로 맞춰준다. */
+if (/^[a-z]:/.test(process.cwd())) process.chdir(process.cwd().replace(/^[a-z]:/, (d) => d.toUpperCase()))
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 

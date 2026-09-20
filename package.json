@@ -16,9 +16,12 @@
     "test:e2e": "playwright test --grep-invert \"성능 지표\"",
     "test:perf": "playwright test e2e/performance.spec.ts --reporter=line --workers=1",
     "build:tokens": "node scripts/sd.config.mjs",
+    "prestorybook": "npm run build:tokens",
     "storybook": "storybook dev -p 6006",
+    "prebuild-storybook": "npm run build:tokens",
     "build-storybook": "storybook build",
-    "chromatic": "npx chromatic --project-token=chpt_4f89ec70a2c357b"
+    "prechromatic": "npm run build:tokens",
+    "chromatic": "chromatic"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",
