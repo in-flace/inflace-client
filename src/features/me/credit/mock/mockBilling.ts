@@ -178,6 +178,17 @@ export const mockPaymentHistory: {
     occurredAt: '2026-07-01T09:00:00',
   },
   {
+    paymentId: 104,
+    refundId: null,
+    orderId: 1004,
+    type: 'SUBSCRIPTION_PAYMENT',
+    description: '월 구독료',
+    amount: 9900,
+    status: 'CANCEL_SCHEDULED',
+    statusLabel: '해지 예약',
+    occurredAt: '2026-06-20T09:00:00',
+  },
+  {
     paymentId: null,
     refundId: 201,
     orderId: 1002,
