@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 import {
@@ -9,7 +9,6 @@ import {
   useBillingSummary,
   type BillingTab,
 } from '@/features/me/credit'
-import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { TabGroup } from '@/shared/ui/tabGroup'
 import { BillingModals } from './BillingModals'
@@ -63,22 +62,33 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
 export function MyCreditPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [isPending, startTransition] = useTransition()
   const [modal, setModal] = useState<ModalState>(null)
   const { data: summary, isLoading, isError, refetch } = useBillingSummary()
 
   const tabParam = searchParams?.get('tab') ?? null
-  const activeTab = isBillingTab(tabParam) ? tabParam : 'subscription'
 
-  useEffect(() => {
-    if (!tabParam || isBillingTab(tabParam)) return
-    router.replace('/me/credit?tab=subscription')
-  }, [router, tabParam])
+  /* 화면에 무엇을 그릴지는 이 상태가 정한다. URL에서만 파생시켰더니
+   * router.replace가 내비게이션을 일으키지 못할 때 탭이 통째로 멈췄다
+   * (배포 환경에서 재현: 핸들러는 정상 실행되는데 URL이 바뀌지 않음).
+   * URL은 공유·새로고침·뒤로가기를 위해 뒤따라 맞춰주는 값으로 둔다. */
+  const [activeTab, setActiveTab] = useState<BillingTab>(() =>
+    isBillingTab(tabParam) ? tabParam : 'subscription'
+  )
+
+  /* 뒤로가기나 포트원 리다이렉트처럼 URL이 밖에서 바뀌는 경우를 따라간다.
+   * 렌더 중 보정이라 effect를 거치지 않아 중간 프레임이 생기지 않는다. */
+  const [syncedTabParam, setSyncedTabParam] = useState(tabParam)
+  if (tabParam !== syncedTabParam) {
+    setSyncedTabParam(tabParam)
+    if (isBillingTab(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }
 
   const handleTabChange = (tab: BillingTab) => {
-    startTransition(() => {
-      router.replace(`/me/credit?tab=${tab}`)
-    })
+    setActiveTab(tab)
+    /* URL 동기화는 부수효과다. 실패해도 화면 전환은 이미 끝나 있다. */
+    router.replace(`/me/credit?tab=${tab}`, { scroll: false })
   }
 
   return (
@@ -98,7 +108,7 @@ export function MyCreditPage() {
         type='fill'
         scrollable
       />
-      <main className={cn('min-w-0', isPending && 'opacity-70')}>
+      <main className='min-w-0'>
         {isLoading ? (
           <LoadingState />
         ) : isError || !summary ? (
