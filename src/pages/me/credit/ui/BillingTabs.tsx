@@ -187,30 +187,24 @@ export function SubscriptionTab({
     )
   }
 
-  const subscriptionStatus = {
-    none: { label: '미구독', tone: 'neutral' as const },
-    paymentPending: { label: '결제 확인 중', tone: 'info' as const },
-    active: { label: '구독중', tone: 'success' as const },
-    cancelScheduled: { label: '해지 예약', tone: 'success' as const },
-    paymentFailed: { label: '결제 실패', tone: 'error' as const },
-  }[subscription.status]
+  /* 재가입 시 적용되는 정상가. 서버 플랜 목록에서 가져와 하드코딩하지 않는다. */
+  const listPrice = plans.find((plan) => plan.code === 'PRO')?.price ?? null
 
   return (
     <div className='flex flex-col gap-24'>
       {subscription.status === 'active' &&
         subscription.planCode === 'EARLY_BIRD' && (
-          <SectionCard className='border border-[rgba(36,115,230,0.08)] bg-[rgba(36,115,230,0.08)] p-24'>
-            <div className='flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-32'>
-              <StatusBadge tone='info'>안내</StatusBadge>
-              <div className='flex min-w-0 flex-col gap-4'>
-                <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
-                  얼리버드 구독이 유지 중입니다.
-                </h3>
-                <p className='text-noto-body-xs-normal text-pretty text-text-and-icon-secondary'>
-                  다음 결제일까지 이용 가능하며, 해지 후 재가입하면 정상가가
-                  적용됩니다.
-                </p>
-              </div>
+          <SectionCard className='bg-[#FFF0F0] p-24'>
+            <div className='flex min-w-0 flex-col gap-8'>
+              <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+                {subscription.planName ?? '얼리버드'} 플랜 만료 안내
+              </h3>
+              <p className='text-noto-body-xs-normal text-pretty text-text-and-icon-secondary'>
+                {subscription.planName ?? '얼리버드'} 플랜은 다음 결제일까지
+                이용 가능하며, 해지 후 재가입하면 정상가
+                {listPrice !== null ? ` ${formatWon(listPrice)}` : ''}이
+                적용됩니다.
+              </p>
             </div>
           </SectionCard>
         )}
@@ -284,8 +278,7 @@ export function SubscriptionTab({
         <MetricCard
           label='현재 플랜'
           value={subscription.planName ?? '-'}
-          suffix={subscriptionStatus.label}
-          suffixTone={subscriptionStatus.tone}
+          suffix='월 구독'
         />
         <MetricCard
           label='월 결제 금액'
@@ -295,12 +288,11 @@ export function SubscriptionTab({
         <MetricCard
           label='다음 결제일'
           value={formatDate(subscription.nextPaymentDate)}
-          suffix={subscription.nextPaymentDate ? '자동결제' : undefined}
-          suffixTone='info'
+          suffix={subscription.nextPaymentDate ? '매월 자동 결제' : undefined}
         />
         <MetricCard
           label='보유 크레딧'
-          value={`${getTotalCredits(summary.creditBatches)}개`}
+          value={`${getTotalCredits(summary.creditBatches)}`}
         />
       </div>
       <SectionCard className='flex flex-col gap-20'>
@@ -311,18 +303,17 @@ export function SubscriptionTab({
           <li>구독 유지 중에는 매월 3 크레딧이 자동 지급됩니다.</li>
           <li>월 지급 크레딧은 다음 달로 이월되지 않습니다.</li>
           <li>해지해도 결제 완료 기간까지 이용할 수 있습니다.</li>
-          <li>크레딧은 만료일까지 사용 가능합니다.</li>
+          <li>크레딧의 유효기간은 다음 결제일까지 입니다.</li>
         </ul>
       </SectionCard>
       {subscription.status === 'active' && (
-        <div className='flex justify-start'>
+        <div className='flex justify-end'>
           <Button
             type='button'
-            color='primary'
-            size='sm'
-            variant='filled'
-            onClick={() => onOpenModal({ type: 'cancelReason' })}
-            className='bg-feedback-error'>
+            color='secondary'
+            size='md'
+            variant='outlined'
+            onClick={() => onOpenModal({ type: 'cancelReason' })}>
             해지하기
           </Button>
         </div>
@@ -335,12 +326,10 @@ function MetricCard({
   label,
   value,
   suffix,
-  suffixTone = 'neutral',
 }: {
   label: string
   value: string
   suffix?: string
-  suffixTone?: 'success' | 'error' | 'warning' | 'neutral' | 'info'
 }) {
   return (
     <SectionCard className='h-[13rem] p-24 sm:h-[13.4rem] sm:p-32'>
@@ -352,7 +341,12 @@ function MetricCard({
           <strong className='text-noto-title-sm-bold text-text-and-icon-default'>
             {value}
           </strong>
-          {suffix && <StatusBadge tone={suffixTone}>{suffix}</StatusBadge>}
+          {/* 시안은 뱃지가 아니라 값 옆의 작은 보조 텍스트다. */}
+          {suffix && (
+            <span className='pb-2 text-noto-body-xs-normal text-text-and-icon-secondary'>
+              {suffix}
+            </span>
+          )}
         </div>
       </div>
     </SectionCard>
@@ -464,7 +458,7 @@ export function CreditTab({
       <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
         <MetricCard
           label='보유 크레딧'
-          value={`${getTotalCredits(summary.creditBatches)}개`}
+          value={`${getTotalCredits(summary.creditBatches)}`}
         />
         <MetricCard
           label='가장 빠른 만료일'
