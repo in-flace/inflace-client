@@ -865,6 +865,8 @@ function HistoryStatusBadge({
     PAYMENT_PENDING: 'neutral',
     PAYMENT_COMPLETED: 'success',
     PAYMENT_FAILED: 'error',
+    /* 기획의 상태 뱃지 정의상 해지 예약은 레드다. */
+    CANCEL_SCHEDULED: 'error',
     REFUND_REQUESTED: 'neutral',
     REFUND_PROCESSING: 'neutral',
     REFUND_COMPLETED: 'warning',
