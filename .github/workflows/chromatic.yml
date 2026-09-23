@@ -2,8 +2,6 @@ name: Chromatic
 
 on:
   push:
-    branches:
-      - develop
 
 jobs:
   chromatic:
@@ -17,6 +15,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run build:tokens
       - uses: chromaui/action@latest
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

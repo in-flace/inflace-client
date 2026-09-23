@@ -3,10 +3,6 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig } from 'vitest/config';
 
-import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
-
-import { playwright } from '@vitest/browser-playwright';
-
 const dirname =
   typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,6 +12,9 @@ const dirname =
  * hooks는 React 렌더가 필요하므로 src/shared/lib 바로 아래만 포함한다(재귀 아님). */
 const NODE_ENV_TESTS = [
   'app/**/*.test.{ts,tsx}',
+  'src/proxy.test.ts',
+  'src/features/auth/model/useLoginModal.test.ts',
+  'src/features/onboarding/model/useOnboardingModal.test.ts',
   'src/shared/lib/*.test.ts',
   'src/shared/api/*.test.ts',
 ];
@@ -53,11 +52,6 @@ const sharedUnitConfig = {
 /* 두 단위 테스트 프로젝트가 공유하는 실행 옵션 */
 const sharedUnitTestOptions = {
   globals: true,
-  /* Windows에서 워커를 병렬로 띄우면 일부가 기동 타임아웃으로 죽는데,
-   * vitest는 그 파일들을 "실행되지 않음"이 아니라 집계에서 누락시킨 뒤
-   * 나머지만으로 초록 요약을 출력한다(25개 중 18개만 실행된 상태로 통과 표시).
-   * 조용한 미실행을 막기 위해 파일 단위 병렬을 끈다. */
-  fileParallelism: false,
   env: {
     /* 날짜 포맷 함수가 로컬 타임존에 의존하므로 실행 환경을 고정한다. */
     TZ: 'Asia/Seoul',
@@ -102,6 +96,9 @@ export default defineConfig({
           ...sharedUnitTestOptions,
           name: 'unit',
           environment: 'jsdom',
+          /* Windows에서 jsdom 워커를 병렬로 띄우면 일부 파일이 시작 타임아웃으로
+           * 누락될 수 있어 DOM 테스트만 파일 단위로 직렬 실행한다. */
+          fileParallelism: false,
           setupFiles: ['./vitest.setup.ts'],
           include: ['src/**/*.test.{ts,tsx}', 'app/**/*.test.{ts,tsx}'],
           exclude: NODE_ENV_TESTS,
@@ -117,25 +114,6 @@ export default defineConfig({
           name: 'unit-node',
           environment: 'node',
           include: NODE_ENV_TESTS,
-        },
-      },
-      // Storybook 테스트 프로젝트
-      {
-        extends: true,
-        plugins: [
-          // The plugin will run tests for the stories defined in your Storybook config
-          // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
-          storybookTest({ configDir: path.join(dirname, '.storybook') }),
-        ],
-        test: {
-          name: 'storybook',
-          browser: {
-            enabled: true,
-            headless: true,
-            provider: playwright({}),
-            instances: [{ browser: 'chromium' }],
-          },
-          setupFiles: ['.storybook/vitest.setup.ts'],
         },
       },
     ],

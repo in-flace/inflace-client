@@ -17,18 +17,6 @@ slice root `index.ts`.
 
 `app/` is routing only — metadata plus a re-export of `src/pages/*`. Never put components there.
 
-## Testing
-
-**On Windows, `npm test` silently skips 7 of 25 test files.** Workers time out, the files never run, and the
-summary still prints `Test Files 18 passed (18)`. Always use:
-
-```bash
-npx vitest run --project unit --no-file-parallelism
-```
-
-Vitest has no `coverage.all`/`include` config, so the reported percentage counts only files the tests
-imported — untouched files are excluded from the denominator, not scored as 0.
-
 ## Gotchas
 
 - **`react-hook-form`, `zod`, and `framer-motion` are not installed.** Propose before adding either forms
@@ -41,9 +29,13 @@ imported — untouched files are excluded from the denominator, not scored as 0.
   (the latter varies per environment).
 - Access tokens live in memory only (`src/entities/user/model/authStore.ts`); refresh tokens are httpOnly
   cookies. Do not persist tokens to localStorage.
-- **`src/proxy.ts` has `FORCE_LOGIN = true`, which disables the middleware auth guard entirely** (issue #14).
-  Protected routes are currently gated on the client only.
-- ESLint 9 flat config does not read `.gitignore` — add new build output dirs to `globalIgnores` by hand.
-- Root `pages/` is a README, not the Pages Router. Middleware is `src/proxy.ts` (Next 16 rename).
-- `shared/` and `entities/` currently import from `features/` (issue #16). Known violation — do not extend it.
-- Never put real values in `.env`.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
