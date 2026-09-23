@@ -1,10 +1,11 @@
 import { SidebarMenuItem, SidebarMenuButton } from '@/shared/ui/shadcn/sidebar'
 import { SidebarIcon } from '@/features/navigation/ui/NavSidebarIcon'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
-import { useYoutubeConnectModal } from '@/features/auth/model/useYoutubeConnectModal'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 import { useAuth } from '@/features/auth/model/useAuth'
 import type { NavItem } from '../model/types'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { cn } from '@/shared/lib/utils'
 
 interface NavMenuItemProps {
@@ -13,6 +14,7 @@ interface NavMenuItemProps {
 }
 
 export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
+  const pathname = usePathname()
   const { isLoggedIn, user } = useAuth()
   const openLoginModal = useLoginModal((s) => s.open)
   const openYoutubeConnectModal = useYoutubeConnectModal((s) => s.open)
@@ -69,6 +71,7 @@ export const NavMenuItem = ({ item, isActive }: NavMenuItemProps) => {
         ) : (
           <Link
             href={item.url}
+            prefetch={pathname === '/' ? false : undefined}
             className='flex h-full w-full items-center gap-8'
             onClick={handleClick}>
             {content}

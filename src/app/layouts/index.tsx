@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Noto_Sans_KR, IBM_Plex_Sans_KR } from 'next/font/google'
+import localFont from 'next/font/local'
 import { GoogleTagManager } from '@next/third-parties/google'
 
 import '../styles'
@@ -10,34 +10,20 @@ import { SidebarTrigger } from '@/shared/ui/shadcn/sidebar'
 import { SidebarStoreProvider } from './SidebarStoreProvider'
 import { Header, Footer, AppSidebar } from '@/widgets/layout'
 import { AuthInitializer } from '@/features/auth'
-import { LoginModal, YoutubeConnectModal } from '@/widgets/auth'
-import { OnboardingModal } from '@/widgets/onboarding'
-import { GoogleAuthNoticeModal } from '@/widgets/googleAuthNotice'
 import { InquiryWidget } from '@/widgets/inquiry'
+import { Toaster } from '@/shared/ui/sonner'
 import { GtmPageView } from '@/shared/analytics'
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from '@/shared/config/site'
-import { Toaster } from '@/shared/ui/sonner'
+import { GlobalModalLayer } from './GlobalModalLayer'
 
 const gtmId = process.env.NEXT_PUBLIC_GTM_ID
 
-/* 한글 폰트는 유니코드 범위별로 수백 개 파일로 분할된다.
- * preload를 켜두면 실제 사용 여부와 무관하게 전부 선다운로드되어
- * (랜딩 기준 281개 / 2.5MB) 초기 로딩을 크게 지연시킨다.
- * preload: false로 브라우저가 필요한 조각만 받도록 한다. */
-const notoSansKr = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
+const notoSansKr = localFont({
+  src: '../fonts/noto-sans-kr-ui.woff2',
+  weight: '100 900',
   variable: '--font-noto',
   display: 'swap',
-  preload: false,
-})
-
-const ibmPlexSansKr = IBM_Plex_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-ibm',
-  display: 'swap',
-  preload: false,
+  fallback: ['system-ui', 'sans-serif'],
 })
 
 /* metadata를 선언하지 않은 라우트가 상속하는 기본값.
@@ -87,9 +73,7 @@ const jsonLd = {
 
 export function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang='ko'
-      className={`${notoSansKr.variable} ${ibmPlexSansKr.variable}`}>
+    <html lang='ko' className={notoSansKr.variable}>
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className='flex min-h-screen flex-col'>
         <script
@@ -104,10 +88,7 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
         <MSWProvider>
           <QueryProvider>
             <AuthInitializer />
-            <LoginModal />
-            <YoutubeConnectModal />
-            <OnboardingModal />
-            <GoogleAuthNoticeModal />
+            <GlobalModalLayer />
             <InquiryWidget />
             <Toaster position='top-center' />
             <div className='flex flex-1'>

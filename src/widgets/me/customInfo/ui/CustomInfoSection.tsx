@@ -1,7 +1,7 @@
 'use client'
 
 import { useMyProfile, useEditPreferencesModal, EditPreferencesModal } from '@/features/me'
-import { ROLE_LABEL, NEED_LABEL } from '@/shared/api/types'
+import { ROLE_LABEL, NEED_LABEL } from '@/entities/user'
 import { Button } from '@/shared/ui/button'
 
 export function CustomInfoSection() {

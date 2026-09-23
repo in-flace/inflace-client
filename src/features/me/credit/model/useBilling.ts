@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { useAuthStore } from '@/shared/api/authStore'
+import { useAuthStore, useCurrentUser } from '@/entities/user'
 import {
   cancelSubscription,
   changeBillingMethod,
@@ -40,7 +40,7 @@ export function usePaymentHistory(page: number) {
 }
 
 function useBillingUserId() {
-  return useAuthStore((state) => state.user?.userDetails.id ?? null)
+  return useCurrentUser().data?.userDetails.id ?? null
 }
 
 export function useBillingSummary() {

@@ -1,5 +1,5 @@
 import { NeedSelect } from '@/shared/ui/need-select'
-import { Need } from '@/shared/api/types'
+import { Need } from '@/entities/user'
 import { useOnboardingModal } from '../model/useOnboardingModal'
 
 export function OnboardingStep2() {

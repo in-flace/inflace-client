@@ -1,7 +1,8 @@
 import axios from 'axios'
 
-import { useAuthStore } from './authStore'
+import { CURRENT_USER_QUERY_KEY, useAuthStore } from '@/entities/user'
 import { useLoginModal } from '@/features/auth/model/useLoginModal'
+import { queryClient } from '@/shared/lib/queryClient'
 
 const axiosInstance = axios.create({
   baseURL: `${process.env.NEXT_PUBLIC_API_URL}`,
@@ -44,8 +45,13 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
+    const { accessToken } = useAuthStore.getState()
 
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      !accessToken
+    ) {
       return Promise.reject(error)
     }
 
@@ -67,8 +73,7 @@ axiosInstance.interceptors.response.use(
       })
 
       const { accessToken } = data
-      const { user } = useAuthStore.getState()
-      useAuthStore.getState().setAuth(accessToken, user)
+      useAuthStore.getState().setAccessToken(accessToken)
       processQueue(null, accessToken)
 
       originalRequest.headers.Authorization = `Bearer ${accessToken}`
@@ -76,6 +81,7 @@ axiosInstance.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null)
       useAuthStore.getState().reset()
+      queryClient.removeQueries({ queryKey: CURRENT_USER_QUERY_KEY })
       // refresh 실패 시 현재 화면 그대로 로그인 모달 오픈
       /* 사용자가 연 것이 아니라 세션 만료로 강제로 뜬 것이다.
        * 전환율 분모에서 빼야 하므로 다른 값으로 구분한다. */

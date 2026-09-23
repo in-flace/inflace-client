@@ -2,17 +2,15 @@ import Image from 'next/image'
 import LockButton from '../assets/lock-button.png'
 import { type ReactNode } from 'react'
 
-import type { UserPlan } from '@/shared/api/types'
 import { usePlanGate } from '../model/usePlanGate'
 import { Tooltip } from '@/shared/ui/tooltip'
 
 interface PlanGateProps {
-  requiredPlan: UserPlan
   children: ReactNode
 }
 
-export function PlanGate({ requiredPlan, children }: PlanGateProps) {
-  const { isLocked } = usePlanGate(requiredPlan)
+export function PlanGate({ children }: PlanGateProps) {
+  const { isLocked } = usePlanGate()
 
   if (!isLocked) return <>{children}</>
 
@@ -32,7 +30,7 @@ export function PlanGate({ requiredPlan, children }: PlanGateProps) {
       {/* 락 UI: 자물쇠 호버 시 shadcn Tooltip으로 안내 노출 */}
       <div className='absolute inset-0 flex items-center justify-center'>
         <Tooltip
-          label={`${requiredPlan}플랜으로 업그레이드 하세요`}
+          label='PRO플랜으로 업그레이드 하세요'
           side='bottom'>
           <button
             type='button'

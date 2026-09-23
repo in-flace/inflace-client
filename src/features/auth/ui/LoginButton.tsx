@@ -4,7 +4,7 @@ import { Button } from '@/shared/ui/button'
 
 import { useAuth } from '../model/useAuth'
 import { useLoginModal } from '../model/useLoginModal'
-import { UserIcon } from '@/features/userStatus'
+import { UserIcon } from '@/entities/user'
 
 /*
  * 로그인 여부에 따라 달라지는 버튼

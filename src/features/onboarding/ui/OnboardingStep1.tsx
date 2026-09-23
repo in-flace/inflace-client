@@ -1,5 +1,5 @@
 import { RoleSelect } from '@/shared/ui/role-select'
-import { UserRole } from '@/shared/api/types'
+import { UserRole } from '@/entities/user'
 import { useOnboardingModal } from '../model/useOnboardingModal'
 
 export function OnboardingStep1() {

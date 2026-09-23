@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
   postProfileImageUploadUrl,
   uploadFileToS3,
@@ -21,6 +22,9 @@ export function useEditProfileImage() {
     },
     onSuccess: (updatedProfile) => {
       queryClient.setQueryData(['myProfile'], updatedProfile)
+    },
+    onError: () => {
+      toast.error('프로필 사진 변경에 실패했습니다. 다시 시도해주세요.')
     },
   })
 }

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { fetchAlarm, postAlarm } from '../api/alarmApi'
 import type { Alarms } from '../model/types'
-import { useAuthStore } from '@/shared/api'
+import { useAuthStore } from '@/entities/user'
 
 export function useAlarm() {
   const accessToken = useAuthStore((state) => state.accessToken)
@@ -18,6 +19,9 @@ export function useEditAlarm() {
     mutationFn: (body: Alarms) => postAlarm(body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alarm'] })
+    },
+    onError: () => {
+      toast.error('알림 설정 변경에 실패했습니다. 다시 시도해주세요.')
     },
   })
 }

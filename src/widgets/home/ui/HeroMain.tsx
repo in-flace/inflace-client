@@ -16,7 +16,8 @@ export function HeroMain() {
           src={heroSection01Bg}
           alt=''
           fill
-          priority
+          loading='eager'
+          fetchPriority='high'
           sizes='100vw'
           className='object-cover'
         />
@@ -41,6 +42,8 @@ export function HeroMain() {
           src={heroSection02Bg}
           alt=''
           fill
+          loading='eager'
+          fetchPriority='high'
           sizes='100vw'
           className='object-cover'
         />
@@ -63,7 +66,8 @@ export function HeroMain() {
             <Image
               src={heroSection02Item}
               alt='인플루언서 영상 성과 분석'
-              sizes='(min-width: 1280px) 42vw, (min-width: 768px) 46vw, 90vw'
+              quality={60}
+              sizes='(min-width: 1280px) 210px, (min-width: 768px) 46vw, 90vw'
               className='h-auto w-full'
             />
           </div>
@@ -99,7 +103,8 @@ export function HeroMain() {
             <Image
               src={heroSection03Item}
               alt='인플루언서 영상 성과 분석'
-              sizes='(min-width: 1280px) 42vw, (min-width: 768px) 46vw, 90vw'
+              quality={60}
+              sizes='(min-width: 1280px) 210px, (min-width: 768px) 46vw, 90vw'
               className='h-auto w-full'
             />
           </div>
