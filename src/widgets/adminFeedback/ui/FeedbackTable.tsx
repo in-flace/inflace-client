@@ -31,14 +31,18 @@ export function FeedbackTable({ feedbacks }: Props) {
       <div className='border-b border-stroke-border-gray-stronger bg-background-gray-default px-16 py-12 text-noto-label-sm-bold text-text-and-icon-secondary'>
         CS 목록
       </div>
-      <Table>
+      <Table className='table-fixed'>
         <TableHeader>
           <TableRow className='border-b border-stroke-border-gray-stronger'>
-            <TableHead className='pl-24 text-left'>CS ID</TableHead>
-            <TableHead className='text-left'>접수 시간</TableHead>
-            <TableHead className='text-left'>접수 위치</TableHead>
-            <TableHead className='text-left'>접수 내용</TableHead>
-            <TableHead className='pr-24 text-right'>확인 상태</TableHead>
+            <TableHead className='w-[8%] pl-24 text-left first:pl-24'>
+              CS ID
+            </TableHead>
+            <TableHead className='w-[18%] text-left'>접수 시간</TableHead>
+            <TableHead className='w-[16%] text-left'>접수 위치</TableHead>
+            <TableHead className='w-[36%] text-left'>접수 내용</TableHead>
+            <TableHead className='w-[22%] pr-24 text-right'>
+              확인 상태
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -57,7 +61,7 @@ export function FeedbackTable({ feedbacks }: Props) {
               <TableRow
                 key={feedback.id}
                 className='border-b border-stroke-border-gray-stronger last:border-b-0'>
-                <TableCell className='pl-24 text-left text-text-and-icon-secondary'>
+                <TableCell className='pl-24 text-left text-text-and-icon-secondary first:pl-24'>
                   CS-{feedback.id}
                 </TableCell>
                 <TableCell className='text-left whitespace-nowrap'>
@@ -70,7 +74,7 @@ export function FeedbackTable({ feedbacks }: Props) {
                   {feedback.content}
                 </TableCell>
                 <TableCell className='pr-24'>
-                  <div className='flex justify-end gap-8'>
+                  <div className='flex shrink-0 justify-end gap-8'>
                     {STATUSES.map((status) => (
                       <button
                         key={status}

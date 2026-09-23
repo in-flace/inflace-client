@@ -33,7 +33,7 @@ export function AdminLayout({ children }: Props) {
   return (
     <div className='flex size-full bg-background-gray-default'>
       <AdminSidebar />
-      {children}
+      <div className='min-w-0 flex-1'>{children}</div>
     </div>
   )
 }

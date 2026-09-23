@@ -14,7 +14,7 @@ export const mockUserDetails: UserDetails = {
   id: '019da065-7cf7-7f75-a712-d5bae90738f0',
   profileImage: mockProfileImageUrl,
   userRoles: [],
-  plan: 'PRO',
+  plan: 'ADMIN',
   isOnboardingCompleted: true,
 }
 
