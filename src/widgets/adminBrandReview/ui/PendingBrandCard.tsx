@@ -76,18 +76,20 @@ export function PendingBrandCard({
         <div className='border-b border-stroke-border-gray-stronger bg-background-gray-default px-16 py-12 text-noto-label-sm-bold text-text-and-icon-secondary'>
           생성 근거 영상
         </div>
-        <Table>
+        <Table className='table-fixed'>
           <TableHeader>
             <TableRow className='border-b border-stroke-border-gray-stronger'>
-              <TableHead className='pl-24 text-left'>
+              <TableHead className='w-[18%] pl-24 text-left first:pl-24'>
                 매칭 브랜드 명 (alias)
               </TableHead>
-              <TableHead className='text-left'>매칭 브랜드 ID</TableHead>
-              <TableHead className='text-left'>채널</TableHead>
-              <TableHead className='text-left'>
+              <TableHead className='w-[14%] text-left'>
+                매칭 브랜드 ID
+              </TableHead>
+              <TableHead className='w-[14%] text-left'>채널</TableHead>
+              <TableHead className='w-[27%] text-left'>
                 YouTube Video ID / URL
               </TableHead>
-              <TableHead className='pr-24 text-left'>
+              <TableHead className='w-[27%] pr-24 text-left'>
                 Video description
               </TableHead>
             </TableRow>
@@ -97,7 +99,7 @@ export function PendingBrandCard({
               <TableRow
                 key={evidence.channelBrandId}
                 className='border-b border-stroke-border-gray-stronger last:border-b-0'>
-                <TableCell className='pl-24 text-left text-brand-primary'>
+                <TableCell className='pl-24 text-left text-brand-primary first:pl-24'>
                   {evidence.matchedAlias}
                 </TableCell>
                 <TableCell className='text-left text-text-and-icon-secondary'>
@@ -112,7 +114,7 @@ export function PendingBrandCard({
                     href={evidence.youtubeVideoUrl}
                     target='_blank'
                     rel='noreferrer'
-                    className='text-brand-primary underline'>
+                    className='break-all text-brand-primary underline'>
                     {evidence.youtubeVideoUrl}
                   </a>
                 </TableCell>

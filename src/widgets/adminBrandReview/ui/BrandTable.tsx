@@ -23,10 +23,12 @@ export function BrandTable({ brands }: Props) {
       <div className='border-b border-stroke-border-gray-stronger bg-background-gray-default px-16 py-12 text-noto-label-sm-bold text-text-and-icon-secondary'>
         브랜드 목록
       </div>
-      <Table>
+      <Table className='table-fixed'>
         <TableHeader>
           <TableRow className='border-b border-stroke-border-gray-stronger'>
-            <TableHead className='pl-24 text-left'>브랜드 명</TableHead>
+            <TableHead className='pl-24 text-left first:pl-24'>
+              브랜드 명
+            </TableHead>
             <TableHead className='text-left'>브랜드 ID</TableHead>
             <TableHead className='text-left'>AI 생성</TableHead>
             <TableHead className='text-left'>관리자 승인</TableHead>
@@ -47,7 +49,7 @@ export function BrandTable({ brands }: Props) {
             <TableRow
               key={brand.id}
               className='border-b border-stroke-border-gray-stronger last:border-b-0'>
-              <TableCell className='pl-24 text-left text-brand-primary'>
+              <TableCell className='pl-24 text-left text-brand-primary first:pl-24'>
                 {brand.name}
               </TableCell>
               <TableCell className='text-left text-text-and-icon-secondary'>
