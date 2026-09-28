@@ -513,10 +513,11 @@ export function CreditTab({
                 <TableCell>
                   <Button
                     type='button'
-                    color='gray'
+                    color={batch.refundable ? 'primary' : 'gray'}
                     size='xs'
                     variant='filled'
-                    disabled
+                    disabled={!batch.refundable}
+                    onClick={() => onOpenModal({ type: 'creditRefund', batch })}
                     className='h-28 w-full'>
                     {getCreditRefundLabel(batch)}
                   </Button>

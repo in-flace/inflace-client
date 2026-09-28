@@ -63,6 +63,8 @@ export interface BillingMethod {
 
 export interface CreditBatch {
   id: string
+  /* 환불은 주문 단위라 필요하다. 구독으로 지급된 배치는 주문이 없어 null이다. */
+  orderId: number | null
   paymentDate: string
   expiryDate: string | null
   type: CreditBatchType

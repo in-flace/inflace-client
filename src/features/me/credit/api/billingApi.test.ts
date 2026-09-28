@@ -51,6 +51,7 @@ describe('fetchBillingSummary', () => {
             batches: [
               {
                 userCreditId: 1,
+                orderId: 2001,
                 productName: '10크레딧',
                 initialAmount: 10,
                 remainingAmount: 9,
@@ -60,6 +61,7 @@ describe('fetchBillingSummary', () => {
               },
               {
                 userCreditId: 2,
+                orderId: null,
                 productName: '월 구독 지급',
                 initialAmount: 3,
                 remainingAmount: 3,
@@ -181,6 +183,11 @@ describe('fetchBillingSummary', () => {
       type: 'subscription',
       expiryDate: null,
     })
+    /* 환불은 구매분에만 열린다. 구독으로 지급된 배치는 주문이 없어 막힌다.
+     * 두 배치 모두 결제한 지 7일이 지나 기간 조건에서도 걸린다. */
+    expect(summary.creditBatches[0].orderId).toBe(2001)
+    expect(summary.creditBatches[1].orderId).toBeNull()
+    expect(summary.creditBatches[1].refundable).toBe(false)
     expect(summary.creditOptions[0]).toMatchObject({
       originalPrice: 4600,
     })

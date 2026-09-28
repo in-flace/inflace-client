@@ -13,6 +13,7 @@ import {
   useDeleteBillingMethod,
   useExtendCreditBatch,
   usePurchaseCredits,
+  useRefundCreditPurchase,
   useRegisterBillingMethod,
   useCheckoutCredits,
   useConfirmCreditCheckout,
@@ -140,6 +141,7 @@ export function BillingModals({
   const checkoutCreditsMutation = useCheckoutCredits()
   const confirmCreditCheckoutMutation = useConfirmCreditCheckout()
   const extendCreditBatchMutation = useExtendCreditBatch()
+  const refundCreditPurchaseMutation = useRefundCreditPurchase()
 
   const handleClose = () => {
     setAgreedAutoPay(false)
@@ -832,6 +834,40 @@ export function BillingModals({
               toast.error(getErrorMessage(error))
             }
           }}
+        />
+      )}
+      {modal?.type === 'creditRefund' && (
+        <ConfirmModal
+          title='이 크레딧을 환불할까요?'
+          description='환불이 완료되면 해당 배치의 남은 크레딧이 회수되고, 결제하신 수단으로 환불됩니다. 결제 후 7일 이내에만 신청할 수 있습니다.'
+          confirmText='환불 신청'
+          isPending={refundCreditPurchaseMutation.isPending}
+          onCancel={handleClose}
+          onConfirm={async () => {
+            /* 구매하지 않은(구독 지급) 배치는 주문이 없어 환불 대상이 아니다.
+             * 버튼에서 이미 막지만 여기서도 확인한다. */
+            if (modal.batch.orderId === null) {
+              toast.error('구매한 크레딧만 환불할 수 있습니다.')
+              return
+            }
+            try {
+              await refundCreditPurchaseMutation.mutateAsync({
+                idempotencyKey: createIdempotencyKey(),
+                payload: { orderId: modal.batch.orderId },
+              })
+              onOpenModal({ type: 'creditRefunded' })
+            } catch (error) {
+              toast.error(getErrorMessage(error))
+            }
+          }}
+        />
+      )}
+      {modal?.type === 'creditRefunded' && (
+        <NoticeModal
+          title='환불 신청이 접수되었습니다'
+          description='결제수단에 따라 환불 완료까지 영업일 기준 3~5일이 걸릴 수 있습니다.'
+          buttonText='확인'
+          onConfirm={handleClose}
         />
       )}
       {modal?.type === 'taxInvoiceRequested' && (
