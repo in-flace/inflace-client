@@ -54,6 +54,9 @@ export type ModalState =
       paymentMethod: 'registeredCard' | 'oneTime'
     }
   | { type: 'creditExtend'; batch: CreditBatch }
+  /* 환불은 주문 단위다. 버튼을 누른 배치의 주문을 그대로 들고 간다. */
+  | { type: 'creditRefund'; batch: CreditBatch }
+  | { type: 'creditRefunded' }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   | { type: 'taxInvoiceRequested' }
   | null

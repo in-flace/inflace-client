@@ -34,6 +34,7 @@ type OrderStatus = 'PENDING' | 'COMPLETED' | 'FAILED'
 
 interface UserCreditBatchDto {
   userCreditId: number
+  orderId: number | null
   productName: string
   initialAmount: number
   remainingAmount: number
@@ -257,6 +258,7 @@ function toCreditBatches(
 
     return {
       id: String(batch.userCreditId),
+      orderId: batch.orderId,
       paymentDate: toDate(batch.grantedAt),
       expiryDate: toNullableDate(batch.expiresAt),
       type: isPurchasedCredit ? 'purchase' : 'subscription',
@@ -268,11 +270,26 @@ function toCreditBatches(
         batch.status === 'ACTIVE' &&
         !!batch.expiresAt &&
         !extendedAt,
-      refundable: false,
+      /* 서버 규칙(CreditRefundTransactionService)을 따른다. 구매분이고,
+       * 결제 후 7일 이내이며, 아직 환불되지 않은 배치만 신청할 수 있다.
+       * 사용 여부 등 나머지 조건은 서버가 최종 판정한다. */
+      refundable:
+        batch.orderId !== null &&
+        refundedAt === null &&
+        isWithinRefundPeriod(batch.grantedAt),
       extendedAt,
       refundedAt,
     }
   })
+}
+
+/* 서버 CreditRefundTransactionService.REFUNDABLE_DAYS와 같은 값. */
+const CREDIT_REFUNDABLE_DAYS = 7
+
+function isWithinRefundPeriod(grantedAt: string) {
+  const paidAt = new Date(grantedAt).getTime()
+  if (Number.isNaN(paidAt)) return false
+  return Date.now() - paidAt <= CREDIT_REFUNDABLE_DAYS * 24 * 60 * 60 * 1000
 }
 
 function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
@@ -680,6 +697,18 @@ export async function confirmCreditCheckout(
   orderId: number
 ): Promise<BillingSummary> {
   await waitForCreditPurchase(orderId)
+  return fetchBillingSummary()
+}
+
+/* 서버는 body 없이 orderId와 Idempotency-Key만 받는다. */
+export async function refundCreditPurchase(
+  request: IdempotentMutation<{ orderId: number }>
+): Promise<BillingSummary> {
+  await axiosInstance.post<ApiResponse<unknown>>(
+    `/credit-purchases/${request.payload.orderId}/refund`,
+    undefined,
+    idempotencyHeaders(request.idempotencyKey)
+  )
   return fetchBillingSummary()
 }
 

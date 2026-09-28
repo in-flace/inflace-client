@@ -53,6 +53,7 @@ export const mockBillingSummary: BillingSummary = {
   creditBatches: [
     {
       id: 'credit-batch-1',
+      orderId: null,
       paymentDate: '2026-08-01',
       expiryDate: '2026-11-01',
       type: 'subscription',
@@ -66,6 +67,7 @@ export const mockBillingSummary: BillingSummary = {
     },
     {
       id: 'credit-batch-2',
+      orderId: 2002,
       paymentDate: '2026-07-20',
       expiryDate: '2026-10-20',
       type: 'purchase',
@@ -79,6 +81,7 @@ export const mockBillingSummary: BillingSummary = {
     },
     {
       id: 'credit-batch-3',
+      orderId: 2003,
       paymentDate: '2026-06-28',
       expiryDate: '2026-09-28',
       type: 'purchase',
@@ -92,6 +95,7 @@ export const mockBillingSummary: BillingSummary = {
     },
     {
       id: 'credit-batch-4',
+      orderId: 2004,
       paymentDate: '2026-05-14',
       expiryDate: '2026-11-14',
       type: 'purchase',

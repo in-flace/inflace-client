@@ -14,6 +14,7 @@ import type { CreditBatch } from '../types'
 const creditBatches: CreditBatch[] = [
   {
     id: 'batch-1',
+    orderId: 2001,
     paymentDate: '2026-08-01',
     expiryDate: '2026-09-01',
     type: 'purchase',
@@ -27,6 +28,7 @@ const creditBatches: CreditBatch[] = [
   },
   {
     id: 'batch-2',
+    orderId: 2002,
     paymentDate: '2026-08-02',
     expiryDate: '2026-09-02',
     type: 'purchase',
@@ -40,6 +42,7 @@ const creditBatches: CreditBatch[] = [
   },
   {
     id: 'batch-3',
+    orderId: null,
     paymentDate: '2026-08-03',
     expiryDate: '2026-10-03',
     type: 'subscription',
@@ -53,6 +56,7 @@ const creditBatches: CreditBatch[] = [
   },
   {
     id: 'batch-4',
+    orderId: null,
     paymentDate: '2026-08-04',
     expiryDate: null,
     type: 'subscription',

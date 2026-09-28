@@ -11,6 +11,7 @@ import {
   fetchBillingSummary,
   fetchPaymentHistory,
   purchaseCredits,
+  refundCreditPurchase,
   registerBillingMethod,
   requestTaxInvoice,
   resumeSubscription,
@@ -96,6 +97,10 @@ export function useCheckoutCredits() {
 
 export function useConfirmCreditCheckout() {
   return useBillingMutation(confirmCreditCheckout)
+}
+
+export function useRefundCreditPurchase() {
+  return useBillingMutation(refundCreditPurchase)
 }
 
 export function useRequestTaxInvoice() {

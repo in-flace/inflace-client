@@ -75,6 +75,7 @@ function getMockUserCredits() {
     ),
     batches: currentSummary.creditBatches.map((batch, index) => ({
       userCreditId: getUserCreditId(batch.id, index),
+      orderId: batch.orderId,
       productName:
         batch.type === 'purchase'
           ? `${batch.purchasedCredits}크레딧`
@@ -225,6 +226,7 @@ export const billingHandlers = [
       const orderId = Date.now()
       currentSummary.creditBatches.unshift({
         id: String(orderId),
+        orderId,
         paymentDate: today.toISOString().slice(0, 10),
         expiryDate: expiryDate.toISOString().slice(0, 10),
         type: 'purchase',
@@ -232,7 +234,7 @@ export const billingHandlers = [
         usedCredits: 0,
         purchaseAmount: option.price,
         extendable: true,
-        refundable: false,
+        refundable: true,
         extendedAt: null,
         refundedAt: null,
       })
@@ -285,6 +287,32 @@ export const billingHandlers = [
 
   /* 타 결제수단 구매 1단계. 서버가 주문을 만들고 결제창에 넘길 값을 준다.
    * paymentId는 이니시스 oid 제한(40자)을 넘지 않는 UUID 형태로 만든다. */
+  /* 환불 신청. 서버는 body 없이 orderId와 Idempotency-Key만 받는다. */
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/:orderId/refund`,
+    ({ request, params }) => {
+      const idempotencyError = requireIdempotencyKey(request)
+      if (idempotencyError) return idempotencyError
+
+      const orderId = Number(params.orderId)
+      const batch = currentSummary.creditBatches.find(
+        (item) => item.orderId === orderId
+      )
+      if (!batch || !batch.refundable) {
+        return errorResponse(
+          'CREDIT_REFUND_NOT_ALLOWED',
+          '환불할 수 없는 크레딧입니다.',
+          400
+        )
+      }
+
+      batch.refundedAt = new Date().toISOString().slice(0, 10)
+      batch.refundable = false
+      batch.extendable = false
+      return apiResponse({ refundId: Date.now(), status: 'REQUESTED' })
+    }
+  ),
+
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/checkout`,
     async ({ request }) => {
