@@ -12,8 +12,12 @@ import {
   useChangeBillingMethod,
   useDeleteBillingMethod,
   useExtendCreditBatch,
+  useBusinessInfo,
   usePurchaseCredits,
   useRefundCreditPurchase,
+  useRequestCashReceipt,
+  useRequestTaxInvoice,
+  useSaveBusinessInfo,
   useRegisterBillingMethod,
   useCheckoutCredits,
   useConfirmCreditCheckout,
@@ -21,6 +25,7 @@ import {
   requestOneTimeCardPayment,
   SUBSCRIPTION_EXIT_REASONS,
   type BillingSummary,
+  type BusinessInfo,
   type CreditPurchaseOption,
   type PaymentCustomer,
   type SubscriptionExitReason,
@@ -31,8 +36,10 @@ import { Button } from '@/shared/ui/button'
 import { Dialog } from '@/shared/ui/shadcn/dialog'
 import { ModalContent } from './BillingPrimitives'
 import {
+  EMPTY_BUSINESS_INFO,
   EMPTY_PAYER_INFO,
   getErrorMessage,
+  isBusinessInfoComplete,
   isPayerInfoComplete,
   type ModalState,
   type PayerInfo,
@@ -132,6 +139,8 @@ export function BillingModals({
   const [isPaymentWindowPending, setIsPaymentWindowPending] = useState(false)
   const [payerInfo, setPayerInfo] = useState<PayerInfo>(EMPTY_PAYER_INFO)
   const [formError, setFormError] = useState<string | null>(null)
+  const [businessInfo, setBusinessInfo] =
+    useState<BusinessInfo>(EMPTY_BUSINESS_INFO)
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
@@ -142,12 +151,27 @@ export function BillingModals({
   const confirmCreditCheckoutMutation = useConfirmCreditCheckout()
   const extendCreditBatchMutation = useExtendCreditBatch()
   const refundCreditPurchaseMutation = useRefundCreditPurchase()
+  const requestTaxInvoiceMutation = useRequestTaxInvoice()
+  const requestCashReceiptMutation = useRequestCashReceipt()
+  const saveBusinessInfoMutation = useSaveBusinessInfo()
+
+  /* 폼을 열 때만 조회한다. 이미 등록한 정보가 있으면 채워준다. */
+  const businessInfoQuery = useBusinessInfo(modal?.type === 'businessInfo')
+  const savedBusinessInfo = businessInfoQuery.data ?? null
+  const [syncedBusinessInfo, setSyncedBusinessInfo] =
+    useState<BusinessInfo | null>(null)
+  if (savedBusinessInfo && savedBusinessInfo !== syncedBusinessInfo) {
+    setSyncedBusinessInfo(savedBusinessInfo)
+    setBusinessInfo(savedBusinessInfo)
+  }
 
   const handleClose = () => {
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
     setCancelReason(SUBSCRIPTION_EXIT_REASONS[0].value)
     setPayerInfo(EMPTY_PAYER_INFO)
+    setBusinessInfo(EMPTY_BUSINESS_INFO)
+    setSyncedBusinessInfo(null)
     setFormError(null)
     setSelectedOptionId(
       summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
@@ -870,6 +894,80 @@ export function BillingModals({
           onConfirm={handleClose}
         />
       )}
+      {modal?.type === 'businessInfo' && (
+        <ModalContent
+          title={`${modal.documentType} 신청`}
+          description='발행에 필요한 사업자 정보를 입력해주세요.'
+          className='sm:w-[50rem]'>
+          <div className='mt-32 flex flex-col gap-32'>
+            <BusinessInfoFields
+              value={businessInfo}
+              onChange={setBusinessInfo}
+            />
+            <FormErrorNotice message={formError} />
+            <div className='grid grid-cols-2 gap-12'>
+              <Button
+                type='button'
+                color='gray'
+                size='lg'
+                variant='filled'
+                onClick={handleClose}
+                className='h-44 w-full'>
+                취소
+              </Button>
+              <Button
+                type='button'
+                color='primary'
+                size='lg'
+                variant='filled'
+                disabled={
+                  !isBusinessInfoComplete(businessInfo) ||
+                  saveBusinessInfoMutation.isPending ||
+                  requestTaxInvoiceMutation.isPending ||
+                  requestCashReceiptMutation.isPending
+                }
+                onClick={async () => {
+                  const { orderId, documentType } = modal
+                  setFormError(null)
+                  try {
+                    /* 발행은 저장된 사업자 정보를 쓰므로 먼저 저장한다. */
+                    await saveBusinessInfoMutation.mutateAsync({
+                      ...businessInfo,
+                      brn: businessInfo.brn.replace(/\D/g, ''),
+                      contactEmail: businessInfo.contactEmail.trim(),
+                    })
+
+                    if (documentType === '세금계산서') {
+                      await requestTaxInvoiceMutation.mutateAsync(orderId)
+                      onOpenModal({ type: 'taxInvoiceRequested' })
+                      return
+                    }
+
+                    /* 사업자등록번호를 함께 받으므로 지출증빙으로 신청한다. */
+                    await requestCashReceiptMutation.mutateAsync({
+                      orderId,
+                      receiptType: 'CORPORATE',
+                    })
+                    onOpenModal({ type: 'cashReceiptRequested' })
+                  } catch (error) {
+                    setFormError(getErrorMessage(error))
+                  }
+                }}
+                className='h-44 w-full'>
+                신청하기
+              </Button>
+            </div>
+          </div>
+        </ModalContent>
+      )}
+      {modal?.type === 'cashReceiptRequested' && (
+        <NoticeModal
+          title='현금영수증 신청 완료'
+          description='영업일 기준 3일 이내 발급되며, 등록된 이메일로 발송됩니다.'
+          buttonText='확인'
+          onConfirm={handleClose}
+        />
+      )}
       {modal?.type === 'taxInvoiceRequested' && (
         <NoticeModal
           title='세금계산서 신청 완료'
@@ -1076,6 +1174,91 @@ function PayerInfoFields({
               placeholder={field.placeholder ?? field.label}
               autoComplete={field.autoComplete}
               spellCheck={field.key === 'email' ? false : undefined}
+              className='h-44 w-full min-w-0 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-label-md-normal text-text-and-icon-primary placeholder:text-text-and-icon-disabled focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'
+            />
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+const BUSINESS_INFO_FIELDS: {
+  key: keyof BusinessInfo
+  label: string
+  required?: boolean
+  inputMode?: 'text' | 'tel' | 'email' | 'numeric'
+  autoComplete: string
+  sanitize?: (value: string) => string
+}[] = [
+  {
+    key: 'brn',
+    label: '사업자등록번호',
+    required: true,
+    inputMode: 'numeric',
+    autoComplete: 'off',
+    /* 서버 검증이 \d{10}이라 하이픈을 받지 않는다. */
+    sanitize: (value) => value.replace(/\D/g, '').slice(0, 10),
+  },
+  { key: 'name', label: '상호명', autoComplete: 'organization' },
+  { key: 'representativeName', label: '대표자명', autoComplete: 'name' },
+  {
+    key: 'phoneNumber',
+    label: '휴대폰 번호',
+    inputMode: 'tel',
+    autoComplete: 'tel',
+    sanitize: (value) => value.replace(/\D/g, '').slice(0, 11),
+  },
+  {
+    key: 'contactEmail',
+    label: '이메일',
+    required: true,
+    inputMode: 'email',
+    autoComplete: 'email',
+  },
+]
+
+function BusinessInfoFields({
+  value,
+  onChange,
+}: {
+  value: BusinessInfo
+  onChange: (value: BusinessInfo) => void
+}) {
+  return (
+    <div className='flex flex-col gap-12'>
+      {BUSINESS_INFO_FIELDS.map((field) => {
+        const inputId = `billing-business-${field.key}`
+        return (
+          <label
+            key={field.key}
+            htmlFor={inputId}
+            className='flex flex-col gap-6'>
+            <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
+              {field.label}
+              {field.required && (
+                <span className='ml-4 font-normal text-text-and-icon-secondary'>
+                  (필수)
+                </span>
+              )}
+            </span>
+            <input
+              id={inputId}
+              name={field.key}
+              type='text'
+              inputMode={field.inputMode}
+              value={value[field.key]}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  [field.key]: field.sanitize
+                    ? field.sanitize(event.target.value)
+                    : event.target.value,
+                })
+              }
+              placeholder={field.label}
+              autoComplete={field.autoComplete}
+              spellCheck={field.key === 'contactEmail' ? false : undefined}
               className='h-44 w-full min-w-0 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-label-md-normal text-text-and-icon-primary placeholder:text-text-and-icon-disabled focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'
             />
           </label>

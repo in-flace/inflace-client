@@ -156,6 +156,19 @@ export interface PurchaseCreditsPayload {
   paymentId?: string
 }
 
+/* 서버 UserBusinessInfo와 1:1. 세금계산서·현금영수증 발행에 함께 쓰인다.
+ * 서버 필수는 brn과 contactEmail 둘뿐이고 나머지는 선택이다. */
+export interface BusinessInfo {
+  brn: string
+  name: string
+  representativeName: string
+  phoneNumber: string
+  contactEmail: string
+}
+
+/* 서버 CashReceiptType. 사업자등록번호를 함께 받으므로 지출증빙이 기본이다. */
+export type CashReceiptType = 'PERSONAL' | 'CORPORATE'
+
 export interface CreditBatchActionPayload {
   batchId: string
 }
