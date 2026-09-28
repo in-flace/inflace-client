@@ -491,8 +491,8 @@ export function BillingModals({
       )}
       {modal?.type === 'billingChange' && (
         <ModalContent
-          title='결제수단 변경'
-          description='새 카드로 포트원 결제창을 호출해 빌링키가 재발급됩니다. 기존 빌링키는 교체 후 폐기됩니다.'
+          title='결제수단 변경하기'
+          description='새 카드로 포트원 결제창을 호출해 빌링키를 재발급합니다. 기존 빌링키는 교체 후 폐기됩니다.'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='flex flex-col gap-12'>

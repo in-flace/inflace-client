@@ -371,13 +371,15 @@ export function BillingMethodTab({
   if (billingMethod.status === 'none') {
     return (
       <SectionCard className='flex min-h-[17.8rem] flex-col items-center justify-center gap-20 text-center'>
+        {/* 시안은 제목 아래 보안 안내, 그다음 버튼 순이다.
+         * 기획서에 있던 '카드를 등록하면 …' 안내는 시안에 없어 뺀다. */}
         <div className='flex flex-col items-center gap-8'>
           <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
             등록된 결제수단이 없습니다.
           </h3>
           <p className='max-w-[58rem] text-noto-body-xs-normal text-text-and-icon-secondary'>
-            카드를 등록하면 구독 시작, 다음 정기결제, 추가 크레딧 구매를 한
-            곳에서 관리할 수 있습니다.
+            카드번호는 인플레이스에 저장되지 않으며 포트원/PG사를 통해 안전하게
+            처리됩니다.
           </p>
         </div>
         <Button
@@ -388,18 +390,16 @@ export function BillingMethodTab({
           onClick={() => onOpenModal({ type: 'billingRegister' })}>
           카드 등록하기
         </Button>
-        <p className='text-noto-body-xs-normal text-text-and-icon-tertiary'>
-          카드번호는 인플레이스에 저장되지 않으며 포트원/PG사를 통해 안전하게
-          처리됩니다.
-        </p>
       </SectionCard>
     )
   }
 
+  /* 시안은 카드 안에 결제수단만 두고, 변경·삭제 버튼은 카드 바깥
+   * 우측 아래에 둔다. */
   return (
-    <SectionCard className='min-h-[12.4rem] p-24'>
-      <div className='flex flex-col gap-16 sm:flex-row sm:items-center sm:justify-between sm:gap-24'>
-        <div className='flex min-w-0 flex-1 items-center gap-12 rounded-12 bg-background-gray-default p-16'>
+    <div className='flex flex-col gap-16'>
+      <SectionCard className='p-24'>
+        <div className='flex min-w-0 items-center gap-12'>
           <PaymentIcon
             aria-hidden='true'
             className='size-24 shrink-0 text-text-and-icon-primary'
@@ -413,28 +413,26 @@ export function BillingMethodTab({
             </strong>
           </div>
         </div>
-        <div className='grid grid-cols-2 gap-12 sm:min-w-[38rem]'>
-          <Button
-            type='button'
-            color='secondary'
-            size='md'
-            variant='filled'
-            onClick={() => onOpenModal({ type: 'billingChange' })}
-            className='h-44 w-full'>
-            변경
-          </Button>
-          <Button
-            type='button'
-            color='secondary'
-            size='md'
-            variant='outlined'
-            onClick={() => onOpenModal({ type: 'billingDelete' })}
-            className='h-44 w-full'>
-            삭제
-          </Button>
-        </div>
+      </SectionCard>
+      <div className='flex justify-end gap-12'>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='filled'
+          onClick={() => onOpenModal({ type: 'billingChange' })}>
+          변경하기
+        </Button>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='outlined'
+          onClick={() => onOpenModal({ type: 'billingDelete' })}>
+          삭제하기
+        </Button>
       </div>
-    </SectionCard>
+    </div>
   )
 }
 

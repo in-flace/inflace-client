@@ -325,8 +325,12 @@ function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
     cancelScheduledDate: details.cancelAtPeriodEnd
       ? toNullableDate(details.nextBillingAt ?? details.endedAt)
       : null,
+    /* 시안 문구에는 승인 실패 일자가 들어가지만 서버가 그 값을 주지 않아
+     * 날짜 없이 안내한다. */
     paymentFailedReason:
-      status === 'paymentFailed' ? '등록된 결제수단을 확인해주세요.' : null,
+      status === 'paymentFailed'
+        ? '결제수단 관리에서 다시 한번 확인해주세요.'
+        : null,
     includedMonthlyCredits: 3,
   }
 }
