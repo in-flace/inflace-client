@@ -250,8 +250,7 @@ export function BillingModals({
                         planCode: modal.plan.code,
                       },
                     })
-                    toast.success('구독이 시작되었습니다.')
-                    handleClose()
+                    onOpenModal({ type: 'subscribeDone' })
                   } catch (error) {
                     toast.error(getErrorMessage(error))
                   } finally {
@@ -270,6 +269,14 @@ export function BillingModals({
             </div>
           </div>
         </ModalContent>
+      )}
+      {modal?.type === 'subscribeDone' && (
+        <NoticeModal
+          title='구독이 시작되었습니다'
+          description={`구독 시작일 ${formatDate(summary.subscription.startedAt)} · 다음 결제일 ${formatDate(summary.subscription.nextPaymentDate)} · 크레딧 ${summary.subscription.includedMonthlyCredits}개 지급 완료`}
+          buttonText='확인'
+          onConfirm={handleClose}
+        />
       )}
       {modal?.type === 'cancelReason' && (
         <ModalContent
@@ -398,7 +405,6 @@ export function BillingModals({
       {modal?.type === 'cancelDone' && (
         <NoticeModal
           title='해지가 완료되었습니다.'
-          description='지금까지 인플레이스를 이용해주셔서 감사합니다.'
           buttonText='홈으로 이동하기'
           onConfirm={() => {
             handleClose()
@@ -848,16 +854,34 @@ export function BillingModals({
           isPending={extendCreditBatchMutation.isPending}
           onCancel={handleClose}
           onConfirm={async () => {
+            const beforeExpiryDate = modal.batch.expiryDate
             try {
-              await extendCreditBatchMutation.mutateAsync({
+              /* 연장 API는 본문을 주지 않아 바뀐 만료일을 알 수 없다.
+               * 갱신된 요약에서 같은 배치를 찾아 새 만료일을 읽는다. */
+              const updated = await extendCreditBatchMutation.mutateAsync({
                 batchId: modal.batch.id,
               })
-              toast.success('유효기간 연장이 완료되었습니다.')
-              handleClose()
+              const afterExpiryDate =
+                updated.creditBatches.find(
+                  (batch) => batch.id === modal.batch.id
+                )?.expiryDate ?? beforeExpiryDate
+              onOpenModal({
+                type: 'creditExtended',
+                beforeExpiryDate,
+                afterExpiryDate,
+              })
             } catch (error) {
               toast.error(getErrorMessage(error))
             }
           }}
+        />
+      )}
+      {modal?.type === 'creditExtended' && (
+        <NoticeModal
+          title='유효기간 연장 완료되었습니다.'
+          description={`유효기간이 ${formatDate(modal.beforeExpiryDate)} 에서 ${formatDate(modal.afterExpiryDate)} 으로 변경되었습니다.`}
+          buttonText='확인'
+          onConfirm={handleClose}
         />
       )}
       {modal?.type === 'creditRefund' && (

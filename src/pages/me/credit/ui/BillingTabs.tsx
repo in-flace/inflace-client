@@ -456,16 +456,7 @@ export function CreditTab({
 
   return (
     <div className='flex flex-col gap-24'>
-      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
-        <MetricCard
-          label='보유 크레딧'
-          value={`${getTotalCredits(summary.creditBatches)}`}
-        />
-        <MetricCard
-          label='가장 빠른 만료일'
-          value={formatDate(getNearestExpiryDate(summary.creditBatches))}
-        />
-      </div>
+      {/* 시안은 구매 버튼이 탭 바로 아래, 보유 현황 카드가 그 아래다. */}
       <div className='flex justify-start'>
         <Button
           type='button'
@@ -475,6 +466,16 @@ export function CreditTab({
           onClick={() => onOpenModal({ type: 'creditPurchase' })}>
           크레딧 구매
         </Button>
+      </div>
+      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
+        <MetricCard
+          label='보유 크레딧'
+          value={`${getTotalCredits(summary.creditBatches)}`}
+        />
+        <MetricCard
+          label='가장 빠른 만료일'
+          value={formatDate(getNearestExpiryDate(summary.creditBatches))}
+        />
       </div>
       <SectionCard className='min-h-[44.8rem] p-24'>
         <Table className='min-w-[100rem] table-fixed'>
@@ -497,8 +498,8 @@ export function CreditTab({
                 <TableCell>
                   {batch.type === 'subscription' ? '월 제공' : '구매'}
                 </TableCell>
-                <TableCell>{batch.purchasedCredits}개</TableCell>
-                <TableCell>{batch.usedCredits}개</TableCell>
+                <TableCell>{batch.purchasedCredits} 크레딧</TableCell>
+                <TableCell>{batch.usedCredits} 크레딧</TableCell>
                 <TableCell>
                   <Button
                     type='button'
@@ -529,10 +530,10 @@ export function CreditTab({
         </Table>
         <div className='mt-32 flex items-center justify-between'>
           <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-            <strong className='mr-8 text-brand-primary'>
+            결과
+            <strong className='ml-8 text-brand-primary'>
               {summary.creditBatches.length}
             </strong>
-            results
           </span>
           <div className='flex gap-12'>
             <Button

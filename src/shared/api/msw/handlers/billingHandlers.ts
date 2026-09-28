@@ -462,6 +462,7 @@ export const billingHandlers = [
         planCode: plan.code,
         planName: plan.name,
         monthlyPrice: plan.price,
+        startedAt: new Date().toISOString().slice(0, 10),
         nextPaymentDate: getNextPaymentDate(),
         cancelScheduledDate: null,
         paymentFailedReason: null,
