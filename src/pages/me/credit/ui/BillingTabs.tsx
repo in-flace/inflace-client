@@ -209,18 +209,15 @@ export function SubscriptionTab({
           </SectionCard>
         )}
       {subscription.status === 'paymentFailed' && (
-        <SectionCard className='border border-feedback-error bg-[rgba(224,47,82,0.05)]'>
+        <SectionCard className='bg-[#FFF0F0] p-24'>
           <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
-            <div className='flex flex-col gap-8'>
-              <div className='flex items-center gap-8'>
-                <StatusBadge tone='error'>조치 필요</StatusBadge>
-                <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
-                  이번 달 구독 결제가 실패했습니다.
-                </h3>
-              </div>
-              <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+            <div className='flex min-w-0 flex-col gap-8'>
+              <h3 className='text-noto-body-md-bold text-feedback-error'>
+                이번 달 구독 결제를 실패했습니다.
+              </h3>
+              <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
                 {subscription.paymentFailedReason ??
-                  '결제수단을 확인하거나 결제를 다시 시도해주세요.'}
+                  '결제수단 관리에서 다시 한번 확인해주세요.'}
               </p>
             </div>
             <Button
@@ -229,48 +226,22 @@ export function SubscriptionTab({
               size='md'
               variant='filled'
               onClick={() => onOpenModal({ type: 'billingChange' })}
-              className='h-44 w-full sm:w-auto'>
-              결제수단 변경
+              className='h-44 w-full shrink-0 sm:w-auto'>
+              결제 수단 변경하기
             </Button>
           </div>
         </SectionCard>
       )}
       {subscription.status === 'cancelScheduled' && (
-        <SectionCard className='border border-[#E9B949] bg-[#FFF9E8]'>
-          <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
-            <div className='flex flex-col gap-8'>
-              <div className='flex items-center gap-8'>
-                <StatusBadge tone='warning'>확인 필요</StatusBadge>
-                <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
-                  구독 해지가 예약되어 있습니다.
-                </h3>
-              </div>
-              <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
-                {formatDate(subscription.cancelScheduledDate)}까지 이용
-                가능하며, 그 전에는 해지를 철회할 수 있습니다.
-              </p>
-            </div>
-            <Button
-              type='button'
-              color='gray'
-              size='md'
-              variant='filled'
-              disabled={resumeSubscriptionMutation.isPending}
-              onClick={async () => {
-                try {
-                  await resumeSubscriptionMutation.mutateAsync()
-                  toast.success('구독 해지 예약을 철회했습니다.')
-                } catch {
-                  toast.error(
-                    '해지 철회에 실패했습니다. 잠시 후 다시 시도해주세요.'
-                  )
-                }
-              }}
-              className='h-44 w-full sm:w-auto'>
-              {resumeSubscriptionMutation.isPending
-                ? '처리 중…'
-                : '해지 철회하기'}
-            </Button>
+        <SectionCard className='bg-[#FEF6E7] p-24'>
+          <div className='flex min-w-0 flex-col gap-8'>
+            <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+              구독 해지가 예약되었습니다.
+            </h3>
+            <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+              {formatDate(subscription.cancelScheduledDate)}까지 이용 가능하며,
+              그 전에는 해지를 철회할 수 있습니다.
+            </p>
           </div>
         </SectionCard>
       )}
@@ -287,8 +258,17 @@ export function SubscriptionTab({
         />
         <MetricCard
           label='다음 결제일'
-          value={formatDate(subscription.nextPaymentDate)}
-          suffix={subscription.nextPaymentDate ? '매월 자동 결제' : undefined}
+          value={
+            subscription.status === 'cancelScheduled'
+              ? '-'
+              : formatDate(subscription.nextPaymentDate)
+          }
+          suffix={
+            subscription.status !== 'cancelScheduled' &&
+            subscription.nextPaymentDate
+              ? '매월 자동 결제'
+              : undefined
+          }
         />
         <MetricCard
           label='보유 크레딧'
@@ -306,17 +286,43 @@ export function SubscriptionTab({
           <li>크레딧의 유효기간은 다음 결제일까지 입니다.</li>
         </ul>
       </SectionCard>
-      {subscription.status === 'active' && (
+      {/* 시안은 두 상태 모두 하단 우측 같은 자리에 버튼을 둔다. */}
+      {subscription.status === 'cancelScheduled' ? (
         <div className='flex justify-end'>
           <Button
             type='button'
             color='secondary'
             size='md'
             variant='outlined'
-            onClick={() => onOpenModal({ type: 'cancelReason' })}>
-            해지하기
+            disabled={resumeSubscriptionMutation.isPending}
+            onClick={async () => {
+              try {
+                await resumeSubscriptionMutation.mutateAsync()
+                toast.success('구독 해지 예약을 취소했습니다.')
+              } catch {
+                toast.error(
+                  '해지 취소에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                )
+              }
+            }}>
+            {resumeSubscriptionMutation.isPending
+              ? '처리 중…'
+              : '해지 취소하기'}
           </Button>
         </div>
+      ) : (
+        subscription.status === 'active' && (
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              onClick={() => onOpenModal({ type: 'cancelReason' })}>
+              해지하기
+            </Button>
+          </div>
+        )
       )}
     </div>
   )
