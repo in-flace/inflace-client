@@ -1,0 +1,215 @@
+type PortOneConfig = {
+  storeId: string
+  channelKey: string
+}
+
+/* 포트원 요청의 customer 블록. 연동한 PG 채널이 이 세 필드를 필수로 요구하며,
+ * 빠지면 결제창이 열리기도 전에 INVALID_REQUEST로 거부된다. */
+export type PaymentCustomer = {
+  fullName: string
+  phoneNumber: string
+  email: string
+}
+
+type IssueBillingKeyParams = {
+  issueName: string
+  displayAmount?: number
+  customer: PaymentCustomer
+}
+
+type RequestOneTimePaymentParams = {
+  /* 서버가 주문을 만들며 발급한 값. 프론트에서 만들면 결제창이 열리는
+   * 시점에 서버가 그 주문을 모르는 상태가 된다.
+   * KG이니시스 oid 제한(1~40자)을 서버 값도 지켜야 한다. */
+  paymentId: string
+  orderName: string
+  totalAmount: number
+  customer: PaymentCustomer
+}
+
+export type BillingKeyIssueResult = {
+  billingKey: string
+  isMock: boolean
+}
+
+export type OneTimePaymentResult = {
+  paymentId: string
+  isMock: boolean
+}
+
+export class PortOnePaymentError extends Error {
+  constructor(
+    message: string,
+    readonly code: string
+  ) {
+    super(message)
+    this.name = 'PortOnePaymentError'
+  }
+}
+
+/* 정기 구독(빌링키 발급)과 일반 결제(단건)는 서로 다른 PG 계약을 쓰므로
+ * 포트원 채널이 분리되어 있다. 호출하는 쪽이 자기 채널키를 넘긴다. */
+function getPortOneConfig(
+  channelKey: string | undefined
+): PortOneConfig | null {
+  const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID
+
+  if (!storeId || !channelKey) {
+    return null
+  }
+
+  return { storeId, channelKey }
+}
+
+function isMockPaymentEnabled() {
+  return process.env.NEXT_PUBLIC_MOCK_ENABLED === 'true'
+}
+
+/* KG이니시스(INICIS_V2)는 oid를 1~40자로 제한한다. 포트원의 issueId·paymentId가
+ * 그대로 oid로 넘어가는데 UUID는 하이픈까지 36자라, 접두사를 붙이면 한계를 넘어
+ * 결제창이 열리지 않는다. 하이픈을 지워 32자로 줄이고 접두사도 짧게 둔다. */
+export const MAX_MERCHANT_ID_LENGTH = 40
+
+function createId(prefix: string) {
+  return `${prefix}-${crypto.randomUUID().replace(/-/g, '')}`
+}
+
+/* 포트원이 돌려주는 원문 에러는 필드명이 영어로 노출되므로 결제창 호출 전에
+ * 우리 문구로 막는다. mock 모드에서도 같은 검증을 거치게 두어야 로컬에서
+ * 통과한 흐름이 실서비스에서 처음 깨지는 일을 막을 수 있다. */
+function toPortOneCustomer(customer: PaymentCustomer) {
+  const fullName = customer.fullName.trim()
+  /* PG사에 따라 하이픈이 섞인 번호를 거부하므로 숫자만 남긴다. */
+  const phoneNumber = customer.phoneNumber.replace(/\D/g, '')
+  const email = customer.email.trim()
+
+  if (!fullName || !phoneNumber || !email) {
+    throw new PortOnePaymentError(
+      '이름, 전화번호, 이메일을 모두 입력해주세요.',
+      'CUSTOMER_INFO_MISSING'
+    )
+  }
+
+  return { fullName, phoneNumber, email }
+}
+
+export async function issueCardBillingKey({
+  issueName,
+  displayAmount,
+  customer,
+}: IssueBillingKeyParams): Promise<BillingKeyIssueResult> {
+  const portOneCustomer = toPortOneCustomer(customer)
+
+  if (isMockPaymentEnabled()) {
+    return {
+      billingKey: createId('mock-billing-key'),
+      isMock: true,
+    }
+  }
+
+  const config = getPortOneConfig(
+    process.env.NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY
+  )
+  if (!config) {
+    throw new PortOnePaymentError(
+      '포트원 결제 설정을 확인해주세요.',
+      'PORTONE_CONFIG_MISSING'
+    )
+  }
+
+  const PortOne = await import('@portone/browser-sdk/v2')
+  const response = await PortOne.requestIssueBillingKey({
+    ...config,
+    billingKeyMethod: 'CARD',
+    issueId: createId('bill'),
+    issueName,
+    displayAmount,
+    currency: displayAmount ? 'KRW' : undefined,
+    customer: portOneCustomer,
+    redirectUrl: new URL(
+      '/me/credit?tab=billing-method',
+      window.location.origin
+    ).toString(),
+  })
+
+  if (!response) {
+    throw new PortOnePaymentError(
+      '카드 등록이 취소되었습니다.',
+      'PAYMENT_CANCELLED'
+    )
+  }
+
+  if (response.code) {
+    throw new PortOnePaymentError(
+      response.message ?? '카드 등록을 완료하지 못했습니다.',
+      response.code
+    )
+  }
+
+  if (!response.billingKey) {
+    throw new PortOnePaymentError(
+      '발급된 빌링키를 확인할 수 없습니다.',
+      'BILLING_KEY_MISSING'
+    )
+  }
+
+  return { billingKey: response.billingKey, isMock: false }
+}
+
+export async function requestOneTimeCardPayment({
+  paymentId,
+  orderName,
+  totalAmount,
+  customer,
+}: RequestOneTimePaymentParams): Promise<OneTimePaymentResult> {
+  const portOneCustomer = toPortOneCustomer(customer)
+
+  if (paymentId.length > MAX_MERCHANT_ID_LENGTH) {
+    throw new PortOnePaymentError(
+      '결제 요청 정보가 올바르지 않습니다.',
+      'PAYMENT_ID_TOO_LONG'
+    )
+  }
+
+  if (isMockPaymentEnabled()) {
+    return { paymentId, isMock: true }
+  }
+
+  const config = getPortOneConfig(
+    process.env.NEXT_PUBLIC_PORTONE_PAYMENT_CHANNEL_KEY
+  )
+  if (!config) {
+    throw new PortOnePaymentError(
+      '포트원 결제 설정을 확인해주세요.',
+      'PORTONE_CONFIG_MISSING'
+    )
+  }
+
+  const PortOne = await import('@portone/browser-sdk/v2')
+  const response = await PortOne.requestPayment({
+    ...config,
+    paymentId,
+    orderName,
+    totalAmount,
+    currency: 'KRW',
+    payMethod: 'CARD',
+    customer: portOneCustomer,
+    redirectUrl: new URL(
+      '/me/credit?tab=history',
+      window.location.origin
+    ).toString(),
+  })
+
+  if (!response) {
+    throw new PortOnePaymentError('결제가 취소되었습니다.', 'PAYMENT_CANCELLED')
+  }
+
+  if (response.code) {
+    throw new PortOnePaymentError(
+      response.message ?? '결제를 완료하지 못했습니다.',
+      response.code
+    )
+  }
+
+  return { paymentId: response.paymentId, isMock: false }
+}
