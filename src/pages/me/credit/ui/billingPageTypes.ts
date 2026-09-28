@@ -50,6 +50,8 @@ export function isPayerInfoComplete(payerInfo: PayerInfo) {
 
 export type ModalState =
   | { type: 'subscribe'; plan: BillingPlan }
+  /* 결제가 끝나면 시작일·다음 결제일·지급 크레딧을 한 번에 알려준다. */
+  | { type: 'subscribeDone' }
   /* 해지는 기획·디자인 모두 4단계다.
    * 사유 선택 → 안내 → 최종 확인 → 완료 */
   | { type: 'cancelReason' }
@@ -72,6 +74,12 @@ export type ModalState =
       paymentMethod: 'registeredCard' | 'oneTime'
     }
   | { type: 'creditExtend'; batch: CreditBatch }
+  /* 연장 결과는 바뀐 만료일을 보여줘야 해서 전/후 날짜를 함께 넘긴다. */
+  | {
+      type: 'creditExtended'
+      beforeExpiryDate: string | null
+      afterExpiryDate: string | null
+    }
   /* 환불은 주문 단위다. 버튼을 누른 배치의 주문을 그대로 들고 간다. */
   | { type: 'creditRefund'; batch: CreditBatch }
   | { type: 'creditRefunded' }

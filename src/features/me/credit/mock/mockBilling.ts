@@ -38,6 +38,7 @@ export const mockBillingSummary: BillingSummary = {
     planCode: null,
     planName: null,
     monthlyPrice: 0,
+    startedAt: null,
     nextPaymentDate: null,
     cancelScheduledDate: null,
     paymentFailedReason: null,

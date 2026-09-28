@@ -302,6 +302,7 @@ function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
       planCode: null,
       planName: null,
       monthlyPrice: 0,
+      startedAt: null,
       nextPaymentDate: null,
       cancelScheduledDate: null,
       paymentFailedReason: null,
@@ -323,6 +324,7 @@ function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
     planCode: details.planCode,
     planName: details.planName,
     monthlyPrice: details.subscribedPrice,
+    startedAt: toNullableDate(details.startedAt),
     nextPaymentDate: toNullableDate(details.nextBillingAt),
     cancelScheduledDate: details.cancelAtPeriodEnd
       ? toNullableDate(details.nextBillingAt ?? details.endedAt)

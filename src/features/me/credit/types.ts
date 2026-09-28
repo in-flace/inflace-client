@@ -47,6 +47,8 @@ export interface Subscription {
   planCode: BillingPlanCode | null
   planName: string | null
   monthlyPrice: number
+  /* 구독 시작 완료 모달이 "구독 시작일 · 다음 결제일"을 함께 보여준다. */
+  startedAt: string | null
   nextPaymentDate: string | null
   cancelScheduledDate: string | null
   paymentFailedReason: string | null
