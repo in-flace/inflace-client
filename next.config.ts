@@ -11,6 +11,8 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const nextConfig: NextConfig = {
   images: {
+    imageSizes: [32, 48, 64, 96, 128, 210, 256, 330, 384, 480, 512],
+    qualities: [60, 75],
     remotePatterns: [
       { protocol: 'https', hostname: 'i.ytimg.com' },
       { protocol: 'https', hostname: 'yt3.ggpht.com' },

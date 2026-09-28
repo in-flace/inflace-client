@@ -1,4 +1,7 @@
-import { useConnectChannel, YoutubeConnectActions } from '@/features/auth'
+import {
+  useConnectChannel,
+  YoutubeConnectActions,
+} from '@/features/channelConnect'
 import {
   useOnboarding,
   useOnboardingModal,

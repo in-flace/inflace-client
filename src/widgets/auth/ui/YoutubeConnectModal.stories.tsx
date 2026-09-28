@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite'
 
-import { useYoutubeConnectModal } from '@/features/auth'
+import { useYoutubeConnectModal } from '@/features/channelConnect'
 import { YoutubeConnectModal } from './YoutubeConnectModal'
 
 const meta = {

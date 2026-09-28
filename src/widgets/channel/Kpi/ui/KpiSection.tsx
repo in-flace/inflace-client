@@ -5,21 +5,30 @@ import IconClock from '@/shared/assets/clock-bold.svg'
 import { formatComma } from '@/shared/lib/format'
 import { useKpi } from '@/features/channel/kpi'
 import { Skeleton } from '@/shared/ui/shadcn/skeleton'
+import { QueryBoundary } from '@/shared/ui/query-boundary'
 
 export function KpiSection({ channelId }: { channelId: string }) {
-  const { data, isFetching, isError } = useKpi(channelId)
+  return (
+    <QueryBoundary fallback={<KpiSkeleton />}>
+      <KpiContent channelId={channelId} />
+    </QueryBoundary>
+  )
+}
 
-  if (isFetching || isError || !data) {
-    return (
-      //스켈레톤 UI, 로딩중일 때 상태를 표시합니다.
-      <section className='flex h-fit w-full gap-24'>
-        <Skeleton className='h-35 flex-1' />
-        <Skeleton className='h-35 flex-1' />
-        <Skeleton className='h-35 flex-1' />
-        <Skeleton className='h-35 flex-1' />
-      </section>
-    )
-  }
+function KpiSkeleton() {
+  return (
+    //스켈레톤 UI, 로딩중일 때 상태를 표시합니다.
+    <section className='flex h-fit w-full gap-24'>
+      <Skeleton className='h-35 flex-1' />
+      <Skeleton className='h-35 flex-1' />
+      <Skeleton className='h-35 flex-1' />
+      <Skeleton className='h-35 flex-1' />
+    </section>
+  )
+}
+
+function KpiContent({ channelId }: { channelId: string }) {
+  const { data } = useKpi(channelId)
 
   return (
     <div className='flex flex-col gap-24 md:flex-row'>

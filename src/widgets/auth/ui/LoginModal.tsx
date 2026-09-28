@@ -1,11 +1,8 @@
 'use client'
 
 import { Dialog, DialogContent, DialogTitle } from '@/shared/ui/shadcn/dialog'
-import {
-  SocialLoginButton,
-  useLoginModal,
-  usePopupOAuth,
-} from '@/features/auth'
+import { useLoginModal, usePopupOAuth } from '@/features/auth'
+import { SocialLoginButton } from '@/shared/ui/social-login-button'
 import GoogleIcon from '@/shared/assets/google.svg?react'
 import YouTubeIcon from '@/shared/assets/youtube.svg?react'
 import LogoSvg from '@/shared/assets/logo.svg?react'

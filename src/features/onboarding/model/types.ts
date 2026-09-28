@@ -1,6 +1,6 @@
 import { StaticImageData } from 'next/image'
 
-export type { UserRole, Need } from '@/shared/api/types'
+export type { UserRole, Need } from '@/entities/user'
 
 export interface OnboardingModalState {
   isOpen: boolean

@@ -10,7 +10,12 @@ export default function HomePage() {
     <>
       <HomeAuthGate />
       <HeroMain />
-      <div className='snap-start'>
+      <div
+        className='snap-start'
+        style={{
+          contentVisibility: 'auto',
+          containIntrinsicSize: 'auto 1600px',
+        }}>
         <section className='mx-auto grid w-full max-w-[144rem] grid-cols-1 gap-20 px-20 py-40 sm:px-32 md:grid-cols-2 md:gap-24 md:py-56 lg:grid-cols-3 lg:px-40 xl:px-64'>
           <FeatureSection />
         </section>

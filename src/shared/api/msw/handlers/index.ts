@@ -25,6 +25,7 @@ import { myProfileHandlers } from './myProfileHandlers'
 import { myAlarmHandlers } from './myAlarmHandlers'
 import { feedbackHandlers } from './feedbackHandlers'
 import { billingHandlers } from './billingHandlers'
+import { adminHandlers } from './adminHandlers'
 
 export const handlers = [
   ...authHandlers,
@@ -54,4 +55,5 @@ export const handlers = [
   ...myAlarmHandlers,
   ...feedbackHandlers,
   ...billingHandlers,
+  ...adminHandlers,
 ]

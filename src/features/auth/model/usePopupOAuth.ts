@@ -1,8 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
+import { CURRENT_USER_QUERY_KEY, useAuthStore } from '@/entities/user'
 import { trackEvent } from '@/shared/analytics'
+import { queryClient } from '@/shared/lib/queryClient'
+import { useLoginModal } from './useLoginModal'
 import type { PopupOAuthConfig } from './types'
 
 const POPUP_WIDTH = 500
@@ -14,6 +18,7 @@ export function usePopupOAuth({
   popupName,
   provider,
 }: PopupOAuthConfig) {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const popupRef = useRef<Window | null>(null)
@@ -49,26 +54,45 @@ export function usePopupOAuth({
        * 모두 window의 message를 듣는다. 걸러내지 않으면 한 번의 로그인에
        * 양쪽 핸들러가 다 반응해 이벤트가 두 번 발행되고 제공자도 잘못 붙는다.
        * 팝업을 실제로 연 인스턴스만 처리한다. */
-      if (!popupRef.current) return
+      if (!popupRef.current || event.source !== popupRef.current) return
 
-      const { type, error: authError, isNewUser, user } = event.data
+      const {
+        type,
+        error: authError,
+        accessToken,
+        isNewUser,
+        user,
+      } = event.data ?? {}
 
       if (type === 'AUTH_SUCCESS') {
+        if (typeof accessToken !== 'string' || !user?.userDetails) {
+          stopPolling()
+          popupRef.current = null
+          setError('인증 응답이 올바르지 않습니다.')
+          setIsLoading(false)
+          return
+        }
+
         stopPolling()
         setIsLoading(false)
+        popupRef.current = null
 
-        /* 반드시 리다이렉트 전에 보낸다. window.location.href가 실행되면
-         * 페이지가 통째로 다시 로드되어 dataLayer가 초기화되고, isNewUser는
-         * 로그인 응답에만 있어 이후에는 다시 얻을 수 없다. */
+        queryClient.setQueryData(CURRENT_USER_QUERY_KEY, user)
+        useAuthStore.getState().setAccessToken(accessToken)
+        useLoginModal.getState().close()
+
+        /* isNewUser는 로그인 응답에만 있어 이후에는 다시 얻을 수 없으므로
+         * 화면을 이동하기 전에 계측한다. */
         trackEvent({
           event: isNewUser ? 'sign_up' : 'login',
           method: provider,
           user_id: user?.userDetails?.id ?? '',
         })
 
-        window.location.href = '/'
+        router.replace('/main')
       } else if (type === 'AUTH_ERROR') {
         stopPolling()
+        popupRef.current = null
         setError(authError || '로그인에 실패했습니다.')
         setIsLoading(false)
         trackEvent({
@@ -78,7 +102,7 @@ export function usePopupOAuth({
         })
       }
     },
-    [stopPolling, provider]
+    [stopPolling, provider, router]
   )
 
   useEffect(() => {

@@ -22,7 +22,8 @@ export function FeatureCard({
           <Image
             src={imgSrc}
             alt={title}
-            sizes='(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw'
+            quality={60}
+            sizes='(min-width: 1024px) 330px, (min-width: 768px) 40vw, (min-width: 640px) calc(100vw - 120px), calc(100vw - 80px)'
             className='h-auto w-full max-w-full object-cover'
           />
         </div>

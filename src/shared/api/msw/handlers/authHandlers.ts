@@ -4,7 +4,7 @@ import {
   mockAccessToken,
   mockUser,
   mockUserChannelDetails,
-} from '@/shared/api/mock/mockUser'
+} from '@/entities/user/mock/mockUser'
 import { isMockChannelConnected } from './channelConnectHandlers'
 
 // 서비스 워커 컨텍스트에서 mock 로그인 상태를 추적하는 플래그

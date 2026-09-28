@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 
-import { mockRefreshToken } from '@/shared/api/mock/mockUser'
+import {
+  mockAccessToken,
+  mockRefreshToken,
+} from '@/entities/user/mock/mockUser'
 
 const mockCookieStore = {
   set: vi.fn(),
@@ -11,6 +15,15 @@ const mockCookieStore = {
 vi.mock('next/headers', () => ({
   cookies: vi.fn().mockResolvedValue(mockCookieStore),
 }))
+
+function createRequest(withAccessToken = true) {
+  return new NextRequest('http://localhost/auth/logout', {
+    method: 'POST',
+    headers: withAccessToken
+      ? { Authorization: `Bearer ${mockAccessToken}` }
+      : undefined,
+  })
+}
 
 beforeEach(() => {
   process.env.NEXT_PUBLIC_API_URL = 'http://api.example.com'
@@ -29,11 +42,17 @@ describe('POST /auth/logout', () => {
       .mockResolvedValueOnce(new Response(null, { status: 200 }))
 
     const { POST } = await import('./route')
-    await POST()
+    await POST(createRequest())
 
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringContaining('/auth/logout'),
-      expect.objectContaining({ method: 'POST' })
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${mockAccessToken}`,
+          Cookie: `refreshToken=${mockRefreshToken}`,
+        },
+      })
     )
   })
 
@@ -44,7 +63,7 @@ describe('POST /auth/logout', () => {
     )
 
     const { POST } = await import('./route')
-    await POST()
+    await POST(createRequest())
 
     expect(mockCookieStore.delete).toHaveBeenCalledWith('refreshToken')
   })
@@ -53,7 +72,7 @@ describe('POST /auth/logout', () => {
     mockCookieStore.get.mockReturnValue(undefined)
 
     const { POST } = await import('./route')
-    await POST()
+    await POST(createRequest(false))
 
     expect(mockCookieStore.delete).toHaveBeenCalledWith('refreshToken')
   })
@@ -63,7 +82,7 @@ describe('POST /auth/logout', () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch')
 
     const { POST } = await import('./route')
-    const response = await POST()
+    const response = await POST(createRequest(false))
     const data = await response.json()
 
     expect(fetchSpy).not.toHaveBeenCalled()
@@ -77,7 +96,7 @@ describe('POST /auth/logout', () => {
     )
 
     const { POST } = await import('./route')
-    const response = await POST()
+    const response = await POST(createRequest())
     const data = await response.json()
 
     expect(mockCookieStore.delete).toHaveBeenCalledWith('refreshToken')

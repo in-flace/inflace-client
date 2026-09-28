@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
-import { useAuthStore } from '@/shared/api'
+import { CURRENT_USER_QUERY_KEY, useAuthStore } from '@/entities/user'
+import { mockAccessToken, mockUser } from '@/entities/user/mock/mockUser'
+import { queryClient } from '@/shared/lib/queryClient'
 import { useLoginModal } from './useLoginModal'
 import { usePopupOAuth } from './usePopupOAuth'
 
 /* 계측은 별도 테스트에서 다룬다. 여기서는 팝업 동작만 본다. */
 vi.mock('@/shared/analytics', () => ({ trackEvent: vi.fn() }))
+
+const mockReplace = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}))
 
 const CONFIG = {
   apiPath: '/auth/google',
@@ -19,9 +26,21 @@ const mockPopup = {
   close: vi.fn(),
 }
 
+function dispatchAuthMessage(data: Record<string, unknown>) {
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      origin: window.location.origin,
+      source: mockPopup as unknown as Window,
+      data,
+    })
+  )
+}
+
 describe('usePopupOAuth', () => {
   beforeEach(() => {
     vi.useFakeTimers()
+    vi.clearAllMocks()
+    queryClient.clear()
     useAuthStore.getState().reset()
     useAuthStore.getState().setInitializing(false)
     useLoginModal.setState({ isOpen: true })
@@ -76,41 +95,40 @@ describe('usePopupOAuth', () => {
     expect(result.current.isLoading).toBe(false)
   })
 
-  it('AUTH_SUCCESS 메시지 수신 시 window.location.href가 "/"로 이동한다', () => {
+  it('AUTH_SUCCESS 메시지 수신 시 인증 상태를 저장하고 /main으로 이동한다', () => {
     const { result } = renderHook(() => usePopupOAuth(CONFIG))
     act(() => {
       result.current.handleClick()
     })
 
     act(() => {
-      window.dispatchEvent(
-        new MessageEvent('message', {
-          origin: window.location.origin,
-          data: { type: 'AUTH_SUCCESS' },
-        })
-      )
+      dispatchAuthMessage({
+        type: 'AUTH_SUCCESS',
+        accessToken: mockAccessToken,
+        user: mockUser,
+      })
     })
 
-    expect(window.location.href).toBe('http://localhost:3000/')
+    expect(useAuthStore.getState().accessToken).toBe(mockAccessToken)
+    expect(queryClient.getQueryData(CURRENT_USER_QUERY_KEY)).toEqual(mockUser)
+    expect(mockReplace).toHaveBeenCalledWith('/main')
   })
 
-  it('AUTH_SUCCESS 메시지 수신 시 loginModal은 열린 채로 유지된다', () => {
+  it('AUTH_SUCCESS 메시지 수신 시 loginModal을 닫는다', () => {
     const { result } = renderHook(() => usePopupOAuth(CONFIG))
     act(() => {
       result.current.handleClick()
     })
 
     act(() => {
-      window.dispatchEvent(
-        new MessageEvent('message', {
-          origin: window.location.origin,
-          data: { type: 'AUTH_SUCCESS' },
-        })
-      )
+      dispatchAuthMessage({
+        type: 'AUTH_SUCCESS',
+        accessToken: mockAccessToken,
+        user: mockUser,
+      })
     })
 
-    // AUTH_SUCCESS는 window.location.href로 페이지를 이동하며 모달을 직접 닫지 않는다
-    expect(useLoginModal.getState().isOpen).toBe(true)
+    expect(useLoginModal.getState().isOpen).toBe(false)
   })
 
   it('AUTH_ERROR 메시지 수신 시 error 상태가 설정되고 isLoading이 false가 된다', () => {
@@ -120,12 +138,10 @@ describe('usePopupOAuth', () => {
     })
 
     act(() => {
-      window.dispatchEvent(
-        new MessageEvent('message', {
-          origin: window.location.origin,
-          data: { type: 'AUTH_ERROR', error: '인증에 실패했습니다.' },
-        })
-      )
+      dispatchAuthMessage({
+        type: 'AUTH_ERROR',
+        error: '인증에 실패했습니다.',
+      })
     })
 
     expect(result.current.error).toBe('인증에 실패했습니다.')
@@ -142,10 +158,35 @@ describe('usePopupOAuth', () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           origin: 'https://evil.example.com',
+          source: mockPopup as unknown as Window,
           data: {
             type: 'AUTH_SUCCESS',
             accessToken: 'stolen-token',
             user: null,
+          },
+        })
+      )
+    })
+
+    expect(useAuthStore.getState().accessToken).toBeNull()
+    expect(result.current.isLoading).toBe(true)
+  })
+
+  it('OAuth 팝업이 아닌 창에서 온 메시지는 무시한다', () => {
+    const { result } = renderHook(() => usePopupOAuth(CONFIG))
+    act(() => {
+      result.current.handleClick()
+    })
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: window.location.origin,
+          source: window,
+          data: {
+            type: 'AUTH_SUCCESS',
+            accessToken: mockAccessToken,
+            user: mockUser,
           },
         })
       )

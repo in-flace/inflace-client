@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { useAuthStore } from '@/shared/api/authStore'
+import { useAuthStore } from '@/entities/user'
 import { fetchChannelProfile } from '../api/channelProfileApi'
 
 export function useChannelProfile() {

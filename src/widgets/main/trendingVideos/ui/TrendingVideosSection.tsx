@@ -44,7 +44,7 @@ export function TrendingVideosSection({ channelId }: { channelId?: string }) {
         </div>
       ) : !channelId ? (
         // 채널 미연동: mock 데이터 전체를 블러 미리보기로 노출
-        <BlurPlanGate requiredPlan='STARTER' forceLocked>
+        <BlurPlanGate forceLocked>
           <div className='grid grid-cols-2 gap-4'>
             {videos.slice(0, 4).map((video) => (
               <VideoCard key={video.id} {...video} />
@@ -58,7 +58,7 @@ export function TrendingVideosSection({ channelId }: { channelId?: string }) {
             <VideoCard key={video.id} {...video} />
           ))}
           <div className='col-span-2'>
-            <PlanGate requiredPlan='STARTER'>
+            <PlanGate>
               <div className='grid grid-cols-2 gap-4'>
                 {videos.slice(2, 4).map((video) => (
                   <VideoCard key={video.id} {...video} />

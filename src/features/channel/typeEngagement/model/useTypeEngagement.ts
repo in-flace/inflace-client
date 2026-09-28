@@ -1,10 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { fetchTypeEngagement } from '../api/typeEngagementApi'
 
 export function useTypeEngagement(channelId: string) {
-  return useQuery({
+  return useSuspenseQuery({
     queryKey: ['typeEngagement', channelId],
     queryFn: () => fetchTypeEngagement(channelId),
-    enabled: !!channelId,
   })
 }

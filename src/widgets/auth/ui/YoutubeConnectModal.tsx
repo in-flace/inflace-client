@@ -5,7 +5,7 @@ import {
   useYoutubeConnectModal,
   useConnectChannel,
   YoutubeConnectActions,
-} from '@/features/auth'
+} from '@/features/channelConnect'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import Image from 'next/image'
 

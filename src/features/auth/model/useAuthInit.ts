@@ -2,9 +2,7 @@
 
 import { useEffect } from 'react'
 
-import { useOnboardingModal } from '@/features/onboarding/model/useOnboardingModal'
-import { useAuthStore } from '@/shared/api'
-import { fetchCurrentUser } from '@/shared/api/userApi'
+import { useAuthStore } from '@/entities/user'
 
 //화면 새로고침 시 실행되는 함수
 export function useAuthInit() {
@@ -15,7 +13,7 @@ export function useAuthInit() {
   }, [])
 
   useEffect(() => {
-    const { setAuth, setInitializing } = useAuthStore.getState()
+    const { setAccessToken, setInitializing } = useAuthStore.getState()
 
     async function init() {
       try {
@@ -23,14 +21,7 @@ export function useAuthInit() {
         if (!res.ok) return
 
         const { accessToken } = await res.json()
-        setAuth(accessToken, null)
-
-        const user = await fetchCurrentUser()
-        setAuth(accessToken, user)
-
-        if (!user.userDetails.isOnboardingCompleted) {
-          useOnboardingModal.getState().open()
-        }
+        setAccessToken(accessToken)
       } catch {
         // RT 쿠키 없거나 만료 → 비로그인 상태 유지
       } finally {

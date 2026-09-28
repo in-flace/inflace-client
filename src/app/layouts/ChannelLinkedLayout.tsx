@@ -12,11 +12,12 @@ export function ChannelLinkedLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isInitializing, user } = useAuth()
+  const { isInitializing, isUserLoading, user } = useAuth()
 
   useEffect(() => {
     if (
       !isInitializing &&
+      !isUserLoading &&
       (!user?.userChannelDetails?.youtubeChannelName ||
         !user?.userChannelDetails?.youtubeChannelId)
     ) {
@@ -24,6 +25,7 @@ export function ChannelLinkedLayout({
     }
   }, [
     isInitializing,
+    isUserLoading,
     user?.userChannelDetails?.youtubeChannelName,
     user?.userChannelDetails?.youtubeChannelId,
     router,
@@ -31,6 +33,7 @@ export function ChannelLinkedLayout({
 
   if (
     isInitializing ||
+    isUserLoading ||
     !user?.userChannelDetails?.youtubeChannelName ||
     !user?.userChannelDetails?.youtubeChannelId
   )

@@ -5,7 +5,7 @@ import {
   mockRefreshToken,
   mockNewRefreshToken,
   mockReissueResponse,
-} from '@/shared/api/mock/mockUser'
+} from '@/entities/user/mock/mockUser'
 
 const mockCookieStore = {
   set: vi.fn(),

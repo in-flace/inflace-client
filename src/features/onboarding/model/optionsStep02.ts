@@ -1,4 +1,4 @@
-import { NEED_LABEL } from '@/shared/api/types'
+import { NEED_LABEL } from '@/entities/user'
 import { OptionItem } from './types'
 
 import IconChannelAnalysis from '../assets/IconChannelAnalysis.png'

@@ -13,6 +13,11 @@ export function ChannelPage() {
   const { user } = useAuth()
   const id = user?.userChannelDetails?.channelId?.toString() ?? ''
 
+  /* 아래 위젯들은 useSuspenseQuery를 쓰므로 channelId가 확정되기 전엔
+   * 아예 마운트하지 않는다. ChannelLinkedLayout이 이 구간을 invisible로
+   * 가려주므로 시각적으로 달라지는 건 없다. */
+  if (!id) return null
+
   return (
     <div className='flex flex-col gap-24 bg-background-gray-default pb-96'>
       {/* 프로필 카드 */}

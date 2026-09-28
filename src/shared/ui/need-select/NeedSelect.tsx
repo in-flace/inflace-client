@@ -1,7 +1,7 @@
 'use client'
 
 import { ToggleGroup, ToggleGroupItem } from '@/shared/ui/toggle-group'
-import { NEED_LABEL, Need } from '@/shared/api/types'
+import { NEED_LABEL, Need } from '@/entities/user'
 
 import IconChannelAnalysis from '@/shared/assets/IconChannelAnalysis.png'
 import IconInfluencerSearch from '@/shared/assets/IconInfluencerSearch.png'

@@ -1,12 +1,10 @@
 import Image from 'next/image'
 import LockButton from '@/features/planGate/assets/lock-button.png'
 import { type ReactNode } from 'react'
-import type { UserPlan } from '@/shared/api/types'
 import { usePlanGate } from '@/features/planGate/model/usePlanGate'
 import { Tooltip } from '@/shared/ui/tooltip'
 
 interface BlurPlanGateProps {
-  requiredPlan: UserPlan
   children: ReactNode
   // 플랜과 무관하게 항상 잠금 처리해야 하는 경우(예: 채널 미연동) 강제로 잠그기 위한 옵션
   forceLocked?: boolean
@@ -15,11 +13,10 @@ interface BlurPlanGateProps {
 // PlanGate의 그라데이션 dim 대신 전체 영역을 균일하게 블러 처리하는 변형
 // (예: 시청자 반응 급상승 동영상 섹션의 잠금 미리보기)
 export function BlurPlanGate({
-  requiredPlan,
   children,
   forceLocked = false,
 }: BlurPlanGateProps) {
-  const { isLocked } = usePlanGate(requiredPlan)
+  const { isLocked } = usePlanGate()
 
   if (!isLocked && !forceLocked) return <>{children}</>
 

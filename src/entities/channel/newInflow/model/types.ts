@@ -1,6 +1,6 @@
 export type NewInflowResponseDto = {
   rank: number
-  videoId: string
+  videoId: number
   title: string
   thumbnailUrl: string
   viewCount: number

@@ -1,9 +1,6 @@
 import type { AuthProvider, LoginModalTrigger } from '@/shared/analytics'
-import type {
-  UserDetails,
-  UserChannelDetails,
-  ApiResponse,
-} from '@/shared/api/types'
+import type { UserDetails, UserChannelDetails } from '@/entities/user'
+import type { ApiResponse } from '@/shared/api/types'
 
 /* 로그인 모달 상태 */
 export interface LoginModalState {
@@ -12,20 +9,6 @@ export interface LoginModalState {
    * 누락되어 전환율 분모가 틀어진다. 타입으로 강제해 컴파일 때 드러나게 한다. */
   open: (trigger: LoginModalTrigger) => void
   close: () => void
-}
-
-/* 유튜브 채널 연동 모달 상태 */
-export interface YoutubeConnectModalState {
-  isOpen: boolean
-  open: () => void
-  close: () => void
-}
-
-/* 채널 연동/갱신 API 응답 DTO */
-export interface ChannelConnectDto {
-  channelId: number
-  youtubeChannelId: string
-  updatedAt: string
 }
 
 export interface PopupOAuthConfig {
