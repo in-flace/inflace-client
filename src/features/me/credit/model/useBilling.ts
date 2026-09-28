@@ -9,11 +9,14 @@ import {
   deleteBillingMethod,
   extendCreditBatch,
   fetchBillingSummary,
+  fetchBusinessInfo,
   fetchPaymentHistory,
   purchaseCredits,
   refundCreditPurchase,
   registerBillingMethod,
+  requestCashReceipt,
   requestTaxInvoice,
+  saveBusinessInfo,
   resumeSubscription,
   startSubscription,
 } from '../api/billingApi'
@@ -23,6 +26,8 @@ export const billingQueryKeys = {
   summary: (userId: string | null) => ['billing', 'summary', userId] as const,
   paymentHistory: (userId: string | null, page: number) =>
     ['billing', 'paymentHistory', userId, page] as const,
+  businessInfo: (userId: string | null) =>
+    ['billing', 'businessInfo', userId] as const,
 }
 
 /* 내역은 페이지 단위로 따로 조회한다. 요약(summary)에 묶으면 페이지를 넘길
@@ -87,6 +92,34 @@ export function useRegisterBillingMethod() {
 
 export function useChangeBillingMethod() {
   return useBillingMutation(changeBillingMethod)
+}
+
+/* 세금계산서·현금영수증 신청 폼을 기존 사업자 정보로 채우는 데 쓴다. */
+export function useBusinessInfo(enabled: boolean) {
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
+
+  return useQuery({
+    queryKey: billingQueryKeys.businessInfo(userId),
+    queryFn: fetchBusinessInfo,
+    enabled: enabled && !!accessToken && !!userId,
+  })
+}
+
+export function useSaveBusinessInfo() {
+  const queryClient = useQueryClient()
+  const userId = useBillingUserId()
+
+  return useMutation({
+    mutationFn: saveBusinessInfo,
+    onSuccess: (_, payload) => {
+      queryClient.setQueryData(billingQueryKeys.businessInfo(userId), payload)
+    },
+  })
+}
+
+export function useRequestCashReceipt() {
+  return useMutation({ mutationFn: requestCashReceipt })
 }
 
 /* 발행 신청은 요약·내역 데이터를 바꾸지 않으므로 캐시를 건드리지 않는다. */

@@ -9,7 +9,6 @@ import {
   getNearestExpiryDate,
   getTotalCredits,
   usePaymentHistory,
-  useRequestTaxInvoice,
   useResumeSubscription,
   type BillingHistoryItem,
   type BillingHistoryStatus,
@@ -19,6 +18,7 @@ import {
   type PlanUnavailableReason,
 } from '@/features/me/credit'
 import CheckIcon from '@/shared/assets/check-bold.svg'
+import ErrorIcon from '@/shared/assets/error-thin.svg'
 import PaymentIcon from '@/shared/assets/payment-bold.svg'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
@@ -31,11 +31,7 @@ import {
   TableRow,
 } from '@/shared/ui/table'
 import { SectionCard, StatusBadge } from './BillingPrimitives'
-import {
-  getErrorCode,
-  getErrorMessage,
-  type ModalState,
-} from './billingPageTypes'
+import type { ModalState } from './billingPageTypes'
 
 /* 서버가 구매 불가로 내려준 이유를 사용자 문구로 옮긴다. */
 const PLAN_UNAVAILABLE_LABEL: Record<PlanUnavailableReason, string> = {
@@ -212,7 +208,8 @@ export function SubscriptionTab({
         <SectionCard className='bg-[#FFF0F0] p-24'>
           <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
             <div className='flex min-w-0 flex-col gap-8'>
-              <h3 className='text-noto-body-md-bold text-feedback-error'>
+              <h3 className='flex items-center gap-8 text-noto-body-md-bold text-feedback-error'>
+                <ErrorIcon aria-hidden='true' className='size-20 shrink-0' />
                 이번 달 구독 결제를 실패했습니다.
               </h3>
               <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
@@ -617,7 +614,6 @@ export function HistoryTab({
 }) {
   const [page, setPage] = useState(0)
   const { data, isLoading, isError, refetch } = usePaymentHistory(page)
-  const requestTaxInvoiceMutation = useRequestTaxInvoice()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
 
   const history = data?.items ?? []
@@ -639,34 +635,18 @@ export function HistoryTab({
     })
   }
 
-  const openDocumentModal = (documentType: string) => {
+  /* 세금계산서·현금영수증 모두 사업자 정보를 먼저 저장해야 발행된다.
+   * 같은 입력 폼을 쓰므로 모달 하나로 보내고 대상만 넘긴다. */
+  const openBusinessInfoModal = (documentType: '세금계산서' | '현금영수증') => {
     if (!selectedItem) {
       toast.info('내역을 선택해주세요.')
       return
     }
-    onOpenModal({ type: 'document', item: selectedItem, documentType })
-  }
-
-  /* 디자인상 입력 폼 없이 행을 고르면 바로 신청하고 완료 모달을 띄운다. */
-  const requestTaxInvoice = async () => {
-    if (!selectedItem) {
-      toast.info('내역을 선택해주세요.')
-      return
-    }
-    try {
-      await requestTaxInvoiceMutation.mutateAsync(selectedItem.orderId)
-      setSelectedIds(new Set())
-      onOpenModal({ type: 'taxInvoiceRequested' })
-    } catch (error) {
-      /* 사업자 정보가 없으면 서버가 404로 알려준다. 원문 대신 다음에 뭘
-       * 해야 하는지 담은 문구로 바꾼다. 등록 화면은 아직 디자인 대기 중이라
-       * 안내까지만 한다. PG 승인 전 단계의 502/503은 원문을 그대로 보여준다. */
-      toast.error(
-        getErrorCode(error) === 'PAYMENT_404_BUSINESS_INFO'
-          ? '세금계산서 발행에 필요한 사업자 정보가 등록되어 있지 않습니다.'
-          : getErrorMessage(error)
-      )
-    }
+    onOpenModal({
+      type: 'businessInfo',
+      orderId: selectedItem.orderId,
+      documentType,
+    })
   }
 
   if (isLoading) {
@@ -721,8 +701,8 @@ export function HistoryTab({
           color='gray'
           size='lg'
           variant='filled'
-          disabled={!selectedItem || requestTaxInvoiceMutation.isPending}
-          onClick={() => void requestTaxInvoice()}>
+          disabled={!selectedItem}
+          onClick={() => openBusinessInfoModal('세금계산서')}>
           세금계산서 신청
         </Button>
         <Button
@@ -731,7 +711,7 @@ export function HistoryTab({
           size='lg'
           variant='filled'
           disabled={!selectedItem}
-          onClick={() => openDocumentModal('현금영수증')}>
+          onClick={() => openBusinessInfoModal('현금영수증')}>
           현금영수증 신청
         </Button>
       </div>

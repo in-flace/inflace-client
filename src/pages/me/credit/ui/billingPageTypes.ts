@@ -2,6 +2,7 @@ import { isAxiosError } from 'axios'
 
 import type {
   BillingHistoryItem,
+  BusinessInfo,
   BillingPlan,
   CreditBatch,
   CreditPurchaseOption,
@@ -17,6 +18,23 @@ export const EMPTY_PAYER_INFO: PayerInfo = {
   name: '',
   phone: '',
   email: '',
+}
+
+export const EMPTY_BUSINESS_INFO: BusinessInfo = {
+  brn: '',
+  name: '',
+  representativeName: '',
+  phoneNumber: '',
+  contactEmail: '',
+}
+
+/* 서버 UserBusinessInfoRequest의 필수는 brn(숫자 10자리)과 contactEmail뿐이다.
+ * 나머지는 기획 폼에 있어 받지만 비어 있어도 저장된다. */
+export function isBusinessInfoComplete(info: BusinessInfo) {
+  return (
+    /^\d{10}$/.test(info.brn.replace(/\D/g, '')) &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(info.contactEmail.trim())
+  )
 }
 
 /* 포트원과 백엔드가 모두 필수로 요구하는 세 필드가 유효한지. 결제창을
@@ -58,7 +76,15 @@ export type ModalState =
   | { type: 'creditRefund'; batch: CreditBatch }
   | { type: 'creditRefunded' }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
+  /* 세금계산서·현금영수증 모두 사업자 정보를 먼저 저장한 뒤 신청한다.
+   * 입력 폼이 같아 모달 하나로 두고 대상만 구분한다. */
+  | {
+      type: 'businessInfo'
+      orderId: number
+      documentType: '세금계산서' | '현금영수증'
+    }
   | { type: 'taxInvoiceRequested' }
+  | { type: 'cashReceiptRequested' }
   | null
 
 export function getErrorCode(error: unknown) {

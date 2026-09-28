@@ -10,6 +10,7 @@ import type {
 } from '@/features/me/credit/types'
 
 const currentSummary: BillingSummary = structuredClone(mockBillingSummary)
+let mockBusinessInfo: Record<string, unknown> | null = null
 let latestSubscriptionOrderId = 1
 
 function apiResponse<T>(responseDto: T, status = 200) {
@@ -287,6 +288,54 @@ export const billingHandlers = [
 
   /* 타 결제수단 구매 1단계. 서버가 주문을 만들고 결제창에 넘길 값을 준다.
    * paymentId는 이니시스 oid 제한(40자)을 넘지 않는 UUID 형태로 만든다. */
+  /* 사업자 정보. 처음에는 등록된 게 없어 404를 준다. */
+  http.get(`${process.env.NEXT_PUBLIC_API_URL}/business-info`, () =>
+    mockBusinessInfo
+      ? apiResponse(mockBusinessInfo)
+      : errorResponse(
+          'PAYMENT_404_BUSINESS_INFO',
+          '등록된 사업자 정보가 없습니다.',
+          404
+        )
+  ),
+
+  http.put(
+    `${process.env.NEXT_PUBLIC_API_URL}/business-info`,
+    async ({ request }) => {
+      mockBusinessInfo = (await request.json()) as Record<string, unknown>
+      return apiResponse(mockBusinessInfo)
+    }
+  ),
+
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/payment-history/:orderId/tax-invoice`,
+    () =>
+      mockBusinessInfo
+        ? apiResponse({
+            taxInvoiceKey: `tax-${Date.now()}`,
+            status: 'REQUESTED',
+            issuedAt: null,
+          })
+        : errorResponse(
+            'PAYMENT_404_BUSINESS_INFO',
+            '등록된 사업자 정보가 없습니다.',
+            404
+          )
+  ),
+
+  http.post(
+    `${process.env.NEXT_PUBLIC_API_URL}/payment-history/:orderId/cash-receipt`,
+    async ({ request }) => {
+      const body = (await request.json()) as { receiptType: string }
+      return apiResponse({
+        receiptType: body.receiptType,
+        issueNumber: `${Date.now()}`,
+        receiptUrl: null,
+        issuedAt: null,
+      })
+    }
+  ),
+
   /* 환불 신청. 서버는 body 없이 orderId와 Idempotency-Key만 받는다. */
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/:orderId/refund`,

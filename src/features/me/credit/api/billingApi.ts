@@ -4,6 +4,8 @@ import { axiosInstance } from '@/shared/api'
 import type { ApiResponse } from '@/shared/api/types'
 import type {
   BillingHistoryPage,
+  BusinessInfo,
+  CashReceiptType,
   BillingHistoryStatus,
   BillingHistoryType,
   BillingPlan,
@@ -644,6 +646,58 @@ export async function changeBillingMethod(
     payload
   )
   return fetchBillingSummary()
+}
+
+/* 서버는 주소·업태·업종도 받지만 기획 폼에 없어 보내지 않는다.
+ * 저장은 전체 교체(PUT)라 빈 값으로 덮지 않도록 받은 값을 그대로 돌려준다. */
+interface BusinessInfoDto {
+  brn: string | null
+  name: string | null
+  representativeName: string | null
+  address: string | null
+  businessType: string | null
+  businessClass: string | null
+  phoneNumber: string | null
+  contactEmail: string | null
+}
+
+export async function fetchBusinessInfo(): Promise<BusinessInfo | null> {
+  try {
+    const response =
+      await axiosInstance.get<ApiResponse<BusinessInfoDto>>('/business-info')
+    const data = response.data.responseDto
+    return {
+      brn: data.brn ?? '',
+      name: data.name ?? '',
+      representativeName: data.representativeName ?? '',
+      phoneNumber: data.phoneNumber ?? '',
+      contactEmail: data.contactEmail ?? '',
+    }
+  } catch (error) {
+    /* 아직 등록한 적이 없으면 404다. 빈 폼으로 시작한다. */
+    if (isAxiosError(error) && error.response?.status === 404) {
+      return null
+    }
+    throw error
+  }
+}
+
+export async function saveBusinessInfo(payload: BusinessInfo): Promise<void> {
+  await axiosInstance.put<ApiResponse<BusinessInfoDto>>(
+    '/business-info',
+    payload
+  )
+}
+
+/* 현금영수증은 사업자 정보를 저장한 뒤 발행 유형만 보낸다. */
+export async function requestCashReceipt(request: {
+  orderId: number
+  receiptType: CashReceiptType
+}): Promise<void> {
+  await axiosInstance.post<ApiResponse<unknown>>(
+    `/payment-history/${request.orderId}/cash-receipt`,
+    { receiptType: request.receiptType }
+  )
 }
 
 /* 디자인상 별도 입력 폼 없이 행을 고르고 바로 신청한다.
