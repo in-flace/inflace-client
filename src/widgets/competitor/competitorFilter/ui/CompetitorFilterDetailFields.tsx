@@ -193,7 +193,9 @@ function NumberField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            'flex-1 text-noto-label-md-normal text-text-and-icon-primary outline-none placeholder:text-text-and-icon-disabled',
+            /* min-w-0: input은 기본 최소 폭(size 속성 기준, Safari는 더 넓음)보다 줄어들지 않아
+             * 필드가 좁으면 X 버튼을 필드 밖으로 밀어낸다 */
+            'min-w-0 flex-1 text-noto-label-md-normal text-text-and-icon-primary outline-none placeholder:text-text-and-icon-disabled',
             /* number input 스피너 제거 */
             '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
           )}
@@ -203,7 +205,7 @@ function NumberField({
             type='button'
             onClick={() => onChange('')}
             aria-label={`${label} 초기화`}
-            className='flex cursor-pointer items-center'>
+            className='flex shrink-0 cursor-pointer items-center'>
             <IconX className='size-20 text-text-and-icon-secondary' />
           </button>
         )}
