@@ -146,7 +146,10 @@ export function VideoStatsSection({ videoId }: VideoStatsSectionProps) {
               {group.title}
             </p>
           </div>
-          <div className='flex flex-wrap items-start gap-16'>
+          {/* 카드 폭 554px 고정(시안). 열 수는 화면 폭에 맞춰 늘고 줄며,
+           * 554px보다 좁은 화면에서는 1열로 화면 폭만큼 줄어든다.
+           * @container: 뷰포트가 아니라 이 영역의 실제 폭(사이드바 접힘 여부 반영)으로 카드의 모바일 배치를 고른다 */}
+          <div className='@container grid grid-cols-[repeat(auto-fill,minmax(min(55.4rem,100%),55.4rem))] gap-16'>
             {group.cards.map((card) => (
               <VideoStatsCard key={card.label} {...card} />
             ))}
