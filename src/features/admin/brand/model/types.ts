@@ -47,10 +47,12 @@ export interface BrandsQuery {
   size: number
 }
 
-/* Swagger에는 brandNames/targetBrandIds가 object로만 나온다.
- * 브랜드 id를 키로 한 맵. 직접 승인 브랜드는 brandNames 필수 (AdminService 참고) */
+/* 서버(AdminService.approveSelectedBrandVideos)는 channelBrandIds가 속한 브랜드 집합과
+ * brandIds가 정확히 같아야 승인한다. brandNames/targetBrandIds는 브랜드 id를 키로 한 맵 —
+ * targetBrandIds가 없으면 신규 승인으로 보고, 신규 승인 브랜드만 brandNames가 필수다 */
 export interface ApproveBrandsRequest {
   brandIds: number[]
+  channelBrandIds: number[]
   brandNames: Record<number, string>
   targetBrandIds: Record<number, number>
 }

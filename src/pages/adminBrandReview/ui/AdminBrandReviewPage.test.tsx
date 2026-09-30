@@ -1,4 +1,13 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -18,6 +27,15 @@ const page = <T,>(content: T[]) => ({
   totalElements: content.length,
   totalPages: content.length ? 1 : 0,
   number: 0,
+})
+
+const evidence = (channelBrandId: number, videoId: string) => ({
+  channelBrandId,
+  channelName: '테스트 채널',
+  matchedAlias: '인플',
+  youtubeVideoId: videoId,
+  youtubeVideoUrl: `https://youtu.be/${videoId}`,
+  videoDescription: '브랜드가 소개된 영상',
 })
 
 const server = setupServer(
@@ -106,10 +124,52 @@ describe('AdminBrandReviewPage', () => {
     await waitFor(() =>
       expect(approvedBody).toEqual({
         brandIds: [42],
+        channelBrandIds: [7],
         brandNames: { 42: '인플레이스' },
         targetBrandIds: {},
       })
     )
+  })
+
+  it('일부 영상만 선택하면 확인 후 선택한 관계만 보낸다', async () => {
+    server.use(
+      http.get(`${API}/admin`, () =>
+        HttpResponse.json({
+          success: true,
+          responseDto: {
+            pendingBrands: page([
+              {
+                id: 42,
+                name: '인플레이스',
+                videoEvidence: [evidence(7, 'video-1'), evidence(8, 'video-2')],
+              },
+            ]),
+          },
+          error: null,
+        })
+      )
+    )
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPage()
+    const user = userEvent.setup()
+
+    await user.click(
+      await screen.findByRole('checkbox', { name: '영상 video-2 선택' })
+    )
+    await user.click(
+      screen.getByRole('button', { name: '선택 항목 일괄 승인 (1)' })
+    )
+
+    expect(confirm).toHaveBeenCalled()
+    await waitFor(() =>
+      expect(approvedBody).toEqual({
+        brandIds: [42],
+        channelBrandIds: [8],
+        brandNames: { 42: '인플레이스' },
+        targetBrandIds: {},
+      })
+    )
+    confirm.mockRestore()
   })
 
   it('완료 내역에서 검색어를 API 쿼리로 보낸다', async () => {
