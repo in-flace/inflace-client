@@ -19,6 +19,24 @@ import {
 
 const STATUSES = Object.keys(FEEDBACK_STATUS_LABELS) as FeedbackStatus[]
 
+/* submissionLocation은 origin까지 포함된 URL이다(InquiryPanel). 관리자에겐 경로만 의미 있어
+ * host는 빼고, 한글 경로는 %EC..로 보이지 않게 푼다. 예전 데이터처럼 경로만 있으면 그대로 쓴다 */
+function LocationCell({ location }: { location: string }) {
+  let text = location
+  try {
+    text = decodeURI(new URL(location, 'http://_').pathname)
+  } catch {}
+  return (
+    <a
+      href={location}
+      target='_blank'
+      rel='noreferrer'
+      className='break-all hover:underline'>
+      {text}
+    </a>
+  )
+}
+
 type Props = {
   feedbacks: FeedbackDto[]
 }
@@ -68,7 +86,7 @@ export function FeedbackTable({ feedbacks }: Props) {
                   {d.year.slice(2)}.{d.month}.{d.day} {d.hour}:{d.minute}
                 </TableCell>
                 <TableCell className='text-left'>
-                  {feedback.submissionLocation}
+                  <LocationCell location={feedback.submissionLocation} />
                 </TableCell>
                 <TableCell className='max-w-[56rem] text-left whitespace-pre-wrap text-text-and-icon-secondary'>
                   {feedback.content}
