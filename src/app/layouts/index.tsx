@@ -3,6 +3,9 @@ import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { GoogleTagManager } from '@next/third-parties/google'
 
+/* 전체 한글을 unicode-range 조각으로 선언만 한다 — 아래 서브셋에 없는 글자가
+ * 화면에 나올 때 그 글자가 속한 조각만 내려받는다 */
+import '@fontsource-variable/noto-sans-kr'
 import '../styles'
 import { MSWProvider } from '@/app/providers/MSWProvider'
 import { QueryProvider } from '@/app/providers/QueryProvider'
@@ -23,7 +26,9 @@ const notoSansKr = localFont({
   weight: '100 900',
   variable: '--font-noto',
   display: 'swap',
-  fallback: ['system-ui', 'sans-serif'],
+  /* 서브셋은 UI 문구에 쓰인 한글 735자뿐이라, 사용자·채널명 같은 API 데이터의
+   * 나머지 글자는 시스템 폰트로 떨어져 섞여 보였다. 같은 폰트의 전체본을 먼저 잇는다 */
+  fallback: ['Noto Sans KR Variable', 'system-ui', 'sans-serif'],
 })
 
 /* metadata를 선언하지 않은 라우트가 상속하는 기본값.
