@@ -12,6 +12,8 @@ import { AdminFeedbackPage } from './AdminFeedbackPage'
 const API = process.env.NEXT_PUBLIC_API_URL_V2
 let status: FeedbackStatus = 'UNCONFIRMED'
 let lastStatusQuery: string | null = null
+const LOCATION =
+  'https://www.inflace.site/influencer/%EC%9D%B8%ED%94%8C/UCabcdefghijklmnopqrstuvw'
 
 const server = setupServer(
   http.get(`${API}/admin/feedbacks`, ({ request }) => {
@@ -33,7 +35,7 @@ const server = setupServer(
                   ip: '127.0.0.1',
                   content: '검색 결과가 이상해요',
                   status,
-                  submissionLocation: '/competitor',
+                  submissionLocation: LOCATION,
                   createdAt: '2026-09-23T10:30:00+09:00',
                 },
               ]
@@ -83,6 +85,15 @@ describe('AdminFeedbackPage', () => {
 
     await waitFor(() => expect(lastStatusQuery).toBe('ON_HOLD'))
     expect(await screen.findByText('접수된 문의가 없습니다.')).toBeInTheDocument()
+  })
+
+  it('접수 위치를 디코딩한 경로 링크로 보여준다', async () => {
+    renderPage()
+
+    const link = await screen.findByRole('link', {
+      name: '/influencer/인플/UCabcdefghijklmnopqrstuvw',
+    })
+    expect(link).toHaveAttribute('href', LOCATION)
   })
 
   it('피드백 상태를 변경하고 목록을 다시 조회한다', async () => {
