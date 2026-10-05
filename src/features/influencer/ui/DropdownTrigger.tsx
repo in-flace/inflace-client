@@ -67,9 +67,11 @@ function DropdownTrigger({
             )}>
             {output}
           </span>
-          {/* 기본값 상태: 아래 화살표 */}
+          {/* 기본값 상태: 아래 화살표
+           * 래퍼 크기를 고정해야 한다 — 크기 없는 부모에 svg를 100%로 두면
+           * Safari가 퍼센트를 해석하지 못해 아이콘이 칩 전체로 부풀어 오른다 */}
           {!isModified && (
-            <span className='flex shrink-0 items-center justify-center [&>svg]:h-full [&>svg]:w-full [&>svg_*]:fill-current'>
+            <span className='flex size-16 shrink-0 items-center justify-center [&>svg]:h-full [&>svg]:w-full [&>svg_*]:fill-current'>
               <IconDown />
             </span>
           )}
@@ -83,8 +85,11 @@ function DropdownTrigger({
               onReset?.()
               setIsOpen(false)
             }}
-            className='flex shrink-0 cursor-pointer items-center justify-center py-12 pr-12 text-white [&>svg]:h-full [&>svg]:w-full [&>svg_*]:fill-current'>
-            <IconX />
+            className='flex shrink-0 cursor-pointer items-center justify-center py-12 pr-12 text-white'>
+            {/* 화살표와 같은 이유로 래퍼 크기를 고정한다 */}
+            <span className='flex size-16 items-center justify-center [&>svg]:h-full [&>svg]:w-full [&>svg_*]:fill-current'>
+              <IconX />
+            </span>
           </button>
         )}
       </div>
