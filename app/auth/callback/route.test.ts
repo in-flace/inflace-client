@@ -123,6 +123,24 @@ describe('GET /auth/callback', () => {
     expect(text).toContain(mockAccessToken)
   })
 
+  /* charset이 빠지면 브라우저가 OS 기본 인코딩으로 읽어 한글 채널명이 깨진 채
+   * opener로 넘어간다(QA #52). 헤더와 meta 모두 UTF-8이어야 한다. */
+  it('postMessage HTML을 UTF-8로 응답한다', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(mockLoginResponse), { status: 200 })
+    )
+
+    const { GET } = await import('./route')
+    const response = await GET(
+      makeRequest({ code: 'auth-code', state: 'valid-state' })
+    )
+
+    expect(response.headers.get('content-type')).toBe(
+      'text/html; charset=utf-8'
+    )
+    expect(await response.text()).toContain('<meta charset="utf-8">')
+  })
+
   /* isNewUser는 /auth/login 응답에만 담겨 오고 /user/me에는 없다.
    * 로그인 성공 직후 '/'로 전체 새로고침이 일어나므로, 여기서 opener로
    * 넘기지 못하면 가입 여부를 다시 알아낼 방법이 없다. */

@@ -40,7 +40,7 @@ export async function GET() {
        * 신규 가입 직후 시나리오에 해당한다. */
       isNewUser: true,
     }),
-    { headers: { 'Content-Type': 'text/html' } }
+    { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   )
 }
 
@@ -50,8 +50,12 @@ function buildPostMessageHtml(
   payload: Record<string, unknown>
 ) {
   const message = JSON.stringify({ type, ...payload })
+  /* 실제 콜백과 같은 이유로 UTF-8을 명시한다. 없으면 목 채널명(한글)이 깨진다 */
   return `<!DOCTYPE html>
 <html>
+<head>
+<meta charset="utf-8">
+</head>
 <body>
 <script>
   fetch('/auth/mock-login', { method: 'POST' }).finally(() => {

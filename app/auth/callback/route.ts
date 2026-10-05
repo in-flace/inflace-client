@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       buildPostMessageHtml('AUTH_ERROR', { error: errorMessage }),
       {
         headers: {
-          'Content-Type': 'text/html',
+          'Content-Type': 'text/html; charset=utf-8',
           'Cross-Origin-Opener-Policy': 'unsafe-none',
         },
       }
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
       }),
       {
         headers: {
-          'Content-Type': 'text/html',
+          'Content-Type': 'text/html; charset=utf-8',
           'Cross-Origin-Opener-Policy': 'unsafe-none',
         },
       }
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       }),
       {
         headers: {
-          'Content-Type': 'text/html',
+          'Content-Type': 'text/html; charset=utf-8',
           'Cross-Origin-Opener-Policy': 'unsafe-none',
         },
       }
@@ -121,11 +121,17 @@ export async function GET(request: NextRequest) {
 }
 
 //HTML 페이지를 반환하여 postMessage로 accessToken + user를 부모 창에 전달하고 팝업을 닫는다
+/* charset을 명시해야 한다. 없으면 브라우저가 OS 기본 인코딩(한국어 환경은 EUC-KR)으로
+ * 읽어 메시지 안의 한글(채널명 등)이 깨진 채 opener로 넘어간다(QA #52).
+ * 응답 헤더와 meta 둘 다 두는 건 헤더가 중간에서 바뀌어도 문서 스스로 UTF-8임을 알리기 위해서다. */
 function buildPostMessageHtml(type: string, payload: Record<string, unknown>) {
   const targetOrigin = process.env.NEXT_PUBLIC_APP_URL!
   const message = JSON.stringify({ type, ...payload })
   return `<!DOCTYPE html>
 <html>
+<head>
+<meta charset="utf-8">
+</head>
 <body>
 <script>
   window.opener.postMessage(${message}, "${targetOrigin}");
