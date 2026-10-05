@@ -6,7 +6,7 @@ import {
   FormatBarChart,
 } from '@/entities/influencerDetail/engagementAnalytics'
 import { format10Thousands } from '@/shared/lib/format'
-import { useInfluencerDetail } from '@/features/influencerDetail'
+import { useInfluencerDetailQuery } from '@/features/influencerDetail'
 import IconParticipation from '@/shared/assets/participation-bold.svg'
 import { Skeleton } from '@/shared/ui/shadcn/skeleton'
 
@@ -20,7 +20,7 @@ export function EngagementAnalyticsSection({
     isFetching,
     isError,
     error,
-  } = useInfluencerDetail(channelId)
+  } = useInfluencerDetailQuery(channelId)
 
   // 에러 코드 CHANNEL_INSIGHT_400 분기처리
   const insightErrorCode =

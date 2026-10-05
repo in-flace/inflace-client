@@ -8,7 +8,7 @@ import {
   getImpactTier,
 } from '@/entities/influencerDetail/impactMetrics'
 import { FrequencyTrend } from '@/entities/influencerDetail'
-import { useInfluencerDetail } from '@/features/influencerDetail'
+import { useInfluencerDetailQuery } from '@/features/influencerDetail'
 import { getViewCvLabel } from '@/shared/lib/format'
 import { Tooltip } from '@/shared/ui/tooltip'
 import { Skeleton } from '@/shared/ui/shadcn/skeleton'
@@ -27,7 +27,7 @@ export function ImpactMetricsSection({ channelId }: { channelId: string }) {
     isFetching,
     isError,
     error,
-  } = useInfluencerDetail(channelId)
+  } = useInfluencerDetailQuery(channelId)
 
   // 에러 코드 CHANNEL_INSIGHT_400 분기처리
   const insightErrorCode =
