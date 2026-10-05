@@ -1,5 +1,6 @@
 'use client'
 import Image from 'next/image'
+import axios from 'axios'
 
 import { useInfluencerDetail } from '@/features/influencerDetail'
 import { useBookmarkToggle } from '@/features/influencer'
@@ -14,9 +15,28 @@ import { QueryBoundary } from '@/shared/ui/query-boundary'
 
 export function InfluencerBaseInfo({ channelId }: { channelId: string }) {
   return (
-    <QueryBoundary fallback={<InfluencerBaseInfoSkeleton />}>
+    <QueryBoundary
+      fallback={<InfluencerBaseInfoSkeleton />}
+      renderError={renderInsightError}>
       <InfluencerBaseInfoContent channelId={channelId} />
     </QueryBoundary>
+  )
+}
+
+/* 영상 50개 미만 채널은 서버가 CHANNEL_INSIGHT_400을 준다. 재시도해도 같은 결과라
+ * 기본 "다시 시도" 대신 아래 지표 섹션과 같은 안내만 보여준다(QA #67). */
+function renderInsightError(error: unknown) {
+  const isInsufficientVideos =
+    axios.isAxiosError(error) &&
+    error.response?.data?.error?.code === 'CHANNEL_INSIGHT_400'
+  if (!isInsufficientVideos) return null
+
+  return (
+    <div className='flex w-full flex-col items-center rounded-10 bg-white px-24 py-32 shadow-[0_2px_6px_0_rgba(13,13,13,0.04)]'>
+      <p className='text-noto-body-lg-normal text-text-and-icon-secondary'>
+        분석 가능한 공개 영상이 부족합니다
+      </p>
+    </div>
   )
 }
 
