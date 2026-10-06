@@ -24,6 +24,9 @@ export const EMPTY_BUSINESS_INFO: BusinessInfo = {
   representativeName: '',
   phoneNumber: '',
   contactEmail: '',
+  address: '',
+  businessType: '',
+  businessClass: '',
 }
 
 /* 서버 UserBusinessInfoRequest의 필수는 brn(숫자 10자리)과 contactEmail뿐이다.

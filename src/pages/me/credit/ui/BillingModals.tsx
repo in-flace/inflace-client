@@ -964,12 +964,9 @@ export function BillingModals({
                   const { orderId, documentType } = modal
                   setFormError(null)
                   try {
-                    /* 발행은 저장된 사업자 정보를 쓰므로 먼저 저장한다. */
-                    await saveBusinessInfoMutation.mutateAsync({
-                      ...businessInfo,
-                      brn: businessInfo.brn.replace(/\D/g, ''),
-                      contactEmail: businessInfo.contactEmail.trim(),
-                    })
+                    /* 발행은 저장된 사업자 정보를 쓰므로 먼저 저장한다.
+                     * 값 정리는 API 계층이 맡는다. */
+                    await saveBusinessInfoMutation.mutateAsync(businessInfo)
 
                     if (documentType === '세금계산서') {
                       await requestTaxInvoiceMutation.mutateAsync(orderId)

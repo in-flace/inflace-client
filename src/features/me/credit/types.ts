@@ -159,13 +159,21 @@ export interface PurchaseCreditsPayload {
 }
 
 /* 서버 UserBusinessInfo와 1:1. 세금계산서·현금영수증 발행에 함께 쓰인다.
- * 서버 필수는 brn과 contactEmail 둘뿐이고 나머지는 선택이다. */
+ * 서버 필수는 brn과 contactEmail 둘뿐이고 나머지는 선택이다.
+ *
+ * 저장이 전체 교체(PUT)라 기획 폼에 없는 주소·업태·종목까지 모두 들고 있어야
+ * 한다. 조회한 값을 그대로 돌려보내지 않으면 저장할 때마다 지워지고,
+ * 세금계산서는 그 셋을 포트원에 그대로 넘기므로 발행이 막힌다. */
 export interface BusinessInfo {
   brn: string
   name: string
   representativeName: string
   phoneNumber: string
   contactEmail: string
+  /* 기획 폼에 입력란이 없어 화면에서는 건드리지 않고 왕복만 시킨다. */
+  address: string
+  businessType: string
+  businessClass: string
 }
 
 /* 서버 CashReceiptType. 사업자등록번호를 함께 받으므로 지출증빙이 기본이다. */

@@ -650,8 +650,8 @@ export async function changeBillingMethod(
   return fetchBillingSummary()
 }
 
-/* 서버는 주소·업태·업종도 받지만 기획 폼에 없어 보내지 않는다.
- * 저장은 전체 교체(PUT)라 빈 값으로 덮지 않도록 받은 값을 그대로 돌려준다. */
+/* 저장이 전체 교체(PUT)라 기획 폼에 없는 주소·업태·종목도 그대로 왕복시킨다.
+ * 조회에서 버리면 저장할 때 빈 값으로 덮여 세금계산서 발행이 막힌다. */
 interface BusinessInfoDto {
   brn: string | null
   name: string | null
@@ -674,6 +674,9 @@ export async function fetchBusinessInfo(): Promise<BusinessInfo | null> {
       representativeName: data.representativeName ?? '',
       phoneNumber: data.phoneNumber ?? '',
       contactEmail: data.contactEmail ?? '',
+      address: data.address ?? '',
+      businessType: data.businessType ?? '',
+      businessClass: data.businessClass ?? '',
     }
   } catch (error) {
     /* 아직 등록한 적이 없으면 404다. 빈 폼으로 시작한다. */
@@ -684,10 +687,28 @@ export async function fetchBusinessInfo(): Promise<BusinessInfo | null> {
   }
 }
 
+/* 빈 문자열로 저장하면 서버가 "값이 있는데 비어 있는" 상태로 들고 있다가
+ * 세금계산서 발행 때 포트원에 그대로 넘긴다. 선택 항목은 비었으면 빼서
+ * null로 남긴다. 서버 검증은 brn \d{10}과 contactEmail @Email 둘뿐이다. */
+function toBusinessInfoDto(payload: BusinessInfo) {
+  const optional = (value: string) => value.trim() || undefined
+
+  return {
+    brn: payload.brn.replace(/\D/g, ''),
+    contactEmail: payload.contactEmail.trim(),
+    name: optional(payload.name),
+    representativeName: optional(payload.representativeName),
+    phoneNumber: optional(payload.phoneNumber),
+    address: optional(payload.address),
+    businessType: optional(payload.businessType),
+    businessClass: optional(payload.businessClass),
+  }
+}
+
 export async function saveBusinessInfo(payload: BusinessInfo): Promise<void> {
   await axiosInstance.put<ApiResponse<BusinessInfoDto>>(
     '/business-info',
-    payload
+    toBusinessInfoDto(payload)
   )
 }
 
