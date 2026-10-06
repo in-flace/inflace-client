@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 import {
+  getBillingErrorMessage,
   formatDate,
   formatWon,
   issueCardBillingKey,
@@ -38,7 +39,6 @@ import { ModalContent } from './BillingPrimitives'
 import {
   EMPTY_BUSINESS_INFO,
   EMPTY_PAYER_INFO,
-  getErrorMessage,
   isBusinessInfoComplete,
   isPayerInfoComplete,
   type ModalState,
@@ -252,7 +252,7 @@ export function BillingModals({
                     })
                     onOpenModal({ type: 'subscribeDone' })
                   } catch (error) {
-                    toast.error(getErrorMessage(error))
+                    toast.error(getBillingErrorMessage(error, 'subscribe'))
                   } finally {
                     setIsPaymentWindowPending(false)
                   }
@@ -393,7 +393,9 @@ export function BillingModals({
                   })
                   onOpenModal({ type: 'cancelDone' })
                 } catch (error) {
-                  toast.error(getErrorMessage(error))
+                  toast.error(
+                    getBillingErrorMessage(error, 'cancelSubscription')
+                  )
                 }
               }}
               className='h-44 w-full bg-feedback-error'>
@@ -502,7 +504,9 @@ export function BillingModals({
                   } catch (error) {
                     /* 모달을 닫아둔 상태라 인라인으로 보여줄 자리가 없다.
                      * 입력값이 남아 있는 모달을 다시 열어 에러와 함께 보여준다. */
-                    setFormError(getErrorMessage(error))
+                    setFormError(
+                      getBillingErrorMessage(error, 'registerBillingMethod')
+                    )
                     onOpenModal({ type: 'billingRegister', pendingPlan })
                   } finally {
                     setIsPaymentWindowPending(false)
@@ -573,7 +577,9 @@ export function BillingModals({
                     })
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
-                    setFormError(getErrorMessage(error))
+                    setFormError(
+                      getBillingErrorMessage(error, 'changeBillingMethod')
+                    )
                     onOpenModal({ type: 'billingChange' })
                   } finally {
                     setIsPaymentWindowPending(false)
@@ -631,7 +637,9 @@ export function BillingModals({
                     await deleteBillingMethodMutation.mutateAsync()
                     onOpenModal({ type: 'billingDeleted', last4 })
                   } catch (error) {
-                    toast.error(getErrorMessage(error))
+                    toast.error(
+                      getBillingErrorMessage(error, 'deleteBillingMethod')
+                    )
                   }
                 }}
                 className='h-44 w-full bg-feedback-error'>
@@ -829,7 +837,9 @@ export function BillingModals({
                     handleClose()
                   } catch (error) {
                     /* 결제창 단계에서 모달을 닫았으므로 다시 열어 보여준다. */
-                    setFormError(getErrorMessage(error))
+                    setFormError(
+                      getBillingErrorMessage(error, 'purchaseCredits')
+                    )
                     onOpenModal({
                       type: 'creditConfirm',
                       option,
@@ -871,7 +881,7 @@ export function BillingModals({
                 afterExpiryDate,
               })
             } catch (error) {
-              toast.error(getErrorMessage(error))
+              toast.error(getBillingErrorMessage(error, 'extendCredits'))
             }
           }}
         />
@@ -905,7 +915,7 @@ export function BillingModals({
               })
               onOpenModal({ type: 'creditRefunded' })
             } catch (error) {
-              toast.error(getErrorMessage(error))
+              toast.error(getBillingErrorMessage(error, 'refundCredits'))
             }
           }}
         />
@@ -974,7 +984,14 @@ export function BillingModals({
                     })
                     onOpenModal({ type: 'cashReceiptRequested' })
                   } catch (error) {
-                    setFormError(getErrorMessage(error))
+                    setFormError(
+                      getBillingErrorMessage(
+                        error,
+                        documentType === '세금계산서'
+                          ? 'issueTaxInvoice'
+                          : 'issueCashReceipt'
+                      )
+                    )
                   }
                 }}
                 className='h-44 w-full'>

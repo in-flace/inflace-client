@@ -11,6 +11,9 @@ import type {
 
 const currentSummary: BillingSummary = structuredClone(mockBillingSummary)
 let mockBusinessInfo: Record<string, unknown> | null = null
+/* 서버는 한 주문에 세금계산서와 현금영수증 중 하나만 허용한다(이중 증빙 방지).
+ * 목에서도 같은 규칙을 지켜야 중복 신청 문구를 확인할 수 있다. */
+const issuedDocumentOrderIds = new Set<string>()
 let latestSubscriptionOrderId = 1
 
 function apiResponse<T>(responseDto: T, status = 200) {
@@ -309,23 +312,46 @@ export const billingHandlers = [
 
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/payment-history/:orderId/tax-invoice`,
-    () =>
-      mockBusinessInfo
-        ? apiResponse({
-            taxInvoiceKey: `tax-${Date.now()}`,
-            status: 'REQUESTED',
-            issuedAt: null,
-          })
-        : errorResponse(
-            'PAYMENT_404_BUSINESS_INFO',
-            '등록된 사업자 정보가 없습니다.',
-            404
-          )
+    ({ params }) => {
+      if (!mockBusinessInfo) {
+        return errorResponse(
+          'PAYMENT_404_BUSINESS_INFO',
+          '등록된 사업자 정보가 없습니다.',
+          404
+        )
+      }
+
+      const orderId = String(params.orderId)
+      if (issuedDocumentOrderIds.has(orderId)) {
+        return errorResponse(
+          'PAYMENT_409_TAX_INVOICE',
+          'Conflict: Proof document already issued for this order',
+          409
+        )
+      }
+      issuedDocumentOrderIds.add(orderId)
+
+      return apiResponse({
+        taxInvoiceKey: `tax-${Date.now()}`,
+        status: 'REQUESTED',
+        issuedAt: null,
+      })
+    }
   ),
 
   http.post(
     `${process.env.NEXT_PUBLIC_API_URL}/payment-history/:orderId/cash-receipt`,
-    async ({ request }) => {
+    async ({ request, params }) => {
+      const orderId = String(params.orderId)
+      if (issuedDocumentOrderIds.has(orderId)) {
+        return errorResponse(
+          'PAYMENT_409_CASH_RECEIPT',
+          'Conflict: Proof document already issued for this order',
+          409
+        )
+      }
+      issuedDocumentOrderIds.add(orderId)
+
       const body = (await request.json()) as { receiptType: string }
       return apiResponse({
         receiptType: body.receiptType,
