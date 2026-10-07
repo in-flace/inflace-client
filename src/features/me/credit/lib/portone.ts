@@ -126,6 +126,10 @@ export async function issueCardBillingKey({
     displayAmount,
     currency: displayAmount ? 'KRW' : undefined,
     customer: portOneCustomer,
+    /* 모바일 결제창은 서비스 제공 기간(range·interval 중 하나)을 필수로 요구한다.
+     * 빠지면 AT_LEAST_ONE_REQUIRED로 창이 열리기도 전에 거부된다(QA #78).
+     * 월 구독이므로 주기로 표현하고, 실제 결제 시점과 금액은 서버가 정한다. */
+    offerPeriod: { interval: '1m' },
     redirectUrl: new URL(
       '/me/credit?tab=billing-method',
       window.location.origin
