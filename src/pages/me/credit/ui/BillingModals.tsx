@@ -12,6 +12,7 @@ import {
   CREDIT_CONFIRM_PENDING_MESSAGE,
   CreditPurchaseStatusError,
   getBillingErrorMessage,
+  PortOnePaymentError,
   formatDate,
   formatWon,
   issueCardBillingKey,
@@ -547,6 +548,7 @@ export function BillingModals({
 
                     onOpenModal({ type: 'billingRegistered' })
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
                     /* 모달을 닫아둔 상태라 인라인으로 보여줄 자리가 없다.
                      * 입력값이 남아 있는 모달을 다시 열어 에러와 함께 보여준다. */
                     setFormError(
@@ -625,6 +627,7 @@ export function BillingModals({
                     })
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
                     setFormError(
                       getBillingErrorMessage(error, 'changeBillingMethod')
                     )
@@ -895,6 +898,7 @@ export function BillingModals({
                     toast.success('크레딧 구매가 완료되었습니다.')
                     handleClose()
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
                     /* 결제는 됐는데 확인만 늦는 경우다. 서버가 웹훅으로 확정하므로
                      * 구매하기 버튼이 있는 모달을 다시 열면 이중 결제를 부른다. */
                     if (
@@ -1097,6 +1101,19 @@ export function BillingModals({
       )}
     </Dialog>
   )
+}
+
+/* 결제창이 오류 코드와 함께 이 페이지로 결과를 돌려줬다면 리디렉션은 없었다.
+ * 남긴 결제 의도는 쓸 곳이 없으니 지운다. 응답 없이 끝난 경우(PAYMENT_CANCELLED)만
+ * 모바일 결제창이 페이지를 떠나는 중일 수 있어, 돌아와서 쓸 수 있게 남긴다. */
+function clearIntentUnlessLeaving(error: unknown) {
+  if (
+    error instanceof PortOnePaymentError &&
+    error.code === 'PAYMENT_CANCELLED'
+  ) {
+    return
+  }
+  clearBillingIntent()
 }
 
 /* 카드 끝자리 뒤의 조사. 숫자를 한국어로 읽었을 때 받침이 있으면 '이'다
