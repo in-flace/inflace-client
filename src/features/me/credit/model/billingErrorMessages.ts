@@ -104,7 +104,17 @@ const MESSAGE_BY_PORTONE_CODE: Record<string, string> = {
   CUSTOMER_INFO_MISSING: '이름, 휴대폰 번호, 이메일을 모두 입력해주세요.',
   FAILURE_TYPE_PG_PROVIDER:
     '카드사에서 결제를 거절했습니다. 카드 상태를 확인하거나 다른 카드로 시도해주세요.',
+  /* 아래 둘은 포트원 코드가 아니라 모바일 결제창 복귀 처리가 만든다 */
+  REDIRECT_RESULT_UNKNOWN:
+    '결제창 결과를 확인하지 못했습니다. 결제수단 관리에서 카드가 등록됐는지 확인해주세요.',
+  BILLING_INTENT_EXPIRED:
+    '결제 진행 시간이 지났습니다. 처음부터 다시 시도해주세요.',
 }
+
+/* 크레딧은 서버가 결제 결과를 직접 확정한다. 화면에서 확인이 늦어졌다고
+ * "구매하지 못했다"고 하면 사용자가 다시 결제해 이중 결제가 난다. */
+export const CREDIT_CONFIRM_PENDING_MESSAGE =
+  '결제는 접수되었습니다. 크레딧 반영까지 잠시 걸릴 수 있어요.'
 
 function getErrorCode(error: unknown) {
   if (isAxiosError(error)) {
