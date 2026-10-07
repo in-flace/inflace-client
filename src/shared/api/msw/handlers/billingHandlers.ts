@@ -534,7 +534,23 @@ export const billingHandlers = [
   http.patch(
     `${process.env.NEXT_PUBLIC_API_URL}/subscriptions/me`,
     async ({ request }) => {
-      const body = (await request.json()) as { cancelAtPeriodEnd: boolean }
+      const body = (await request.json()) as {
+        cancelAtPeriodEnd: boolean
+        reason?: string | null
+        reasonDetail?: string | null
+      }
+      /* 서버는 해지 예약 시 사유를 필수로 받고, 기타면 직접 입력도 요구한다 */
+      if (
+        body.cancelAtPeriodEnd &&
+        (!body.reason ||
+          (body.reason === 'OTHER' && !body.reasonDetail?.trim()))
+      ) {
+        return errorResponse(
+          'COMMON_400',
+          'Bad Request: Invalid Arguments',
+          400
+        )
+      }
       currentSummary.subscription = {
         ...currentSummary.subscription,
         status: body.cancelAtPeriodEnd ? 'cancelScheduled' : 'active',

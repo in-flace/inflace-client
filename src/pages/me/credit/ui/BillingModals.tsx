@@ -31,7 +31,6 @@ import {
   useConfirmCreditCheckout,
   useStartSubscription,
   requestOneTimeCardPayment,
-  SUBSCRIPTION_EXIT_REASONS,
   type BillingSummary,
   type BusinessInfo,
   type CreditPurchaseOption,
@@ -43,6 +42,7 @@ import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { Dialog } from '@/shared/ui/shadcn/dialog'
 import { ModalContent } from './BillingPrimitives'
+import { CancelReasonField, isCancelReasonComplete } from './CancelReasonField'
 import {
   EMPTY_BUSINESS_INFO,
   EMPTY_PAYER_INFO,
@@ -122,9 +122,10 @@ export function BillingModals({
   const router = useRouter()
   const [agreedAutoPay, setAgreedAutoPay] = useState(false)
   const [agreedWithdrawalLimit, setAgreedWithdrawalLimit] = useState(false)
-  const [cancelReason, setCancelReason] = useState<SubscriptionExitReason>(
-    SUBSCRIPTION_EXIT_REASONS[0].value
+  const [cancelReason, setCancelReason] = useState<SubscriptionExitReason | ''>(
+    ''
   )
+  const [cancelReasonDetail, setCancelReasonDetail] = useState('')
   const [selectedOptionId, setSelectedOptionId] = useState(
     summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
   )
@@ -169,7 +170,8 @@ export function BillingModals({
     clearBillingIntent()
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
-    setCancelReason(SUBSCRIPTION_EXIT_REASONS[0].value)
+    setCancelReason('')
+    setCancelReasonDetail('')
     setPayerInfo(EMPTY_PAYER_INFO)
     setBusinessInfo(EMPTY_BUSINESS_INFO)
     setSyncedBusinessInfo(null)
@@ -318,25 +320,12 @@ export function BillingModals({
           description='소중한 피드백은 서비스 개선에 활용됩니다'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <label className='flex flex-col gap-8'>
-              <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
-                해지 사유 <span className='font-normal'>(필수)</span>
-              </span>
-              <select
-                value={cancelReason}
-                onChange={(event) =>
-                  setCancelReason(event.target.value as SubscriptionExitReason)
-                }
-                name='cancelReason'
-                autoComplete='off'
-                className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-body-sm-normal text-text-and-icon-primary focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'>
-                {SUBSCRIPTION_EXIT_REASONS.map((reason) => (
-                  <option key={reason.value} value={reason.value}>
-                    {reason.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <CancelReasonField
+              reason={cancelReason}
+              detail={cancelReasonDetail}
+              onReasonChange={setCancelReason}
+              onDetailChange={setCancelReasonDetail}
+            />
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -345,13 +334,16 @@ export function BillingModals({
                 variant='filled'
                 onClick={handleClose}
                 className='h-44 w-full'>
-                유지하기
+                취소
               </Button>
               <Button
                 type='button'
                 color='primary'
                 size='lg'
                 variant='filled'
+                disabled={
+                  !isCancelReasonComplete(cancelReason, cancelReasonDetail)
+                }
                 onClick={() => {
                   onOpenModal({ type: 'cancelNotice' })
                 }}
@@ -365,7 +357,7 @@ export function BillingModals({
       {modal?.type === 'cancelNotice' && (
         <ModalContent title='해지 전 꼭 확인하세요' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <ul className='flex flex-col gap-8 rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
+            <ul className='flex list-disc flex-col gap-4 pl-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
               <li>
                 다음 결제일
                 {summary.subscription.nextPaymentDate
@@ -384,7 +376,7 @@ export function BillingModals({
                 variant='filled'
                 onClick={handleClose}
                 className='h-44 w-full'>
-                돌아가기
+                취소
               </Button>
               <Button
                 type='button'
@@ -412,18 +404,31 @@ export function BillingModals({
               variant='filled'
               onClick={handleClose}
               className='h-44 w-full'>
-              계속 이용하기
+              취소
             </Button>
             <Button
               type='button'
               color='primary'
               size='lg'
               variant='filled'
-              disabled={cancelSubscriptionMutation.isPending}
+              disabled={
+                cancelSubscriptionMutation.isPending ||
+                !isCancelReasonComplete(cancelReason, cancelReasonDetail)
+              }
               onClick={async () => {
+                /* 버튼이 막고 있지만 타입상 사유가 확정됐음을 여기서 좁힌다 */
+                if (!isCancelReasonComplete(cancelReason, cancelReasonDetail)) {
+                  return
+                }
                 try {
                   await cancelSubscriptionMutation.mutateAsync({
                     reason: cancelReason,
+                    /* 서버는 기타일 때만 직접 입력을 요구한다. 다른 사유에
+                     * 남아 있는 입력은 보내지 않는다. */
+                    reasonDetail:
+                      cancelReason === 'OTHER'
+                        ? cancelReasonDetail.trim()
+                        : undefined,
                   })
                   onOpenModal({ type: 'cancelDone' })
                 } catch (error) {
@@ -432,8 +437,8 @@ export function BillingModals({
                   )
                 }
               }}
-              className='h-44 w-full bg-feedback-error'>
-              해지 완료하기
+              className='h-44 w-full'>
+              해지하기
             </Button>
           </div>
         </ModalContent>

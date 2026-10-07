@@ -130,11 +130,13 @@ export type SubscriptionExitReason =
   | 'MISSING_FEATURES'
   | 'SWITCHED_TO_ANOTHER_SERVICE'
   | 'TEMPORARY_PAUSE'
+  | 'YOUTUBE_CHANNEL_CONNECTION_DIFFICULTY'
+  | 'DASHBOARD_USAGE_DIFFICULTY'
   | 'OTHER'
 
 export interface CancelSubscriptionPayload {
   reason: SubscriptionExitReason
-  /* 서버 @Size(max = 500). 현재 UI에는 입력란이 없어 보내지 않는다. */
+  /* 기타(OTHER)를 고르면 서버가 비어 있지 않은 값을 요구한다. 최대 500자 */
   reasonDetail?: string
 }
 
