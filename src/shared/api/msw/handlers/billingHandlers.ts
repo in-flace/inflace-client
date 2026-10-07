@@ -14,6 +14,18 @@ let mockBusinessInfo: Record<string, unknown> | null = null
 /* 서버는 한 주문에 세금계산서와 현금영수증 중 하나만 허용한다(이중 증빙 방지).
  * 목에서도 같은 규칙을 지켜야 중복 신청 문구를 확인할 수 있다. */
 const issuedDocumentOrderIds = new Set<string>()
+
+/* 검증용 실패 토글. 결제창 복귀는 페이지를 새로 띄워 MSW 메모리가 초기화되므로
+ * 새로고침을 넘어 유지되는 sessionStorage에서 읽는다. */
+function readMockFlag(key: string) {
+  try {
+    return typeof sessionStorage === 'undefined'
+      ? null
+      : sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
 let latestSubscriptionOrderId = 1
 
 function apiResponse<T>(responseDto: T, status = 200) {
@@ -248,12 +260,22 @@ export const billingHandlers = [
 
   http.get(
     `${process.env.NEXT_PUBLIC_API_URL}/credit-purchases/:orderId/payment-status`,
-    ({ params }) =>
-      apiResponse({
+    ({ params }) => {
+      /* 웹훅 확정이 늦어지는 상황을 재현한다. 확인이 지연돼도 재결제를
+       * 유도하지 않는지 보려는 용도다. */
+      if (readMockFlag('mock:billing:credit-status') === 'pending') {
+        return apiResponse({
+          orderId: Number(params.orderId),
+          orderStatus: 'PENDING',
+          paymentStatus: 'PAY_PENDING',
+        })
+      }
+      return apiResponse({
         orderId: Number(params.orderId),
         orderStatus: 'COMPLETED',
         paymentStatus: 'PAID',
       })
+    }
   ),
 
   http.post(
@@ -549,6 +571,28 @@ export const billingHandlers = [
           400
         )
       }
+
+      /* 결제창 복귀 후 등록 실패를 재현한다. 409는 앞선 요청이 이미 등록을
+       * 끝낸 경우라 카드를 남겨두고, 5xx는 등록 없이 실패한다. */
+      const forcedError = readMockFlag('mock:billing:register-error')
+      if (forcedError === '409') {
+        currentSummary.billingMethod = {
+          status: 'registered',
+          id: `billing-method-${Date.now()}`,
+          brand: 'Visa',
+          last4: '5588',
+          updatedAt: new Date().toISOString().slice(0, 10),
+        }
+        return errorResponse(
+          'PAYMENT_METHOD_409_BILLING_KEY',
+          'Conflict: Billing key already registered',
+          409
+        )
+      }
+      if (forcedError === '500') {
+        return errorResponse('500', 'Internal Server Error', 500)
+      }
+
       currentSummary.billingMethod = {
         status: 'registered',
         id: `billing-method-${Date.now()}`,

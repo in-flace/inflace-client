@@ -2,11 +2,15 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
 
 import {
   BILLING_TABS,
   isBillingTab,
+  useBillingReturn,
   useBillingSummary,
+  type BillingAction,
+  type BillingReturnOutcome,
   type BillingTab,
 } from '@/features/me/credit'
 import { Button } from '@/shared/ui/button'
@@ -59,6 +63,13 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   )
 }
 
+/* 실패 모달 제목. 본문(사유)은 에러 문구가 채운다 */
+const RETURN_FAILED_TITLE: Partial<Record<BillingAction, string>> = {
+  registerBillingMethod: '카드 등록을 완료하지 못했어요',
+  changeBillingMethod: '결제수단 변경을 완료하지 못했어요',
+  purchaseCredits: '결제를 완료하지 못했어요',
+}
+
 export function MyCreditPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -90,6 +101,55 @@ export function MyCreditPage() {
     /* URL 동기화는 부수효과다. 실패해도 화면 전환은 이미 끝나 있다. */
     router.replace(`/me/credit?tab=${tab}`, { scroll: false })
   }
+
+  /* 모바일 결제창에서 돌아왔을 때 결과를 PC와 같은 모달로 보여준다.
+   * PC는 결제창이 이 페이지 안에서 끝나 여기로 오지 않는다. */
+  const handleBillingReturn = (outcome: BillingReturnOutcome) => {
+    switch (outcome.kind) {
+      case 'registered':
+        setModal({
+          type: outcome.subscribed ? 'subscribeDone' : 'billingRegistered',
+        })
+        return
+      case 'changed':
+        setModal({ type: 'billingChanged' })
+        return
+      case 'subscriptionFailed':
+        /* 카드는 등록됐다. 카드를 다시 등록하게 하면 409라, 구독 탭으로 보내
+         * 결제만 다시 하게 한다. */
+        handleTabChange('subscription')
+        setModal({
+          type: 'billingReturnFailed',
+          title: '카드는 등록되었어요',
+          message: outcome.message,
+          retry: null,
+        })
+        return
+      case 'creditConfirmed':
+        setModal(null)
+        toast.success('크레딧 구매가 완료되었습니다.')
+        return
+      case 'creditPending':
+        setModal(null)
+        toast.info(outcome.message)
+        return
+      case 'failed':
+        setModal({
+          type: 'billingReturnFailed',
+          title:
+            RETURN_FAILED_TITLE[outcome.action] ?? '결제를 완료하지 못했어요',
+          message: outcome.message,
+          retry: outcome.retry,
+        })
+        return
+    }
+  }
+
+  useBillingReturn({
+    enabled: !!summary,
+    onPending: () => setModal({ type: 'billingReturnPending' }),
+    onOutcome: handleBillingReturn,
+  })
 
   return (
     <div className='flex w-full max-w-[118.6rem] min-w-0 flex-1 flex-col gap-24 px-16 pb-40 sm:px-24 lg:gap-32 lg:px-0'>

@@ -466,6 +466,19 @@ async function fetchCreditPurchaseStatus(orderId: number) {
   return response.data.responseDto
 }
 
+/* 폴링 결과는 "결제가 실패했다"와 "아직 확인되지 않았다"로 갈리고, 사용자에게
+ * 줄 지시가 정반대다. 서버가 웹훅으로 결제를 확정하므로 확인이 늦을 뿐인데
+ * 실패로 안내하면 사용자가 다시 결제해 이중 결제가 난다. 그래서 코드로 구분한다. */
+export class CreditPurchaseStatusError extends Error {
+  constructor(
+    message: string,
+    readonly code: 'CREDIT_PURCHASE_FAILED' | 'CREDIT_PURCHASE_PENDING'
+  ) {
+    super(message)
+    this.name = 'CreditPurchaseStatusError'
+  }
+}
+
 async function waitForCreditPurchase(orderId: number) {
   for (
     let attempt = 0;
@@ -479,7 +492,10 @@ async function waitForCreditPurchase(orderId: number) {
     }
 
     if (status.paymentStatus === 'FAILED' || status.orderStatus === 'FAILED') {
-      throw new Error('크레딧 결제에 실패했습니다. 결제수단을 확인해주세요.')
+      throw new CreditPurchaseStatusError(
+        '크레딧 결제에 실패했습니다.',
+        'CREDIT_PURCHASE_FAILED'
+      )
     }
 
     if (attempt < CREDIT_PURCHASE_MAX_POLL_COUNT - 1) {
@@ -487,7 +503,10 @@ async function waitForCreditPurchase(orderId: number) {
     }
   }
 
-  throw new Error('결제 확인이 지연되고 있습니다. 잠시 후 다시 확인해주세요.')
+  throw new CreditPurchaseStatusError(
+    '결제 확인이 지연되고 있습니다.',
+    'CREDIT_PURCHASE_PENDING'
+  )
 }
 
 export const PAYMENT_HISTORY_PAGE_SIZE = 10

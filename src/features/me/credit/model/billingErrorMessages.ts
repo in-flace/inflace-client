@@ -1,5 +1,6 @@
 import { isAxiosError } from 'axios'
 
+import { CreditPurchaseStatusError } from '../api/billingApi'
 import { PortOnePaymentError } from '../lib/portone'
 
 /* 실패 문구는 "무엇이 안 됐는지"로 시작해야 사용자가 상황을 안다.
@@ -128,6 +129,12 @@ function getErrorCode(error: unknown) {
  * 콘솔에만 남기고 화면에는 올리지 않는다. */
 export function getBillingErrorMessage(error: unknown, action: BillingAction) {
   const fallback = ACTION_FALLBACKS[action] + RETRY_SUFFIX
+
+  if (error instanceof CreditPurchaseStatusError) {
+    return error.code === 'CREDIT_PURCHASE_PENDING'
+      ? CREDIT_CONFIRM_PENDING_MESSAGE
+      : '크레딧 결제에 실패했습니다. 결제수단을 확인해주세요.'
+  }
 
   if (error instanceof PortOnePaymentError) {
     const known = MESSAGE_BY_PORTONE_CODE[error.code]
