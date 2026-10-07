@@ -1,18 +1,212 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { toast } from 'sonner'
+
+import {
+  BILLING_TABS,
+  isBillingTab,
+  useBillingReturn,
+  useBillingSummary,
+  type BillingAction,
+  type BillingReturnOutcome,
+  type BillingTab,
+} from '@/features/me/credit'
 import { Button } from '@/shared/ui/button'
+import { TabGroup } from '@/shared/ui/tabGroup'
+import { BillingModals } from './BillingModals'
+import { StatusBadge } from './BillingPrimitives'
+import {
+  BillingMethodTab,
+  CreditTab,
+  HistoryTab,
+  SubscriptionTab,
+} from './BillingTabs'
+import type { ModalState } from './billingPageTypes'
+
+function LoadingState() {
+  return (
+    <div
+      role='status'
+      aria-live='polite'
+      className='flex h-[40rem] items-center justify-center rounded-16 bg-white shadow-[0px_2px_6px_0px_#0D0D0D0A]'>
+      <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+        구독·결제 정보를 불러오는 중입니다…
+      </span>
+    </div>
+  )
+}
+
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div
+      role='alert'
+      className='flex min-h-[32rem] flex-col items-center justify-center gap-20 rounded-16 bg-white p-24 text-center shadow-[0px_2px_6px_0px_#0D0D0D0A]'>
+      <div className='flex flex-col gap-8'>
+        <strong className='text-noto-title-sm-bold text-pretty text-text-and-icon-default'>
+          구독·결제 정보를 불러오지 못했습니다
+        </strong>
+        <p className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          네트워크 상태를 확인한 뒤 다시 시도해주세요.
+        </p>
+      </div>
+      <Button
+        type='button'
+        color='primary'
+        size='lg'
+        variant='filled'
+        onClick={onRetry}>
+        다시 불러오기
+      </Button>
+    </div>
+  )
+}
+
+/* 실패 모달 제목. 본문(사유)은 에러 문구가 채운다 */
+const RETURN_FAILED_TITLE: Partial<Record<BillingAction, string>> = {
+  registerBillingMethod: '카드 등록을 완료하지 못했어요',
+  changeBillingMethod: '결제수단 변경을 완료하지 못했어요',
+  purchaseCredits: '결제를 완료하지 못했어요',
+}
 
 export function MyCreditPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [modal, setModal] = useState<ModalState>(null)
+  const { data: summary, isLoading, isError, refetch } = useBillingSummary()
+
+  const tabParam = searchParams?.get('tab') ?? null
+
+  /* 화면에 무엇을 그릴지는 이 상태가 정한다. URL에서만 파생시켰더니
+   * router.replace가 내비게이션을 일으키지 못할 때 탭이 통째로 멈췄다
+   * (배포 환경에서 재현: 핸들러는 정상 실행되는데 URL이 바뀌지 않음).
+   * URL은 공유·새로고침·뒤로가기를 위해 뒤따라 맞춰주는 값으로 둔다. */
+  const [activeTab, setActiveTab] = useState<BillingTab>(() =>
+    isBillingTab(tabParam) ? tabParam : 'subscription'
+  )
+
+  /* 뒤로가기나 포트원 리다이렉트처럼 URL이 밖에서 바뀌는 경우를 따라간다.
+   * 렌더 중 보정이라 effect를 거치지 않아 중간 프레임이 생기지 않는다. */
+  const [syncedTabParam, setSyncedTabParam] = useState(tabParam)
+  if (tabParam !== syncedTabParam) {
+    setSyncedTabParam(tabParam)
+    if (isBillingTab(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }
+
+  const handleTabChange = (tab: BillingTab) => {
+    setActiveTab(tab)
+    /* URL 동기화는 부수효과다. 실패해도 화면 전환은 이미 끝나 있다. */
+    router.replace(`/me/credit?tab=${tab}`, { scroll: false })
+  }
+
+  /* 모바일 결제창에서 돌아왔을 때 결과를 PC와 같은 모달로 보여준다.
+   * PC는 결제창이 이 페이지 안에서 끝나 여기로 오지 않는다. */
+  const handleBillingReturn = (outcome: BillingReturnOutcome) => {
+    switch (outcome.kind) {
+      case 'registered':
+        setModal({
+          type: outcome.subscribed ? 'subscribeDone' : 'billingRegistered',
+        })
+        return
+      case 'changed':
+        setModal({ type: 'billingChanged' })
+        return
+      case 'subscriptionFailed':
+        /* 카드는 등록됐다. 카드를 다시 등록하게 하면 409라, 구독 탭으로 보내
+         * 결제만 다시 하게 한다. */
+        handleTabChange('subscription')
+        setModal({
+          type: 'billingReturnFailed',
+          title: '카드는 등록되었어요',
+          message: outcome.message,
+          retry: null,
+        })
+        return
+      case 'creditConfirmed':
+        setModal(null)
+        toast.success('크레딧 구매가 완료되었습니다.')
+        return
+      case 'creditPending':
+        setModal(null)
+        toast.info(outcome.message)
+        return
+      case 'failed':
+        setModal({
+          type: 'billingReturnFailed',
+          title:
+            RETURN_FAILED_TITLE[outcome.action] ?? '결제를 완료하지 못했어요',
+          message: outcome.message,
+          retry: outcome.retry,
+        })
+        return
+    }
+  }
+
+  useBillingReturn({
+    enabled: !!summary,
+    onPending: () => setModal({ type: 'billingReturnPending' }),
+    onOutcome: handleBillingReturn,
+  })
+
   return (
-    <div className='flex max-h-[60.2rem] max-w-[118.6rem] flex-1 items-center justify-center'>
-      <div className='flex h-fit flex-col items-center gap-20'>
-        <span className='text-noto-body-md-normal text-text-and-icon-secondary'>
-          테스트 결제 페이지입니다.
-        </span>
-        <Button color='primary' size='lg' variant='filled'>
-          결제하기
-        </Button>
-      </div>
+    <div className='flex w-full max-w-[118.6rem] min-w-0 flex-1 flex-col gap-24 px-16 pb-40 sm:px-24 lg:gap-32 lg:px-0'>
+      <header className='flex items-center justify-between'>
+        <h1 className='text-noto-title-sm-bold text-text-and-icon-default'>
+          구독·결제
+        </h1>
+        {summary?.subscription.status === 'paymentFailed' && (
+          <StatusBadge tone='error'>결제 확인 필요</StatusBadge>
+        )}
+      </header>
+      <TabGroup
+        tabs={BILLING_TABS}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        type='fill'
+        scrollable
+      />
+      <main className='min-w-0'>
+        {isLoading ? (
+          <LoadingState />
+        ) : isError || !summary ? (
+          <ErrorState onRetry={() => void refetch()} />
+        ) : (
+          <>
+            {activeTab === 'subscription' && (
+              <SubscriptionTab
+                summary={summary}
+                onOpenModal={setModal}
+                onRetry={() => void refetch()}
+              />
+            )}
+            {activeTab === 'billing-method' && (
+              <BillingMethodTab summary={summary} onOpenModal={setModal} />
+            )}
+            {activeTab === 'credit' && (
+              <CreditTab
+                summary={summary}
+                onOpenModal={setModal}
+                onRequestSubscription={() => handleTabChange('subscription')}
+              />
+            )}
+            {activeTab === 'history' && (
+              <HistoryTab
+                onOpenModal={setModal}
+                onRequestSubscription={() => handleTabChange('subscription')}
+              />
+            )}
+            <BillingModals
+              modal={modal}
+              summary={summary}
+              onClose={() => setModal(null)}
+              onOpenModal={setModal}
+            />
+          </>
+        )}
+      </main>
     </div>
   )
 }

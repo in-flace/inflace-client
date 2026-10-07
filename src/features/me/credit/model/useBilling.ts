@@ -1,0 +1,155 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+
+import { useAuthStore, useCurrentUser } from '@/entities/user'
+import {
+  cancelSubscription,
+  changeBillingMethod,
+  checkoutCredits,
+  confirmCreditCheckout,
+  deleteBillingMethod,
+  extendCreditBatch,
+  fetchBillingSummary,
+  fetchBusinessInfo,
+  fetchPaymentHistory,
+  purchaseCredits,
+  refundCreditPurchase,
+  registerBillingMethod,
+  requestCashReceipt,
+  requestTaxInvoice,
+  saveBusinessInfo,
+  resumeSubscription,
+  startSubscription,
+} from '../api/billingApi'
+import type { BillingSummary } from '../types'
+
+export const billingQueryKeys = {
+  summary: (userId: string | null) => ['billing', 'summary', userId] as const,
+  paymentHistory: (userId: string | null, page: number) =>
+    ['billing', 'paymentHistory', userId, page] as const,
+  businessInfo: (userId: string | null) =>
+    ['billing', 'businessInfo', userId] as const,
+}
+
+/* 내역은 페이지 단위로 따로 조회한다. 요약(summary)에 묶으면 페이지를 넘길
+ * 때마다 크레딧·구독·결제수단까지 다시 받아오게 된다. */
+export function usePaymentHistory(page: number) {
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
+
+  return useQuery({
+    queryKey: billingQueryKeys.paymentHistory(userId, page),
+    queryFn: () => fetchPaymentHistory(page),
+    enabled: !!accessToken && !!userId,
+    /* 페이지를 넘기는 동안 이전 페이지를 남겨 표가 비어 보이지 않게 한다. */
+    placeholderData: (previous) => previous,
+  })
+}
+
+function useBillingUserId() {
+  return useCurrentUser().data?.userDetails.id ?? null
+}
+
+export function useBillingSummary() {
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
+
+  return useQuery({
+    queryKey: billingQueryKeys.summary(userId),
+    queryFn: fetchBillingSummary,
+    enabled: !!accessToken && !!userId,
+  })
+}
+
+function useBillingMutation<TVariables = void>(
+  mutationFn: (variables: TVariables) => Promise<BillingSummary>
+) {
+  const queryClient = useQueryClient()
+  const userId = useBillingUserId()
+
+  return useMutation({
+    mutationFn,
+    onSuccess: (summary) => {
+      queryClient.setQueryData(billingQueryKeys.summary(userId), summary)
+    },
+  })
+}
+
+export function useStartSubscription() {
+  return useBillingMutation(startSubscription)
+}
+
+export function useCancelSubscription() {
+  return useBillingMutation(cancelSubscription)
+}
+
+export function useResumeSubscription() {
+  return useBillingMutation(() => resumeSubscription())
+}
+
+export function useRegisterBillingMethod() {
+  return useBillingMutation(registerBillingMethod)
+}
+
+export function useChangeBillingMethod() {
+  return useBillingMutation(changeBillingMethod)
+}
+
+/* 세금계산서·현금영수증 신청 폼을 기존 사업자 정보로 채우는 데 쓴다. */
+export function useBusinessInfo(enabled: boolean) {
+  const accessToken = useAuthStore((state) => state.accessToken)
+  const userId = useBillingUserId()
+
+  return useQuery({
+    queryKey: billingQueryKeys.businessInfo(userId),
+    queryFn: fetchBusinessInfo,
+    enabled: enabled && !!accessToken && !!userId,
+  })
+}
+
+export function useSaveBusinessInfo() {
+  const queryClient = useQueryClient()
+  const userId = useBillingUserId()
+
+  return useMutation({
+    mutationFn: saveBusinessInfo,
+    onSuccess: (_, payload) => {
+      queryClient.setQueryData(billingQueryKeys.businessInfo(userId), payload)
+    },
+  })
+}
+
+export function useRequestCashReceipt() {
+  return useMutation({ mutationFn: requestCashReceipt })
+}
+
+/* 발행 신청은 요약·내역 데이터를 바꾸지 않으므로 캐시를 건드리지 않는다. */
+/* 결제창을 띄우기 전 주문을 만드는 단계라 요약 캐시는 건드리지 않는다. */
+export function useCheckoutCredits() {
+  return useMutation({ mutationFn: checkoutCredits })
+}
+
+export function useConfirmCreditCheckout() {
+  return useBillingMutation(confirmCreditCheckout)
+}
+
+export function useRefundCreditPurchase() {
+  return useBillingMutation(refundCreditPurchase)
+}
+
+export function useRequestTaxInvoice() {
+  return useMutation({
+    mutationFn: (orderId: number) => requestTaxInvoice(orderId),
+  })
+}
+
+export function useDeleteBillingMethod() {
+  return useBillingMutation(() => deleteBillingMethod())
+}
+
+export function usePurchaseCredits() {
+  return useBillingMutation(purchaseCredits)
+}
+
+export function useExtendCreditBatch() {
+  return useBillingMutation(extendCreditBatch)
+}

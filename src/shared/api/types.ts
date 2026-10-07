@@ -20,4 +20,3 @@ export interface PageInfo {
   nextCursor: string | null
   hasNext: boolean
 }
-

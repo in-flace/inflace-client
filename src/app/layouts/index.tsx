@@ -95,11 +95,11 @@ export function RootLayout({ children }: { children: React.ReactNode }) {
             <AuthInitializer />
             <GlobalModalLayer />
             <InquiryWidget />
-            <Toaster />
+            <Toaster position='top-center' />
             <div className='flex flex-1'>
               <SidebarStoreProvider>
                 <AppSidebar />
-                <main className='relative flex min-h-screen flex-1 flex-col'>
+                <main className='relative flex min-h-screen min-w-0 flex-1 flex-col'>
                   <SidebarTrigger />
                   <Header />
                   <div className='flex-1'>{children}</div>

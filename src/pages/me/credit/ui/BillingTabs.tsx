@@ -1,0 +1,860 @@
+'use client'
+
+import { useState } from 'react'
+import { toast } from 'sonner'
+
+import {
+  formatDate,
+  formatWon,
+  getNearestExpiryDate,
+  getTotalCredits,
+  usePaymentHistory,
+  useResumeSubscription,
+  type BillingHistoryItem,
+  type BillingHistoryStatus,
+  type BillingPlan,
+  type BillingSummary,
+  type CreditBatch,
+  type PlanUnavailableReason,
+} from '@/features/me/credit'
+import CheckIcon from '@/shared/assets/check-bold.svg'
+import ErrorIcon from '@/shared/assets/error-thin.svg'
+import PaymentIcon from '@/shared/assets/payment-bold.svg'
+import { cn } from '@/shared/lib/utils'
+import { Button } from '@/shared/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/shared/ui/table'
+import { SectionCard, StatusBadge } from './BillingPrimitives'
+import type { ModalState } from './billingPageTypes'
+
+/* 서버가 구매 불가로 내려준 이유를 사용자 문구로 옮긴다. */
+const PLAN_UNAVAILABLE_LABEL: Record<PlanUnavailableReason, string> = {
+  SOLD_OUT: '준비된 수량이 모두 소진되었습니다.',
+  NOT_ON_SALE: '현재 판매하지 않는 플랜입니다.',
+  REJOIN_NOT_ALLOWED: '이전 구독 이력이 있어 다시 선택할 수 없습니다.',
+}
+
+function PlanCard({
+  plan,
+  disabled,
+  onSubscribe,
+}: {
+  plan: BillingPlan
+  disabled: boolean
+  onSubscribe: () => void
+}) {
+  return (
+    <article className='relative flex min-h-[32rem] flex-1 flex-col rounded-16 border border-stroke-border-gray-default bg-white p-24 sm:min-h-[36.8rem] sm:p-32'>
+      {plan.badge && (
+        <span className='absolute top-[-2.4rem] right-0 rounded-t-12 rounded-br-0 rounded-bl-12 bg-[#FFF0F0] px-16 py-[1.3rem] text-noto-label-sm-bold text-feedback-error sm:px-24 sm:text-noto-label-md-bold'>
+          {plan.badge}
+        </span>
+      )}
+      <div className='flex flex-1 flex-col gap-32'>
+        <div className='flex flex-col gap-16'>
+          <h3 className='text-noto-title-sm-bold text-text-and-icon-default'>
+            {plan.name}
+          </h3>
+          <div className='flex items-end gap-8'>
+            {plan.originalPrice && (
+              <span className='pb-6 text-noto-body-lg-normal text-text-and-icon-disabled line-through'>
+                {formatWon(plan.originalPrice)}
+              </span>
+            )}
+            <span className='text-ibm-heading-md-bold text-text-and-icon-default'>
+              {formatWon(plan.price)}
+            </span>
+            <span className='pb-8 text-noto-body-sm-normal text-text-and-icon-secondary'>
+              / 월
+            </span>
+          </div>
+        </div>
+        <ul className='flex flex-col gap-8'>
+          {plan.features.map((feature) => (
+            <li
+              key={feature}
+              className='flex items-center gap-6 text-noto-body-sm-normal text-text-and-icon-primary'>
+              <CheckIcon className='size-20 text-brand-primary' />
+              {feature}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className='flex flex-col gap-8'>
+        <Button
+          type='button'
+          color={plan.code === 'EARLY_BIRD' ? 'primary' : 'gray'}
+          size='lg'
+          variant='filled'
+          disabled={disabled || !plan.available}
+          onClick={onSubscribe}
+          className='h-44 w-full'>
+          선택하기
+        </Button>
+        {!plan.available && plan.unavailableReason && (
+          <p className='text-center text-noto-body-xs-normal text-text-and-icon-secondary'>
+            {PLAN_UNAVAILABLE_LABEL[plan.unavailableReason]}
+          </p>
+        )}
+      </div>
+    </article>
+  )
+}
+
+export function SubscriptionTab({
+  summary,
+  onOpenModal,
+  onRetry,
+}: {
+  summary: BillingSummary
+  onOpenModal: (modal: ModalState) => void
+  onRetry: () => void
+}) {
+  const { subscription, plans } = summary
+  const resumeSubscriptionMutation = useResumeSubscription()
+  const isSubscribed =
+    subscription.status === 'paymentPending' ||
+    subscription.status === 'active' ||
+    subscription.status === 'cancelScheduled' ||
+    subscription.status === 'paymentFailed'
+
+  if (!isSubscribed) {
+    return (
+      <SectionCard className='flex min-h-[64.2rem] flex-col gap-40 px-20 py-32 sm:px-32 sm:py-48'>
+        {plans.length === 0 ? (
+          /* 플랜은 서버에서 받는다. 목록이 비면 카드 자리가 통째로 비어
+           * 화면이 깨진 것처럼 보이므로 상태를 드러낸다. */
+          <div className='flex flex-1 flex-col items-center justify-center gap-20 text-center'>
+            <div className='flex flex-col gap-8'>
+              <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+                플랜 정보를 불러오지 못했습니다
+              </h3>
+              <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+                잠시 후 다시 시도해주세요.
+              </p>
+            </div>
+            <Button
+              type='button'
+              color='primary'
+              size='lg'
+              variant='filled'
+              onClick={onRetry}>
+              다시 불러오기
+            </Button>
+          </div>
+        ) : (
+          <div className='grid grid-cols-1 gap-40 lg:grid-cols-2 lg:gap-16'>
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.code}
+                plan={plan}
+                disabled={false}
+                onSubscribe={() => onOpenModal({ type: 'subscribe', plan })}
+              />
+            ))}
+          </div>
+        )}
+        <div className='flex flex-col gap-20'>
+          <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+            플랜 구독과 크레딧, 무엇이 다른가요?
+          </h3>
+          <div className='flex flex-col gap-12 text-noto-body-sm-normal text-text-and-icon-secondary'>
+            <p className='before:mr-8 before:content-["·"]'>
+              최대한 예산 낭비없이 필요하신 만큼만 사용하실 수 있도록 플랜
+              구독과 크레딧제를 별도로 운영하고 있습니다.
+            </p>
+            <p className='before:mr-8 before:content-["·"]'>
+              플랜을 구독하실 경우, 인플루언서 검색 탭 내에서 사용할 수 있는
+              검색, 성과 분석, 광고 분석 기능을 무제한으로 사용할 수 있습니다.
+            </p>
+            <p className='before:mr-8 before:content-["·"]'>
+              크레딧은 경쟁 채널 분석을 할 수 있는 별도의 이용권입니다. 1크레딧
+              당 1회의 분석을 진행할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      </SectionCard>
+    )
+  }
+
+  /* 재가입 시 적용되는 정상가. 서버 플랜 목록에서 가져와 하드코딩하지 않는다. */
+  const listPrice = plans.find((plan) => plan.code === 'PRO')?.price ?? null
+
+  return (
+    <div className='flex flex-col gap-24'>
+      {subscription.status === 'active' &&
+        subscription.planCode === 'EARLY_BIRD' && (
+          <SectionCard className='bg-[#FFF0F0] p-24'>
+            <div className='flex min-w-0 flex-col gap-8'>
+              <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+                {subscription.planName ?? '얼리버드'} 플랜 만료 안내
+              </h3>
+              <p className='text-noto-body-xs-normal text-pretty text-text-and-icon-secondary'>
+                {subscription.planName ?? '얼리버드'} 플랜은 다음 결제일까지
+                이용 가능하며, 해지 후 재가입하면 정상가
+                {listPrice !== null ? ` ${formatWon(listPrice)}` : ''}이
+                적용됩니다.
+              </p>
+            </div>
+          </SectionCard>
+        )}
+      {subscription.status === 'paymentFailed' && (
+        <SectionCard className='bg-[#FFF0F0] p-24'>
+          <div className='flex flex-col items-start justify-between gap-24 sm:flex-row sm:items-center'>
+            <div className='flex min-w-0 flex-col gap-8'>
+              <h3 className='flex items-center gap-8 text-noto-body-md-bold text-feedback-error'>
+                <ErrorIcon aria-hidden='true' className='size-20 shrink-0' />
+                이번 달 구독 결제를 실패했습니다.
+              </h3>
+              <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+                {subscription.paymentFailedReason ??
+                  '결제수단 관리에서 다시 한번 확인해주세요.'}
+              </p>
+            </div>
+            <Button
+              type='button'
+              color='primary'
+              size='md'
+              variant='filled'
+              onClick={() => onOpenModal({ type: 'billingChange' })}
+              className='h-44 w-full shrink-0 sm:w-auto'>
+              결제 수단 변경하기
+            </Button>
+          </div>
+        </SectionCard>
+      )}
+      {subscription.status === 'cancelScheduled' && (
+        <SectionCard className='bg-[#FEF6E7] p-24'>
+          <div className='flex min-w-0 flex-col gap-8'>
+            <h3 className='text-noto-body-md-bold text-pretty text-text-and-icon-default'>
+              구독 해지가 예약되었습니다.
+            </h3>
+            <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+              {formatDate(subscription.cancelScheduledDate)}까지 이용 가능하며,
+              그 전에는 해지를 철회할 수 있습니다.
+            </p>
+          </div>
+        </SectionCard>
+      )}
+      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 xl:grid-cols-4 xl:gap-24'>
+        <MetricCard
+          label='현재 플랜'
+          value={subscription.planName ?? '-'}
+          suffix='월 구독'
+        />
+        <MetricCard
+          label='월 결제 금액'
+          value={formatWon(subscription.monthlyPrice)}
+          suffix='VAT 포함'
+        />
+        <MetricCard
+          label='다음 결제일'
+          value={
+            subscription.status === 'cancelScheduled'
+              ? '-'
+              : formatDate(subscription.nextPaymentDate)
+          }
+          suffix={
+            subscription.status !== 'cancelScheduled' &&
+            subscription.nextPaymentDate
+              ? '매월 자동 결제'
+              : undefined
+          }
+        />
+        <MetricCard
+          label='보유 크레딧'
+          value={`${getTotalCredits(summary.creditBatches)}`}
+        />
+      </div>
+      <SectionCard className='flex flex-col gap-20'>
+        <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+          구독 정책
+        </h3>
+        <ul className='flex flex-col gap-8 text-noto-body-sm-normal text-text-and-icon-secondary [&>li]:before:mr-8 [&>li]:before:content-["·"]'>
+          <li>구독 유지 중에는 매월 3 크레딧이 자동 지급됩니다.</li>
+          <li>월 지급 크레딧은 다음 달로 이월되지 않습니다.</li>
+          <li>해지해도 결제 완료 기간까지 이용할 수 있습니다.</li>
+          <li>크레딧의 유효기간은 다음 결제일까지 입니다.</li>
+        </ul>
+      </SectionCard>
+      {/* 시안은 두 상태 모두 하단 우측 같은 자리에 버튼을 둔다. */}
+      {subscription.status === 'cancelScheduled' ? (
+        <div className='flex justify-end'>
+          <Button
+            type='button'
+            color='secondary'
+            size='md'
+            variant='outlined'
+            disabled={resumeSubscriptionMutation.isPending}
+            onClick={async () => {
+              try {
+                await resumeSubscriptionMutation.mutateAsync()
+                toast.success('구독 해지 예약을 취소했습니다.')
+              } catch {
+                toast.error(
+                  '해지 취소에 실패했습니다. 잠시 후 다시 시도해주세요.'
+                )
+              }
+            }}>
+            {resumeSubscriptionMutation.isPending
+              ? '처리 중…'
+              : '해지 취소하기'}
+          </Button>
+        </div>
+      ) : (
+        subscription.status === 'active' && (
+          <div className='flex justify-end'>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              onClick={() => onOpenModal({ type: 'cancelReason' })}>
+              해지하기
+            </Button>
+          </div>
+        )
+      )}
+    </div>
+  )
+}
+
+function MetricCard({
+  label,
+  value,
+  suffix,
+}: {
+  label: string
+  value: string
+  suffix?: string
+}) {
+  return (
+    <SectionCard className='h-[13rem] p-24 sm:h-[13.4rem] sm:p-32'>
+      <div className='flex h-full flex-col justify-between'>
+        <span className='text-noto-body-sm-bold text-text-and-icon-secondary'>
+          {label}
+        </span>
+        <div className='flex items-end gap-8'>
+          <strong className='text-noto-title-sm-bold text-text-and-icon-default'>
+            {value}
+          </strong>
+          {/* 시안은 뱃지가 아니라 값 옆의 작은 보조 텍스트다. */}
+          {suffix && (
+            <span className='pb-2 text-noto-body-xs-normal text-text-and-icon-secondary'>
+              {suffix}
+            </span>
+          )}
+        </div>
+      </div>
+    </SectionCard>
+  )
+}
+
+export function BillingMethodTab({
+  summary,
+  onOpenModal,
+}: {
+  summary: BillingSummary
+  onOpenModal: (modal: ModalState) => void
+}) {
+  const { billingMethod } = summary
+
+  if (billingMethod.status === 'none') {
+    return (
+      <SectionCard className='flex min-h-[17.8rem] flex-col items-center justify-center gap-20 text-center'>
+        {/* 시안은 제목 아래 보안 안내, 그다음 버튼 순이다.
+         * 기획서에 있던 '카드를 등록하면 …' 안내는 시안에 없어 뺀다. */}
+        <div className='flex flex-col items-center gap-8'>
+          <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+            등록된 결제수단이 없습니다.
+          </h3>
+          <p className='max-w-[58rem] text-noto-body-xs-normal text-text-and-icon-secondary'>
+            카드번호는 인플레이스에 저장되지 않으며 포트원/PG사를 통해 안전하게
+            처리됩니다.
+          </p>
+        </div>
+        <Button
+          type='button'
+          color='primary'
+          size='lg'
+          variant='filled'
+          onClick={() => onOpenModal({ type: 'billingRegister' })}>
+          카드 등록하기
+        </Button>
+      </SectionCard>
+    )
+  }
+
+  /* 시안은 카드 안에 결제수단만 두고, 변경·삭제 버튼은 카드 바깥
+   * 우측 아래에 둔다. */
+  return (
+    <div className='flex flex-col gap-16'>
+      <SectionCard className='p-24'>
+        <div className='flex min-w-0 items-center gap-12'>
+          <PaymentIcon
+            aria-hidden='true'
+            className='size-24 shrink-0 text-text-and-icon-primary'
+          />
+          <div className='flex min-w-0 flex-col gap-4'>
+            <span className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+              결제 수단
+            </span>
+            <strong className='truncate text-noto-body-sm-bold text-text-and-icon-primary'>
+              {billingMethod.brand} ···· {billingMethod.last4}
+            </strong>
+          </div>
+        </div>
+      </SectionCard>
+      <div className='flex justify-end gap-12'>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='filled'
+          onClick={() => onOpenModal({ type: 'billingChange' })}>
+          변경하기
+        </Button>
+        <Button
+          type='button'
+          color='secondary'
+          size='md'
+          variant='outlined'
+          onClick={() => onOpenModal({ type: 'billingDelete' })}>
+          삭제하기
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function CreditTab({
+  summary,
+  onOpenModal,
+  onRequestSubscription,
+}: {
+  summary: BillingSummary
+  onOpenModal: (modal: ModalState) => void
+  onRequestSubscription: () => void
+}) {
+  const isSubscribed = summary.subscription.status !== 'none'
+
+  if (!isSubscribed) {
+    return (
+      <EmptyActionCard
+        title='크레딧 구매 및 분석 실행은 구독자 전용 기능입니다.'
+        actionText='구독 탭으로 이동'
+        onAction={onRequestSubscription}
+      />
+    )
+  }
+
+  return (
+    <div className='flex flex-col gap-24'>
+      {/* 시안은 구매 버튼이 탭 바로 아래, 보유 현황 카드가 그 아래다. */}
+      <div className='flex justify-start'>
+        <Button
+          type='button'
+          color='primary'
+          size='lg'
+          variant='filled'
+          onClick={() => onOpenModal({ type: 'creditPurchase' })}>
+          크레딧 구매
+        </Button>
+      </div>
+      <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
+        <MetricCard
+          label='보유 크레딧'
+          value={`${getTotalCredits(summary.creditBatches)}`}
+        />
+        <MetricCard
+          label='가장 빠른 만료일'
+          value={formatDate(getNearestExpiryDate(summary.creditBatches))}
+        />
+      </div>
+      <SectionCard className='min-h-[44.8rem] p-24'>
+        <Table className='min-w-[100rem] table-fixed'>
+          <TableHeader>
+            <TableRow>
+              <TableHead>결제 날짜</TableHead>
+              <TableHead>만료 일자</TableHead>
+              <TableHead>유형</TableHead>
+              <TableHead>구매 크레딧</TableHead>
+              <TableHead>사용 크레딧</TableHead>
+              <TableHead>연장 신청</TableHead>
+              <TableHead>환불 신청</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {summary.creditBatches.map((batch) => (
+              <TableRow key={batch.id}>
+                <TableCell>{formatDate(batch.paymentDate)}</TableCell>
+                <TableCell>{formatDate(batch.expiryDate)}</TableCell>
+                <TableCell>
+                  {batch.type === 'subscription' ? '월 제공' : '구매'}
+                </TableCell>
+                <TableCell>{batch.purchasedCredits} 크레딧</TableCell>
+                <TableCell>{batch.usedCredits} 크레딧</TableCell>
+                <TableCell>
+                  <Button
+                    type='button'
+                    color='gray'
+                    size='xs'
+                    variant='filled'
+                    disabled={!batch.extendable || !!batch.refundedAt}
+                    onClick={() => onOpenModal({ type: 'creditExtend', batch })}
+                    className='h-28 w-full'>
+                    {getCreditExtendLabel(batch)}
+                  </Button>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    type='button'
+                    color={batch.refundable ? 'primary' : 'gray'}
+                    size='xs'
+                    variant='filled'
+                    disabled={!batch.refundable}
+                    onClick={() => onOpenModal({ type: 'creditRefund', batch })}
+                    className='h-28 w-full'>
+                    {getCreditRefundLabel(batch)}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <div className='mt-32 flex items-center justify-between'>
+          <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+            결과
+            <strong className='ml-8 text-brand-primary'>
+              {summary.creditBatches.length}
+            </strong>
+          </span>
+          <div className='flex gap-12'>
+            <Button
+              type='button'
+              color='gray'
+              size='md'
+              variant='filled'
+              disabled>
+              이전
+            </Button>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              disabled>
+              다음
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  )
+}
+
+function getCreditExtendLabel(batch: CreditBatch) {
+  if (batch.extendedAt) return '연장 완료'
+  if (!batch.extendable || batch.refundedAt) return '연장 불가'
+  return '연장 신청'
+}
+
+function getCreditRefundLabel(batch: CreditBatch) {
+  if (batch.refundedAt) return '환불 완료'
+  if (!batch.refundable) return '환불 불가'
+  return '환불 신청'
+}
+
+function EmptyActionCard({
+  title,
+  description,
+  actionText,
+  onAction,
+}: {
+  title: string
+  description?: string
+  actionText: string
+  onAction: () => void
+}) {
+  return (
+    <SectionCard className='flex min-h-[16.1rem] flex-col items-center justify-center gap-20 text-center'>
+      <div className='flex flex-col items-center gap-8'>
+        <h3 className='text-noto-body-md-bold text-text-and-icon-default'>
+          {title}
+        </h3>
+        {description && (
+          <p className='text-noto-body-xs-normal text-text-and-icon-secondary'>
+            {description}
+          </p>
+        )}
+      </div>
+      <Button
+        type='button'
+        color='primary'
+        size='lg'
+        variant='filled'
+        onClick={onAction}>
+        {actionText}
+      </Button>
+    </SectionCard>
+  )
+}
+
+export function HistoryTab({
+  onOpenModal,
+  onRequestSubscription,
+}: {
+  onOpenModal: (modal: ModalState) => void
+  onRequestSubscription: () => void
+}) {
+  const [page, setPage] = useState(0)
+  const { data, isLoading, isError, refetch } = usePaymentHistory(page)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+
+  const history = data?.items ?? []
+  const selectedItem = history.find((item) => selectedIds.has(item.id))
+  const allSelected = history.length > 0 && selectedIds.size === history.length
+
+  /* 페이지를 넘기면 이전 페이지에서 고른 행은 화면에 없으므로 선택을 비운다. */
+  const goToPage = (next: number) => {
+    setSelectedIds(new Set())
+    setPage(next)
+  }
+
+  const toggleItem = (itemId: string) => {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(itemId)) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+  }
+
+  /* 세금계산서·현금영수증 모두 사업자 정보를 먼저 저장해야 발행된다.
+   * 같은 입력 폼을 쓰므로 모달 하나로 보내고 대상만 넘긴다. */
+  const openBusinessInfoModal = (documentType: '세금계산서' | '현금영수증') => {
+    if (!selectedItem) {
+      toast.info('내역을 선택해주세요.')
+      return
+    }
+    onOpenModal({
+      type: 'businessInfo',
+      orderId: selectedItem.orderId,
+      documentType,
+    })
+  }
+
+  if (isLoading) {
+    return (
+      <SectionCard className='flex min-h-[44.8rem] items-center justify-center'>
+        <span
+          role='status'
+          aria-live='polite'
+          className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          결제·환불 내역을 불러오는 중입니다…
+        </span>
+      </SectionCard>
+    )
+  }
+
+  if (isError) {
+    return (
+      <SectionCard className='flex min-h-[44.8rem] flex-col items-center justify-center gap-20'>
+        <p
+          role='alert'
+          className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+          결제·환불 내역을 불러오지 못했습니다.
+        </p>
+        <Button
+          type='button'
+          color='primary'
+          size='lg'
+          variant='filled'
+          onClick={() => void refetch()}>
+          다시 불러오기
+        </Button>
+      </SectionCard>
+    )
+  }
+
+  if (history.length === 0) {
+    return (
+      <EmptyActionCard
+        title='아직 결제·환불 내역이 없습니다'
+        description='구독을 시작하거나 크레딧을 구매하면 이곳에서 내역을 확인할 수 있습니다.'
+        actionText='구독 탭으로 이동'
+        onAction={onRequestSubscription}
+      />
+    )
+  }
+
+  return (
+    <div className='flex flex-col gap-24'>
+      <div className='flex flex-wrap gap-12'>
+        <Button
+          type='button'
+          color='gray'
+          size='lg'
+          variant='filled'
+          disabled={!selectedItem}
+          onClick={() => openBusinessInfoModal('세금계산서')}>
+          세금계산서 신청
+        </Button>
+        <Button
+          type='button'
+          color='gray'
+          size='lg'
+          variant='filled'
+          disabled={!selectedItem}
+          onClick={() => openBusinessInfoModal('현금영수증')}>
+          현금영수증 신청
+        </Button>
+      </div>
+      <SectionCard className='min-h-[44.8rem] p-24'>
+        <Table className='min-w-[90rem] table-fixed'>
+          <TableHeader>
+            <TableRow>
+              <TableHead className='w-44 bg-transparent'>
+                <button
+                  type='button'
+                  role='checkbox'
+                  aria-label='전체 결제 내역 선택'
+                  aria-checked={allSelected}
+                  onClick={() =>
+                    setSelectedIds(
+                      allSelected
+                        ? new Set()
+                        : new Set(history.map((item) => item.id))
+                    )
+                  }
+                  className={cn(
+                    'mx-auto flex size-20 items-center justify-center rounded-4 border focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+                    allSelected
+                      ? 'border-brand-primary bg-brand-primary text-white'
+                      : 'border-stroke-border-gray-stronger text-transparent'
+                  )}>
+                  <CheckIcon className='size-14' />
+                </button>
+              </TableHead>
+              <TableHead>결제 날짜</TableHead>
+              <TableHead>유형</TableHead>
+              <TableHead>내용</TableHead>
+              <TableHead>금액</TableHead>
+              <TableHead>상태</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {history.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>
+                  <button
+                    type='button'
+                    role='checkbox'
+                    aria-label={`${item.title} 선택`}
+                    aria-checked={selectedIds.has(item.id)}
+                    onClick={() => toggleItem(item.id)}
+                    className={cn(
+                      'mx-auto flex size-20 items-center justify-center rounded-4 border focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+                      selectedIds.has(item.id)
+                        ? 'border-brand-primary bg-brand-primary text-white'
+                        : 'border-stroke-border-gray-stronger text-transparent'
+                    )}>
+                    <CheckIcon className='size-14' />
+                  </button>
+                </TableCell>
+                <TableCell>{formatDate(item.date)}</TableCell>
+                <TableCell>{getHistoryTypeLabel(item.type)}</TableCell>
+                <TableCell className='max-w-[28rem] truncate text-left'>
+                  {item.title}
+                </TableCell>
+                <TableCell className='tabular-nums'>
+                  {formatWon(item.amount)}
+                </TableCell>
+                <TableCell>
+                  <HistoryStatusBadge
+                    status={item.status}
+                    label={item.statusLabel}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <div className='mt-32 flex items-center justify-between gap-12'>
+          <span className='text-noto-body-sm-normal text-text-and-icon-secondary'>
+            결과
+            <strong className='ml-8 text-brand-primary'>
+              {data?.totalElements ?? 0}
+            </strong>
+          </span>
+          <div className='flex gap-12'>
+            <Button
+              type='button'
+              color='gray'
+              size='md'
+              variant='filled'
+              disabled={data?.first ?? true}
+              onClick={() => goToPage(page - 1)}>
+              이전
+            </Button>
+            <Button
+              type='button'
+              color='secondary'
+              size='md'
+              variant='outlined'
+              disabled={data?.last ?? true}
+              onClick={() => goToPage(page + 1)}>
+              다음
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  )
+}
+
+/* 기획의 유형 값(구독 결제 / 크레딧 구매 / 환불)과 서버 PaymentHistoryType이
+ * 그대로 대응한다. */
+function getHistoryTypeLabel(type: BillingHistoryItem['type']) {
+  switch (type) {
+    case 'SUBSCRIPTION_PAYMENT':
+      return '구독 결제'
+    case 'CREDIT_PURCHASE':
+      return '크레딧 구매'
+    case 'REFUND':
+      return '환불'
+  }
+}
+
+/* 문구는 서버 statusLabel을 그대로 쓰고 색만 상태로 고른다.
+ * 프론트에 문구를 복제해두면 서버가 상태를 늘릴 때 조용히 어긋난다. */
+function HistoryStatusBadge({
+  status,
+  label,
+}: {
+  status: BillingHistoryStatus
+  label: string
+}) {
+  const tone = {
+    PAYMENT_PENDING: 'neutral',
+    PAYMENT_COMPLETED: 'success',
+    PAYMENT_FAILED: 'error',
+    /* 기획의 상태 뱃지 정의상 해지 예약은 레드다. */
+    CANCEL_SCHEDULED: 'error',
+    REFUND_REQUESTED: 'neutral',
+    REFUND_PROCESSING: 'neutral',
+    REFUND_COMPLETED: 'warning',
+    REFUND_FAILED: 'error',
+  } as const satisfies Record<
+    BillingHistoryStatus,
+    'success' | 'error' | 'warning' | 'neutral'
+  >
+
+  return <StatusBadge tone={tone[status]}>{label}</StatusBadge>
+}
