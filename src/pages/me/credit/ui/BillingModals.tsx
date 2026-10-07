@@ -2,10 +2,17 @@
 
 import { useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import {
+  beginBillingIntent,
+  clearBillingIntent,
+  createIdempotencyKey,
+  CREDIT_CONFIRM_PENDING_MESSAGE,
+  CreditPurchaseStatusError,
   getBillingErrorMessage,
+  PortOnePaymentError,
   formatDate,
   formatWon,
   issueCardBillingKey,
@@ -24,7 +31,6 @@ import {
   useConfirmCreditCheckout,
   useStartSubscription,
   requestOneTimeCardPayment,
-  SUBSCRIPTION_EXIT_REASONS,
   type BillingSummary,
   type BusinessInfo,
   type CreditPurchaseOption,
@@ -36,6 +42,7 @@ import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { Dialog } from '@/shared/ui/shadcn/dialog'
 import { ModalContent } from './BillingPrimitives'
+import { CancelReasonField, isCancelReasonComplete } from './CancelReasonField'
 import {
   EMPTY_BUSINESS_INFO,
   EMPTY_PAYER_INFO,
@@ -101,16 +108,6 @@ function AgreementCheckbox({
   )
 }
 
-/* 백엔드는 idempotency 키를 payload와 무관하게 "이미 본 키인가"로만 판정하고,
- * 원래 응답을 재생해주지 않는다. 게다가 preHandle에서 키를 먼저 소모하므로
- * 요청이 실패해도 1시간(TTL) 동안 그 키는 되살아나지 않는다
- * (서버 IdempotencyKeyInterceptor). 키를 재사용하면 재시도가 전부
- * COMMON_409_IDEMPOTENCY로 막히므로 시도마다 새로 만든다.
- * 같은 시도가 중복 전송되는 것은 버튼 비활성화로 막는다. */
-function createIdempotencyKey() {
-  return crypto.randomUUID()
-}
-
 export function BillingModals({
   modal,
   summary,
@@ -125,9 +122,10 @@ export function BillingModals({
   const router = useRouter()
   const [agreedAutoPay, setAgreedAutoPay] = useState(false)
   const [agreedWithdrawalLimit, setAgreedWithdrawalLimit] = useState(false)
-  const [cancelReason, setCancelReason] = useState<SubscriptionExitReason>(
-    SUBSCRIPTION_EXIT_REASONS[0].value
+  const [cancelReason, setCancelReason] = useState<SubscriptionExitReason | ''>(
+    ''
   )
+  const [cancelReasonDetail, setCancelReasonDetail] = useState('')
   const [selectedOptionId, setSelectedOptionId] = useState(
     summary.creditOptions[1]?.id ?? summary.creditOptions[0]?.id ?? ''
   )
@@ -141,6 +139,7 @@ export function BillingModals({
   const [formError, setFormError] = useState<string | null>(null)
   const [businessInfo, setBusinessInfo] =
     useState<BusinessInfo>(EMPTY_BUSINESS_INFO)
+  const queryClient = useQueryClient()
   const startSubscriptionMutation = useStartSubscription()
   const cancelSubscriptionMutation = useCancelSubscription()
   const registerBillingMethodMutation = useRegisterBillingMethod()
@@ -166,9 +165,13 @@ export function BillingModals({
   }
 
   const handleClose = () => {
+    /* PC에서 결제창을 취소하고 다시 열린 모달을 닫는 경우처럼, 쓰이지 않고
+     * 남은 결제 의도를 정리한다. 이름·연락처가 들어 있어 오래 두지 않는다. */
+    clearBillingIntent()
     setAgreedAutoPay(false)
     setAgreedWithdrawalLimit(false)
-    setCancelReason(SUBSCRIPTION_EXIT_REASONS[0].value)
+    setCancelReason('')
+    setCancelReasonDetail('')
     setPayerInfo(EMPTY_PAYER_INFO)
     setBusinessInfo(EMPTY_BUSINESS_INFO)
     setSyncedBusinessInfo(null)
@@ -189,7 +192,40 @@ export function BillingModals({
     summary.creditOptions[0]
 
   return (
-    <Dialog open={!!modal} onOpenChange={(open) => !open && handleClose()}>
+    <Dialog
+      open={!!modal}
+      onOpenChange={(open) => {
+        /* 결제 결과를 확인하는 동안 닫히면 버튼을 다시 눌러 중복 요청이 난다 */
+        if (!open && modal?.type !== 'billingReturnPending') handleClose()
+      }}>
+      {modal?.type === 'billingReturnPending' && (
+        <ModalContent
+          title='결제 결과를 확인하고 있어요'
+          description='잠시만 기다려주세요. 확인이 끝날 때까지 화면을 닫지 마세요.'
+          className='sm:w-[50rem]'>
+          <p role='status' aria-live='polite' className='sr-only'>
+            결제 결과를 확인하는 중입니다.
+          </p>
+        </ModalContent>
+      )}
+      {modal?.type === 'billingReturnFailed' &&
+        (modal.retry ? (
+          <ConfirmModal
+            title={modal.title}
+            description={modal.message}
+            confirmText='다시 시도'
+            isPending={false}
+            onCancel={handleClose}
+            onConfirm={async () => modal.retry?.()}
+          />
+        ) : (
+          <NoticeModal
+            title={modal.title}
+            description={modal.message}
+            buttonText='확인'
+            onConfirm={handleClose}
+          />
+        ))}
       {modal?.type === 'subscribe' && (
         <ModalContent
           title='구독 시작하기'
@@ -284,25 +320,12 @@ export function BillingModals({
           description='소중한 피드백은 서비스 개선에 활용됩니다'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <label className='flex flex-col gap-8'>
-              <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
-                해지 사유 <span className='font-normal'>(필수)</span>
-              </span>
-              <select
-                value={cancelReason}
-                onChange={(event) =>
-                  setCancelReason(event.target.value as SubscriptionExitReason)
-                }
-                name='cancelReason'
-                autoComplete='off'
-                className='h-44 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-body-sm-normal text-text-and-icon-primary focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'>
-                {SUBSCRIPTION_EXIT_REASONS.map((reason) => (
-                  <option key={reason.value} value={reason.value}>
-                    {reason.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <CancelReasonField
+              reason={cancelReason}
+              detail={cancelReasonDetail}
+              onReasonChange={setCancelReason}
+              onDetailChange={setCancelReasonDetail}
+            />
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -311,13 +334,16 @@ export function BillingModals({
                 variant='filled'
                 onClick={handleClose}
                 className='h-44 w-full'>
-                유지하기
+                취소
               </Button>
               <Button
                 type='button'
                 color='primary'
                 size='lg'
                 variant='filled'
+                disabled={
+                  !isCancelReasonComplete(cancelReason, cancelReasonDetail)
+                }
                 onClick={() => {
                   onOpenModal({ type: 'cancelNotice' })
                 }}
@@ -331,7 +357,7 @@ export function BillingModals({
       {modal?.type === 'cancelNotice' && (
         <ModalContent title='해지 전 꼭 확인하세요' className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <ul className='flex flex-col gap-8 rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
+            <ul className='flex list-disc flex-col gap-4 pl-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
               <li>
                 다음 결제일
                 {summary.subscription.nextPaymentDate
@@ -350,7 +376,7 @@ export function BillingModals({
                 variant='filled'
                 onClick={handleClose}
                 className='h-44 w-full'>
-                돌아가기
+                취소
               </Button>
               <Button
                 type='button'
@@ -378,18 +404,31 @@ export function BillingModals({
               variant='filled'
               onClick={handleClose}
               className='h-44 w-full'>
-              계속 이용하기
+              취소
             </Button>
             <Button
               type='button'
               color='primary'
               size='lg'
               variant='filled'
-              disabled={cancelSubscriptionMutation.isPending}
+              disabled={
+                cancelSubscriptionMutation.isPending ||
+                !isCancelReasonComplete(cancelReason, cancelReasonDetail)
+              }
               onClick={async () => {
+                /* 버튼이 막고 있지만 타입상 사유가 확정됐음을 여기서 좁힌다 */
+                if (!isCancelReasonComplete(cancelReason, cancelReasonDetail)) {
+                  return
+                }
                 try {
                   await cancelSubscriptionMutation.mutateAsync({
                     reason: cancelReason,
+                    /* 서버는 기타일 때만 직접 입력을 요구한다. 다른 사유에
+                     * 남아 있는 입력은 보내지 않는다. */
+                    reasonDetail:
+                      cancelReason === 'OTHER'
+                        ? cancelReasonDetail.trim()
+                        : undefined,
                   })
                   onOpenModal({ type: 'cancelDone' })
                 } catch (error) {
@@ -398,8 +437,8 @@ export function BillingModals({
                   )
                 }
               }}
-              className='h-44 w-full bg-feedback-error'>
-              해지 완료하기
+              className='h-44 w-full'>
+              해지하기
             </Button>
           </div>
         </ModalContent>
@@ -471,6 +510,13 @@ export function BillingModals({
                   setFormError(null)
                   setIsPaymentWindowPending(true)
                   onClose()
+                  /* 모바일 결제창은 페이지를 통째로 이동시켜 아래 코드가 이어지지
+                   * 않는다. 돌아와서 이어갈 수 있게 결제창을 열기 전에 남긴다. */
+                  beginBillingIntent({
+                    flow: 'registerBillingMethod',
+                    payer: customer,
+                    pendingPlanCode: pendingPlan?.code ?? null,
+                  })
 
                   try {
                     const { billingKey } = await issueCardBillingKey({
@@ -478,6 +524,11 @@ export function BillingModals({
                       displayAmount: pendingPlan?.price,
                       customer,
                     })
+                    /* 결제창이 이 페이지에서 결과를 돌려줬다면 리디렉션은 없었다(PC).
+                     * 남긴 의도는 쓸 곳이 없으니 지운다. finally에서 지우지 않는
+                     * 이유는, 모바일에서 SDK가 페이지를 떠나며 결과 없이 끝나도
+                     * 그 경로를 타서 돌아와 쓸 의도까지 지워버리기 때문이다. */
+                    clearBillingIntent()
                     await registerBillingMethodMutation.mutateAsync({
                       idempotencyKey: createIdempotencyKey(),
                       payload: {
@@ -495,13 +546,14 @@ export function BillingModals({
                         idempotencyKey: createIdempotencyKey(),
                         payload: { planCode: pendingPlan.code },
                       })
-                      toast.success('구독이 시작되었습니다.')
-                      handleClose()
+                      /* 등록 카드로 바로 구독할 때와 같은 완료 모달을 쓴다 */
+                      onOpenModal({ type: 'subscribeDone' })
                       return
                     }
 
                     onOpenModal({ type: 'billingRegistered' })
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
                     /* 모달을 닫아둔 상태라 인라인으로 보여줄 자리가 없다.
                      * 입력값이 남아 있는 모달을 다시 열어 에러와 함께 보여준다. */
                     setFormError(
@@ -566,17 +618,21 @@ export function BillingModals({
                   setFormError(null)
                   setIsPaymentWindowPending(true)
                   onClose()
+                  /* 등록과 같은 주소로 돌아오므로 변경이었다는 걸 남겨 구분한다 */
+                  beginBillingIntent({ flow: 'changeBillingMethod' })
 
                   try {
                     const { billingKey } = await issueCardBillingKey({
                       issueName: '인플레이스 결제수단 변경',
                       customer,
                     })
+                    clearBillingIntent()
                     await changeBillingMethodMutation.mutateAsync({
                       billingKey,
                     })
                     onOpenModal({ type: 'billingChanged' })
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
                     setFormError(
                       getBillingErrorMessage(error, 'changeBillingMethod')
                     )
@@ -595,7 +651,7 @@ export function BillingModals({
       {modal?.type === 'billingRegistered' && (
         <NoticeModal
           title='결제수단이 등록되었습니다'
-          description='새 카드 ···· ···· ···· 5588가 다음 결제부터 사용됩니다.'
+          description={describeNewCard(summary.billingMethod.last4)}
           buttonText='확인'
           onConfirm={handleClose}
         />
@@ -603,7 +659,7 @@ export function BillingModals({
       {modal?.type === 'billingChanged' && (
         <NoticeModal
           title='결제수단이 변경되었습니다'
-          description='새 카드 ···· ···· ···· 5588가 다음 결제부터 사용됩니다.'
+          description={describeNewCard(summary.billingMethod.last4)}
           buttonText='확인'
           onConfirm={handleClose}
         />
@@ -652,7 +708,11 @@ export function BillingModals({
       {modal?.type === 'billingDeleted' && (
         <NoticeModal
           title='결제 수단이 삭제되었습니다'
-          description={`카드 ···· ···· ···· ${modal.last4 ?? '5588'}가 결제수단에서 삭제되었습니다.`}
+          description={
+            modal.last4
+              ? `카드 ···· ···· ···· ${withSubjectParticle(modal.last4)} 결제수단에서 삭제되었습니다.`
+              : '카드가 결제수단에서 삭제되었습니다.'
+          }
           buttonText='확인'
           onConfirm={handleClose}
         />
@@ -822,6 +882,12 @@ export function BillingModals({
                     /* 결제창은 모달이 열려 있으면 입력이 닿지 않는다.
                      * 빌링키 발급과 같은 이유로 호출 직전에 닫는다. */
                     onClose()
+                    /* 돌아와서 결제 결과를 물을 주문 번호를 남긴다. 포트원은
+                     * 복귀할 때 결제 ID만 주고 주문 번호는 주지 않는다. */
+                    beginBillingIntent({
+                      flow: 'creditCheckout',
+                      orderId: checkout.orderId,
+                    })
 
                     await requestOneTimeCardPayment({
                       paymentId: checkout.paymentId,
@@ -829,6 +895,7 @@ export function BillingModals({
                       totalAmount: checkout.amount,
                       customer,
                     })
+                    clearBillingIntent()
 
                     await confirmCreditCheckoutMutation.mutateAsync(
                       checkout.orderId
@@ -836,6 +903,21 @@ export function BillingModals({
                     toast.success('크레딧 구매가 완료되었습니다.')
                     handleClose()
                   } catch (error) {
+                    clearIntentUnlessLeaving(error)
+                    /* 결제는 됐는데 확인만 늦는 경우다. 서버가 웹훅으로 확정하므로
+                     * 구매하기 버튼이 있는 모달을 다시 열면 이중 결제를 부른다. */
+                    if (
+                      error instanceof CreditPurchaseStatusError &&
+                      error.code === 'CREDIT_PURCHASE_PENDING'
+                    ) {
+                      void queryClient.invalidateQueries({
+                        queryKey: ['billing'],
+                      })
+                      handleClose()
+                      toast.info(CREDIT_CONFIRM_PENDING_MESSAGE)
+                      return
+                    }
+
                     /* 결제창 단계에서 모달을 닫았으므로 다시 열어 보여준다. */
                     setFormError(
                       getBillingErrorMessage(error, 'purchaseCredits')
@@ -1024,6 +1106,33 @@ export function BillingModals({
       )}
     </Dialog>
   )
+}
+
+/* 결제창이 오류 코드와 함께 이 페이지로 결과를 돌려줬다면 리디렉션은 없었다.
+ * 남긴 결제 의도는 쓸 곳이 없으니 지운다. 응답 없이 끝난 경우(PAYMENT_CANCELLED)만
+ * 모바일 결제창이 페이지를 떠나는 중일 수 있어, 돌아와서 쓸 수 있게 남긴다. */
+function clearIntentUnlessLeaving(error: unknown) {
+  if (
+    error instanceof PortOnePaymentError &&
+    error.code === 'PAYMENT_CANCELLED'
+  ) {
+    return
+  }
+  clearBillingIntent()
+}
+
+/* 카드 끝자리 뒤의 조사. 숫자를 한국어로 읽었을 때 받침이 있으면 '이'다
+ * (영·일·삼·육·칠·팔). 시안의 "5588가"는 자리 표시용 숫자라 조사가 맞지 않는다. */
+function withSubjectParticle(last4: string) {
+  return /[013678]$/.test(last4) ? `${last4}이` : `${last4}가`
+}
+
+/* 시안에 고정된 5588이 그대로 나가 모든 사용자에게 같은 카드번호를 보여주고
+ * 있었다. 서버가 돌려준 실제 끝자리를 쓴다. */
+function describeNewCard(last4: string | null) {
+  return last4
+    ? `새 카드 ···· ···· ···· ${withSubjectParticle(last4)} 다음 결제부터 사용됩니다.`
+    : '새 카드가 다음 결제부터 사용됩니다.'
 }
 
 function NoticeModal({

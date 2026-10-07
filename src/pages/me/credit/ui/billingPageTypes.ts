@@ -94,4 +94,15 @@ export type ModalState =
     }
   | { type: 'taxInvoiceRequested' }
   | { type: 'cashReceiptRequested' }
+  /* 모바일 결제창에서 돌아와 서버 등록·결제 확인을 이어서 하는 동안.
+   * 그 사이 버튼을 또 누르지 못하게 닫을 수 없게 둔다. */
+  | { type: 'billingReturnPending' }
+  /* 결제창은 이미 끝났고 입력 모달도 닫혀 있어 인라인으로 보여줄 자리가 없다 */
+  | {
+      type: 'billingReturnFailed'
+      title: string
+      message: string
+      /* 같은 요청을 다시 보내도 되는 경우에만 있다 */
+      retry: (() => void) | null
+    }
   | null

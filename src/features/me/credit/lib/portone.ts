@@ -65,6 +65,53 @@ function isMockPaymentEnabled() {
   return process.env.NEXT_PUBLIC_MOCK_ENABLED === 'true'
 }
 
+/* 모바일 결제창이 끝나고 돌아올 주소. 등록과 변경은 같은 주소로 돌아오고,
+ * 어느 흐름이었는지는 결제 의도(billingIntent)가 구분한다. */
+const BILLING_KEY_RETURN_PATH = '/me/credit?tab=billing-method'
+const PAYMENT_RETURN_PATH = '/me/credit?tab=history'
+
+function toReturnUrl(path: string) {
+  return new URL(path, window.location.origin).toString()
+}
+
+/* 목 환경은 포트원을 건너뛰어 결제창이 즉시 끝난다. 그대로면 모바일 복귀
+ * 경로가 로컬에서 한 번도 돌지 않으므로, 켜면 실제 모바일처럼 페이지를
+ * 떠났다가 결과를 쿼리에 달고 돌아온다. 'fail'이면 결제창 실패로 돌아온다. */
+function getMockRedirectMode(): 'success' | 'fail' | null {
+  const mode = process.env.NEXT_PUBLIC_MOCK_PAYMENT_REDIRECT
+  if (mode === 'true') return 'success'
+  if (mode === 'fail') return 'fail'
+  return null
+}
+
+const MOCK_REDIRECT_FAILURE = {
+  code: 'FAILURE_TYPE_PG',
+  message: '사용자가 결제를 취소하였습니다',
+}
+
+function redirectLikeMobile(
+  path: string,
+  params: Record<string, string>
+): Promise<never> {
+  const url = new URL(path, window.location.origin)
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value)
+  }
+  window.location.assign(url.toString())
+  /* 실제 모바일처럼 호출부가 이어지면 안 된다. resolve하면 PC 경로를 타서
+   * 정작 확인하려던 복귀 처리가 돌지 않는다. */
+  return new Promise<never>(() => {})
+}
+
+/* 켜면 PC에서도 결제창이 결과를 redirectUrl 쿼리로 돌려준다. 포트원 SDK
+ * 본체가 CDN에서 내려와 복귀 쿼리의 실제 키 이름을 코드로 확인할 수 없어,
+ * 폰 없이 관찰하려고 둔다. 운영에서는 끈다. */
+function shouldForceRedirect() {
+  return process.env.NEXT_PUBLIC_PORTONE_FORCE_REDIRECT === 'true'
+    ? true
+    : undefined
+}
+
 /* KG이니시스(INICIS_V2)는 oid를 1~40자로 제한한다. 포트원의 issueId·paymentId가
  * 그대로 oid로 넘어가는데 UUID는 하이픈까지 36자라, 접두사를 붙이면 한계를 넘어
  * 결제창이 열리지 않는다. 하이픈을 지워 32자로 줄이고 접두사도 짧게 둔다. */
@@ -101,6 +148,19 @@ export async function issueCardBillingKey({
   const portOneCustomer = toPortOneCustomer(customer)
 
   if (isMockPaymentEnabled()) {
+    const redirectMode = getMockRedirectMode()
+    if (redirectMode === 'success') {
+      return redirectLikeMobile(BILLING_KEY_RETURN_PATH, {
+        transactionType: 'ISSUE_BILLING_KEY',
+        billingKey: createId('mock-billing-key'),
+      })
+    }
+    if (redirectMode === 'fail') {
+      return redirectLikeMobile(BILLING_KEY_RETURN_PATH, {
+        transactionType: 'ISSUE_BILLING_KEY',
+        ...MOCK_REDIRECT_FAILURE,
+      })
+    }
     return {
       billingKey: createId('mock-billing-key'),
       isMock: true,
@@ -126,10 +186,12 @@ export async function issueCardBillingKey({
     displayAmount,
     currency: displayAmount ? 'KRW' : undefined,
     customer: portOneCustomer,
-    redirectUrl: new URL(
-      '/me/credit?tab=billing-method',
-      window.location.origin
-    ).toString(),
+    /* 모바일 결제창은 서비스 제공 기간(range·interval 중 하나)을 필수로 요구한다.
+     * 빠지면 AT_LEAST_ONE_REQUIRED로 창이 열리기도 전에 거부된다(QA #78).
+     * 월 구독이므로 주기로 표현하고, 실제 결제 시점과 금액은 서버가 정한다. */
+    offerPeriod: { interval: '1m' },
+    redirectUrl: toReturnUrl(BILLING_KEY_RETURN_PATH),
+    forceRedirect: shouldForceRedirect(),
   })
 
   if (!response) {
@@ -172,6 +234,21 @@ export async function requestOneTimeCardPayment({
   }
 
   if (isMockPaymentEnabled()) {
+    const redirectMode = getMockRedirectMode()
+    if (redirectMode === 'success') {
+      return redirectLikeMobile(PAYMENT_RETURN_PATH, {
+        transactionType: 'PAYMENT',
+        paymentId,
+        txId: createId('mock-tx'),
+      })
+    }
+    if (redirectMode === 'fail') {
+      return redirectLikeMobile(PAYMENT_RETURN_PATH, {
+        transactionType: 'PAYMENT',
+        paymentId,
+        ...MOCK_REDIRECT_FAILURE,
+      })
+    }
     return { paymentId, isMock: true }
   }
 
@@ -194,10 +271,8 @@ export async function requestOneTimeCardPayment({
     currency: 'KRW',
     payMethod: 'CARD',
     customer: portOneCustomer,
-    redirectUrl: new URL(
-      '/me/credit?tab=history',
-      window.location.origin
-    ).toString(),
+    redirectUrl: toReturnUrl(PAYMENT_RETURN_PATH),
+    forceRedirect: shouldForceRedirect(),
   })
 
   if (!response) {
