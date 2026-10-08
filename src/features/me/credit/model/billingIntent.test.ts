@@ -45,10 +45,31 @@ describe('billingIntent', () => {
 
   it('한 번 읽으면 지워진다 — 뒤로가기로 다시 들어와도 두 번 처리하지 않는다', () => {
     const storage = memoryStorage()
-    beginBillingIntent({ flow: 'changeBillingMethod' }, 1_000, storage)
+    beginBillingIntent(
+      { flow: 'changeBillingMethod', pendingPlanCode: null },
+      1_000,
+      storage
+    )
     consumeBillingIntent(2_000, storage)
     expect(storage.size()).toBe(0)
     expect(consumeBillingIntent(3_000, storage)).toEqual({ status: 'none' })
+  })
+
+  it('변경 흐름도 돌아갈 플랜을 남긴다', () => {
+    const storage = memoryStorage()
+    beginBillingIntent(
+      { flow: 'changeBillingMethod', pendingPlanCode: 'EARLY_BIRD' },
+      1_000,
+      storage
+    )
+    expect(consumeBillingIntent(2_000, storage)).toEqual({
+      status: 'active',
+      intent: {
+        flow: 'changeBillingMethod',
+        pendingPlanCode: 'EARLY_BIRD',
+        savedAt: 1_000,
+      },
+    })
   })
 
   it('TTL이 지나면 만료로 알린다 — 어떤 흐름이었는지는 남긴다', () => {
@@ -110,14 +131,22 @@ describe('billingIntent', () => {
 
   it('clear는 남은 intent를 지운다', () => {
     const storage = memoryStorage()
-    beginBillingIntent({ flow: 'changeBillingMethod' }, 0, storage)
+    beginBillingIntent(
+      { flow: 'changeBillingMethod', pendingPlanCode: null },
+      0,
+      storage
+    )
     clearBillingIntent(storage)
     expect(storage.size()).toBe(0)
   })
 
   it('스토리지가 없으면 조용히 넘어간다', () => {
     expect(() =>
-      beginBillingIntent({ flow: 'changeBillingMethod' }, 0, null)
+      beginBillingIntent(
+        { flow: 'changeBillingMethod', pendingPlanCode: null },
+        0,
+        null
+      )
     ).not.toThrow()
     expect(consumeBillingIntent(0, null)).toEqual({ status: 'none' })
   })

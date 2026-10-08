@@ -59,12 +59,13 @@ export type ModalState =
   | { type: 'cancelNotice' }
   | { type: 'cancelConfirm' }
   | { type: 'cancelDone' }
-  /* pendingPlan이 있으면 구독 모달에서 넘어온 것이다. 카드 등록 후
-   * 원래 하려던 구독 결제까지 이어서 마쳐야 한다. */
-  | { type: 'billingRegister'; pendingPlan?: BillingPlan }
-  | { type: 'billingChange' }
-  | { type: 'billingRegistered' }
-  | { type: 'billingChanged' }
+  /* pendingPlan이 있으면 구독 모달에서 넘어온 것이다. 시안은 카드 등록과
+   * 결제를 나눴다 — 등록·변경이 끝나면 구독 모달로 돌아가 결제하기를 누른다.
+   * replacing이면 같은 입력 폼으로 새 카드를 받아 기존 카드를 바꾼다. */
+  | { type: 'billingRegister'; pendingPlan?: BillingPlan; replacing?: boolean }
+  | { type: 'billingChange'; pendingPlan?: BillingPlan }
+  | { type: 'billingRegistered'; pendingPlan?: BillingPlan }
+  | { type: 'billingChanged'; pendingPlan?: BillingPlan }
   | { type: 'billingDelete' }
   | { type: 'billingDeleted'; last4: string | null }
   | { type: 'creditPurchase' }
@@ -81,9 +82,13 @@ export type ModalState =
       beforeExpiryDate: string | null
       afterExpiryDate: string | null
     }
-  /* 환불은 주문 단위다. 버튼을 누른 배치의 주문을 그대로 들고 간다. */
+  /* 환불은 주문 단위다. 버튼을 누른 배치의 주문을 그대로 들고 간다.
+   * 시안 순서: 환불 전 확인(creditRefund) → 최종 확인 → 완료. 서버가
+   * 거절하면(7일 경과·사용분 있음) 환불 불가 안내로 간다. */
   | { type: 'creditRefund'; batch: CreditBatch }
+  | { type: 'creditRefundConfirm'; batch: CreditBatch }
   | { type: 'creditRefunded' }
+  | { type: 'creditRefundDenied' }
   | { type: 'document'; item: BillingHistoryItem; documentType: string }
   /* 세금계산서·현금영수증 모두 사업자 정보를 먼저 저장한 뒤 신청한다.
    * 입력 폼이 같아 모달 하나로 두고 대상만 구분한다. */

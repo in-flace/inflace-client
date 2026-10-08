@@ -30,16 +30,14 @@ import {
   useChangeBillingMethod,
   useConfirmCreditCheckout,
   useRegisterBillingMethod,
-  useStartSubscription,
 } from './useBilling'
 
 /* 화면 상태(ModalState)는 pages가 가진다. features가 그걸 알면 의존이
  * 거꾸로 서므로 무슨 일이 있었는지만 알려주고 표현은 페이지가 정한다. */
 export type BillingReturnOutcome =
-  | { kind: 'registered'; subscribed: boolean }
-  /* 카드는 등록됐고 구독 결제만 실패했다. 카드를 다시 등록하게 하면 409다 */
-  | { kind: 'subscriptionFailed'; message: string }
-  | { kind: 'changed' }
+  /* planCode가 있으면 구독 모달에서 왔다. 그 모달로 돌아가 결제하기를 누른다 */
+  | { kind: 'registered'; planCode: BillingPlanCode | null }
+  | { kind: 'changed'; planCode: BillingPlanCode | null }
   | { kind: 'creditConfirmed' }
   /* 서버가 웹훅으로 확정하므로 실패가 아니다. 재결제를 유도하면 안 된다 */
   | { kind: 'creditPending'; message: string }
@@ -82,7 +80,6 @@ export function useBillingReturn({
 }) {
   const queryClient = useQueryClient()
   const registerMutation = useRegisterBillingMethod()
-  const startSubscriptionMutation = useStartSubscription()
   const changeMutation = useChangeBillingMethod()
   const confirmCreditMutation = useConfirmCreditCheckout()
 
@@ -172,36 +169,25 @@ export function useBillingReturn({
         }
       }
 
-      if (!planCode) {
-        report({ kind: 'registered', subscribed: false })
-        return
-      }
-
-      try {
-        await startSubscriptionMutation.mutateAsync({
-          idempotencyKey: createIdempotencyKey(),
-          payload: { planCode },
-        })
-        report({ kind: 'registered', subscribed: true })
-      } catch (error) {
-        report({
-          kind: 'subscriptionFailed',
-          message: getBillingErrorMessage(error, 'subscribe'),
-        })
-      }
+      report({ kind: 'registered', planCode })
     }
 
-    async function change(billingKey: string) {
+    async function change(
+      billingKey: string,
+      planCode: BillingPlanCode | null
+    ) {
       callbacksRef.current.onPending()
       try {
         await changeMutation.mutateAsync({ billingKey })
-        report({ kind: 'changed' })
+        report({ kind: 'changed', planCode })
       } catch (error) {
         report({
           kind: 'failed',
           action: 'changeBillingMethod',
           message: getBillingErrorMessage(error, 'changeBillingMethod'),
-          retry: isRetryable(error) ? () => void change(billingKey) : null,
+          retry: isRetryable(error)
+            ? () => void change(billingKey, planCode)
+            : null,
         })
       }
     }
@@ -251,7 +237,7 @@ export function useBillingReturn({
           void register(plan.billingKey, plan.payer, plan.planCode)
           return
         case 'change':
-          void change(plan.billingKey)
+          void change(plan.billingKey, plan.planCode)
           return
         case 'confirmCredit':
           void confirmCredit(plan.orderId)
@@ -266,7 +252,6 @@ export function useBillingReturn({
     enabled,
     queryClient,
     registerMutation,
-    startSubscriptionMutation,
     changeMutation,
     confirmCreditMutation,
   ])

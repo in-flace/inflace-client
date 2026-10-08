@@ -470,7 +470,8 @@ export function CreditTab({
       <div className='grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-24'>
         <MetricCard
           label='보유 크레딧'
-          value={`${getTotalCredits(summary.creditBatches)}`}
+          /* 시안 표기. 1크레딧 = 분석 1회라 횟수로 보여준다 */
+          value={`${getTotalCredits(summary.creditBatches).toLocaleString('ko-KR')}회`}
         />
         <MetricCard
           label='가장 빠른 만료일'
