@@ -20,11 +20,36 @@ const mockTrendsKeywords = [
   '구매가이드',
 ]
 
+/* 키워드 검색의 크레딧 거절을 재현한다. 서버는 크레딧 차감이 켜져 있을 때
+ * 크레딧 부족이면 400, 무료 회원이면 403을 준다. */
+const CREDIT_ERRORS: Record<string, [string, number]> = {
+  insufficient: ['CREDIT_400_INSUFFICIENT', 400],
+  forbidden: ['AUTH_403', 403],
+}
+
+function readCreditErrorFlag() {
+  try {
+    return typeof sessionStorage === 'undefined'
+      ? null
+      : sessionStorage.getItem('mock:credit:search-error')
+  } catch {
+    return null
+  }
+}
+
 export const brandCollaborationsHandlers = [
   http.get(
     `${process.env.NEXT_PUBLIC_API_URL}/brand-collaborations`,
     ({ request }) => {
       const url = new URL(request.url)
+      const creditError = CREDIT_ERRORS[readCreditErrorFlag() ?? '']
+      if (creditError && url.searchParams.has('includeKeywords')) {
+        const [code, status] = creditError
+        return HttpResponse.json(
+          { success: false, responseDto: null, error: { code, message: code } },
+          { status }
+        )
+      }
       const cursor = url.searchParams.get('cursor')
       const pageSize = Number(url.searchParams.get('pageSize')) || PAGE_SIZE
       const sortCriteria = url.searchParams.get('sortCriteria') ?? 'LATEST'
