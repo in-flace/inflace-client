@@ -15,7 +15,7 @@ export type BillingReturnPlan =
       payer: PaymentCustomer
       planCode: BillingPlanCode | null
     }
-  | { kind: 'change'; billingKey: string }
+  | { kind: 'change'; billingKey: string; planCode: BillingPlanCode | null }
   | { kind: 'confirmCredit'; orderId: number }
   /* 주문 번호를 잃었지만 서버가 웹훅으로 확정하므로 화면만 새로 받는다 */
   | { kind: 'refreshCredits' }
@@ -86,7 +86,7 @@ export function resolveBillingReturnPlan(
   }
 
   if (intent.flow === 'changeBillingMethod') {
-    return { kind: 'change', billingKey }
+    return { kind: 'change', billingKey, planCode: intent.pendingPlanCode }
   }
 
   return {

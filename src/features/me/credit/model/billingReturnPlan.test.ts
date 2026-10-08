@@ -23,7 +23,7 @@ const register = (
 })
 const change: ConsumedBillingIntent = {
   status: 'active',
-  intent: { flow: 'changeBillingMethod', savedAt: 0 },
+  intent: { flow: 'changeBillingMethod', pendingPlanCode: 'PRO', savedAt: 0 },
 }
 const credit: ConsumedBillingIntent = {
   status: 'active',
@@ -99,6 +99,7 @@ describe('resolveBillingReturnPlan', () => {
       expect(resolveBillingReturnPlan(change, success('bk'))).toEqual({
         kind: 'change',
         billingKey: 'bk',
+        planCode: 'PRO',
       })
     })
 

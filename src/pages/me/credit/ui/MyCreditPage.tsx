@@ -107,24 +107,20 @@ export function MyCreditPage() {
   const handleBillingReturn = (outcome: BillingReturnOutcome) => {
     switch (outcome.kind) {
       case 'registered':
+      case 'changed': {
+        /* 구독 모달에서 왔으면 완료 안내 뒤 그 모달로 돌아가 결제하기를 누른다 */
+        const pendingPlan = summary?.plans.find(
+          (plan) => plan.code === outcome.planCode
+        )
         setModal({
-          type: outcome.subscribed ? 'subscribeDone' : 'billingRegistered',
+          type:
+            outcome.kind === 'registered'
+              ? 'billingRegistered'
+              : 'billingChanged',
+          pendingPlan,
         })
         return
-      case 'changed':
-        setModal({ type: 'billingChanged' })
-        return
-      case 'subscriptionFailed':
-        /* 카드는 등록됐다. 카드를 다시 등록하게 하면 409라, 구독 탭으로 보내
-         * 결제만 다시 하게 한다. */
-        handleTabChange('subscription')
-        setModal({
-          type: 'billingReturnFailed',
-          title: '카드는 등록되었어요',
-          message: outcome.message,
-          retry: null,
-        })
-        return
+      }
       case 'creditConfirmed':
         setModal(null)
         toast.success('크레딧 구매가 완료되었습니다.')

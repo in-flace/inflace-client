@@ -43,12 +43,27 @@ export function formatWon(amount: number) {
   return `${sign}₩${Math.abs(amount).toLocaleString('ko-KR')}`
 }
 
-export function formatDate(value: string | null) {
-  if (!value) {
-    return '-'
-  }
+/* 모달 안 금액은 시안대로 "9,900원" 형식이다. 표·카드의 가격은 ₩ 표기를 쓴다. */
+export function formatWonSuffix(amount: number) {
+  return `${amount.toLocaleString('ko-KR')}원`
+}
 
-  return value.replaceAll('-', '.')
+/* 시안은 날짜를 2026-08-25처럼 하이픈으로 쓴다. 서버도 같은 형식으로 준다. */
+export function formatDate(value: string | null) {
+  return value || '-'
+}
+
+/* 구독 모달의 "다음 결제일" 미리보기. 실제 날짜는 결제 시점에 서버가 정하는데,
+ * 서버 규칙(다음 달 같은 날, 그날이 없으면 말일)과 같게 계산해 어긋나지 않게 한다. */
+export function getNextMonthlyBillingDate(from: Date) {
+  const lastDay = new Date(from.getFullYear(), from.getMonth() + 2, 0).getDate()
+  const next = new Date(
+    from.getFullYear(),
+    from.getMonth() + 1,
+    Math.min(from.getDate(), lastDay)
+  )
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`
 }
 
 export function getRemainingCredits(batch: CreditBatch) {

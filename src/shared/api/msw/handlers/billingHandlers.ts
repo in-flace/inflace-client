@@ -395,9 +395,14 @@ export const billingHandlers = [
       const batch = currentSummary.creditBatches.find(
         (item) => item.orderId === orderId
       )
-      if (!batch || !batch.refundable) {
+      /* 서버만 아는 거절(사용분 있음 등)을 재현한다 */
+      if (
+        !batch ||
+        !batch.refundable ||
+        readMockFlag('mock:billing:refund-error') === 'denied'
+      ) {
         return errorResponse(
-          'CREDIT_REFUND_NOT_ALLOWED',
+          'CREDIT_REFUND_409_NOT_ALLOWED',
           '환불할 수 없는 크레딧입니다.',
           400
         )

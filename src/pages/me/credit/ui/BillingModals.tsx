@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, type ReactNode } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { isAxiosError } from 'axios'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
@@ -15,6 +17,8 @@ import {
   PortOnePaymentError,
   formatDate,
   formatWon,
+  formatWonSuffix,
+  getNextMonthlyBillingDate,
   issueCardBillingKey,
   useCancelSubscription,
   useChangeBillingMethod,
@@ -38,6 +42,7 @@ import {
   type SubscriptionExitReason,
 } from '@/features/me/credit'
 import CheckIcon from '@/shared/assets/check-bold.svg'
+import IconX from '@/shared/assets/x.svg'
 import { cn } from '@/shared/lib/utils'
 import { Button } from '@/shared/ui/button'
 import { Dialog } from '@/shared/ui/shadcn/dialog'
@@ -231,14 +236,44 @@ export function BillingModals({
           title='구독 시작하기'
           className='sm:w-[min(67.8rem,calc(100vw-4.8rem))]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <div className='rounded-12 border border-stroke-border-gray-default bg-background-gray-default p-20'>
-              <strong className='block text-noto-title-sm-bold text-text-and-icon-default'>
-                {formatWon(modal.plan.price)}
-              </strong>
-              <span className='mt-6 block text-noto-body-sm-normal text-text-and-icon-secondary'>
-                매월 자동 결제 · 다음 결제일은 구독 시작 후 1개월 뒤로
-                설정됩니다
-              </span>
+            <div className='flex flex-col gap-8'>
+              <div className='rounded-12 bg-background-gray-default p-20'>
+                <strong className='block text-noto-title-sm-bold text-text-and-icon-default'>
+                  {formatWonSuffix(modal.plan.price)}
+                </strong>
+                <span className='mt-6 block text-noto-body-sm-normal text-text-and-icon-secondary'>
+                  매월 자동 결제 · 다음 결제일{' '}
+                  {getNextMonthlyBillingDate(new Date())}
+                </span>
+              </div>
+              {/* 시안은 카드 등록을 결제와 나눴다. 등록·변경을 마치면 이 모달로
+               * 돌아와 결제하기를 누른다. 모바일 결제창을 다녀오는 동안 구독
+               * 결제까지 이어 붙이지 않아도 되어 흐름이 단순해진다. */}
+              <div className='flex items-center justify-between gap-12 rounded-12 bg-background-gray-default px-20 py-16'>
+                <span className='min-w-0 text-noto-body-sm-normal text-text-and-icon-primary'>
+                  {summary.billingMethod.status === 'registered'
+                    ? `결제 수단: •••• •••• •••• ${summary.billingMethod.last4 ?? ''}`
+                    : '결제 수단을 등록하세요.'}
+                </span>
+                <Button
+                  type='button'
+                  color='secondary'
+                  size='xs'
+                  variant='outlined'
+                  onClick={() => {
+                    setFormError(null)
+                    onOpenModal(
+                      summary.billingMethod.status === 'registered'
+                        ? { type: 'billingChange', pendingPlan: modal.plan }
+                        : { type: 'billingRegister', pendingPlan: modal.plan }
+                    )
+                  }}
+                  className='shrink-0'>
+                  {summary.billingMethod.status === 'registered'
+                    ? '변경'
+                    : '등록'}
+                </Button>
+              </div>
             </div>
             <div className='flex flex-col gap-16'>
               <AgreementCheckbox
@@ -249,7 +284,7 @@ export function BillingModals({
               <AgreementCheckbox
                 checked={agreedWithdrawalLimit}
                 onChange={setAgreedWithdrawalLimit}>
-                결제 즉시 서비스가 제공되며, 청약철회가 제한될 수 있음을
+                결제 즉시 서비스가 제공되며, 이 경우 청약철회가 제한될 수 있음을
                 확인합니다. (필수)
               </AgreementCheckbox>
             </div>
@@ -260,24 +295,13 @@ export function BillingModals({
                 size='lg'
                 variant='filled'
                 disabled={
+                  summary.billingMethod.status !== 'registered' ||
                   !agreedAutoPay ||
                   !agreedWithdrawalLimit ||
                   startSubscriptionMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
-                  /* 카드가 없으면 결제창을 바로 띄우지 않는다. 포트원이 이름·
-                   * 전화번호·이메일을 필수로 요구하므로 본인 정보 입력 모달을
-                   * 먼저 거친다. 등록이 끝나면 그 모달이 구독까지 이어서 마친다. */
-                  if (summary.billingMethod.status === 'none') {
-                    setFormError(null)
-                    onOpenModal({
-                      type: 'billingRegister',
-                      pendingPlan: modal.plan,
-                    })
-                    return
-                  }
-
                   setIsPaymentWindowPending(true)
                   try {
                     await startSubscriptionMutation.mutateAsync({
@@ -294,13 +318,27 @@ export function BillingModals({
                   }
                 }}
                 className='h-44 w-full'>
-                {summary.billingMethod.status === 'none'
-                  ? '카드 등록하고 결제하기'
-                  : '결제하고 구독 시작'}
+                결제하기
               </Button>
               <p className='text-center text-noto-body-xs-normal text-text-and-icon-secondary'>
-                회원 본인은 주문내용을 확인했으며, 이용약관 및
-                개인정보처리방침과 결제에 동의합니다.
+                회원 본인은 주문내용을 확인했으며,{' '}
+                {/* 모달 상태를 잃지 않게 새 탭으로 연다 */}
+                <Link
+                  href='/terms'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='font-bold underline underline-offset-2'>
+                  이용약관
+                </Link>{' '}
+                및{' '}
+                <Link
+                  href='/privacy'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='font-bold underline underline-offset-2'>
+                  개인정보처리방침
+                </Link>
+                과 결제에 동의합니다.
               </p>
             </div>
           </div>
@@ -338,7 +376,7 @@ export function BillingModals({
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
                 disabled={
@@ -380,7 +418,7 @@ export function BillingModals({
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
                 onClick={() => onOpenModal({ type: 'cancelConfirm' })}
@@ -408,7 +446,7 @@ export function BillingModals({
             </Button>
             <Button
               type='button'
-              color='primary'
+              color='secondary'
               size='lg'
               variant='filled'
               disabled={
@@ -456,11 +494,7 @@ export function BillingModals({
       {modal?.type === 'billingRegister' && (
         <ModalContent
           title='본인 정보를 입력해주세요.'
-          description={
-            modal.pendingPlan
-              ? '입력한 정보로 카드를 등록한 뒤 바로 구독 결제가 진행됩니다.'
-              : '입력한 정보를 기반으로 카드 등록을 시작합니다.'
-          }
+          description='입력한 정보를 기반으로 카드 등록을 시작합니다.'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
             <PayerInfoFields value={payerInfo} onChange={setPayerInfo} />
@@ -490,13 +524,13 @@ export function BillingModals({
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
                 disabled={
                   !isPayerInfoComplete(payerInfo) ||
                   registerBillingMethodMutation.isPending ||
-                  startSubscriptionMutation.isPending ||
+                  changeBillingMethodMutation.isPending ||
                   isPaymentWindowPending
                 }
                 onClick={async () => {
@@ -504,24 +538,31 @@ export function BillingModals({
                    * 잠그고 포커스를 가두는 탓에, body에 iframe으로 붙는 결제창에
                    * 클릭·입력이 닿지 않는다. 호출 전에 닫아 간섭을 없앤다.
                    * 닫은 뒤에도 쓸 값은 미리 지역 변수로 확보한다. */
-                  const pendingPlan = modal.pendingPlan
+                  const { pendingPlan, replacing } = modal
                   const customer = toPaymentCustomer(payerInfo)
+                  const pendingPlanCode = pendingPlan?.code ?? null
 
                   setFormError(null)
                   setIsPaymentWindowPending(true)
                   onClose()
                   /* 모바일 결제창은 페이지를 통째로 이동시켜 아래 코드가 이어지지
-                   * 않는다. 돌아와서 이어갈 수 있게 결제창을 열기 전에 남긴다. */
-                  beginBillingIntent({
-                    flow: 'registerBillingMethod',
-                    payer: customer,
-                    pendingPlanCode: pendingPlan?.code ?? null,
-                  })
+                   * 않는다. 돌아와서 이어갈 수 있게 결제창을 열기 전에 남긴다.
+                   * 등록과 교체는 같은 주소로 돌아오므로 흐름을 함께 남긴다. */
+                  beginBillingIntent(
+                    replacing
+                      ? { flow: 'changeBillingMethod', pendingPlanCode }
+                      : {
+                          flow: 'registerBillingMethod',
+                          payer: customer,
+                          pendingPlanCode,
+                        }
+                  )
 
                   try {
                     const { billingKey } = await issueCardBillingKey({
-                      issueName: '인플레이스 결제수단 등록',
-                      displayAmount: pendingPlan?.price,
+                      issueName: replacing
+                        ? '인플레이스 결제수단 변경'
+                        : '인플레이스 결제수단 등록',
                       customer,
                     })
                     /* 결제창이 이 페이지에서 결과를 돌려줬다면 리디렉션은 없었다(PC).
@@ -529,6 +570,15 @@ export function BillingModals({
                      * 이유는, 모바일에서 SDK가 페이지를 떠나며 결과 없이 끝나도
                      * 그 경로를 타서 돌아와 쓸 의도까지 지워버리기 때문이다. */
                     clearBillingIntent()
+
+                    if (replacing) {
+                      await changeBillingMethodMutation.mutateAsync({
+                        billingKey,
+                      })
+                      onOpenModal({ type: 'billingChanged', pendingPlan })
+                      return
+                    }
+
                     await registerBillingMethodMutation.mutateAsync({
                       idempotencyKey: createIdempotencyKey(),
                       payload: {
@@ -538,38 +588,30 @@ export function BillingModals({
                         email: customer.email,
                       },
                     })
-
-                    /* 구독 모달에서 넘어왔다면 카드 등록에서 멈추지 않고
-                     * 원래 하려던 구독 결제까지 이어서 마친다. */
-                    if (pendingPlan) {
-                      await startSubscriptionMutation.mutateAsync({
-                        idempotencyKey: createIdempotencyKey(),
-                        payload: { planCode: pendingPlan.code },
-                      })
-                      /* 등록 카드로 바로 구독할 때와 같은 완료 모달을 쓴다 */
-                      onOpenModal({ type: 'subscribeDone' })
-                      return
-                    }
-
-                    onOpenModal({ type: 'billingRegistered' })
+                    onOpenModal({ type: 'billingRegistered', pendingPlan })
                   } catch (error) {
                     clearIntentUnlessLeaving(error)
                     /* 모달을 닫아둔 상태라 인라인으로 보여줄 자리가 없다.
                      * 입력값이 남아 있는 모달을 다시 열어 에러와 함께 보여준다. */
                     setFormError(
-                      getBillingErrorMessage(error, 'registerBillingMethod')
+                      getBillingErrorMessage(
+                        error,
+                        replacing
+                          ? 'changeBillingMethod'
+                          : 'registerBillingMethod'
+                      )
                     )
-                    onOpenModal({ type: 'billingRegister', pendingPlan })
+                    onOpenModal({
+                      type: 'billingRegister',
+                      pendingPlan,
+                      replacing,
+                    })
                   } finally {
                     setIsPaymentWindowPending(false)
                   }
                 }}
                 className='h-44 w-full'>
-                {isPaymentWindowPending
-                  ? '등록 중…'
-                  : modal.pendingPlan
-                    ? '등록하고 결제하기'
-                    : '등록하기'}
+                {isPaymentWindowPending ? '등록 중…' : '등록하기'}
               </Button>
             </div>
           </div>
@@ -581,70 +623,27 @@ export function BillingModals({
           description='새 카드로 포트원 결제창을 호출해 빌링키를 재발급합니다. 기존 빌링키는 교체 후 폐기됩니다.'
           className='sm:w-[50rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <div className='flex flex-col gap-12'>
-              <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
-                본인 정보를 입력해주세요.
-              </span>
-              <PayerInfoFields value={payerInfo} onChange={setPayerInfo} />
-            </div>
             <div className='rounded-16 bg-background-gray-default p-20 text-noto-body-sm-normal text-text-and-icon-primary'>
-              새 카드 •••• •••• •••• 5588
+              카드 등록 시뮬레이션: •••• •••• •••• 5588
             </div>
-            <FormErrorNotice message={formError} />
-            <div className='grid grid-cols-2 gap-12'>
-              <Button
-                type='button'
-                color='gray'
-                size='lg'
-                variant='filled'
-                onClick={handleClose}
-                className='h-44 w-full'>
-                취소
-              </Button>
-              <Button
-                type='button'
-                color='primary'
-                size='lg'
-                variant='filled'
-                disabled={
-                  !isPayerInfoComplete(payerInfo) ||
-                  changeBillingMethodMutation.isPending ||
-                  isPaymentWindowPending
-                }
-                onClick={async () => {
-                  /* 등록 모달과 같은 이유로 결제창 호출 전에 모달을 닫는다. */
-                  const customer = toPaymentCustomer(payerInfo)
-
-                  setFormError(null)
-                  setIsPaymentWindowPending(true)
-                  onClose()
-                  /* 등록과 같은 주소로 돌아오므로 변경이었다는 걸 남겨 구분한다 */
-                  beginBillingIntent({ flow: 'changeBillingMethod' })
-
-                  try {
-                    const { billingKey } = await issueCardBillingKey({
-                      issueName: '인플레이스 결제수단 변경',
-                      customer,
-                    })
-                    clearBillingIntent()
-                    await changeBillingMethodMutation.mutateAsync({
-                      billingKey,
-                    })
-                    onOpenModal({ type: 'billingChanged' })
-                  } catch (error) {
-                    clearIntentUnlessLeaving(error)
-                    setFormError(
-                      getBillingErrorMessage(error, 'changeBillingMethod')
-                    )
-                    onOpenModal({ type: 'billingChange' })
-                  } finally {
-                    setIsPaymentWindowPending(false)
-                  }
-                }}
-                className='h-44 w-full'>
-                {isPaymentWindowPending ? '교체 중…' : '카드 등록하고 교체하기'}
-              </Button>
-            </div>
+            {/* 시안은 변경을 두 단계로 나눴다. 새 카드 정보는 등록과 같은 폼에서
+             * 받고, 그 폼이 교체까지 마친다. */}
+            <Button
+              type='button'
+              color='secondary'
+              size='lg'
+              variant='filled'
+              onClick={() => {
+                setFormError(null)
+                onOpenModal({
+                  type: 'billingRegister',
+                  pendingPlan: modal.pendingPlan,
+                  replacing: true,
+                })
+              }}
+              className='h-44 w-full'>
+              새 카드 등록하기
+            </Button>
           </div>
         </ModalContent>
       )}
@@ -653,7 +652,11 @@ export function BillingModals({
           title='결제수단이 등록되었습니다'
           description={describeNewCard(summary.billingMethod.last4)}
           buttonText='확인'
-          onConfirm={handleClose}
+          onConfirm={() =>
+            modal.pendingPlan
+              ? onOpenModal({ type: 'subscribe', plan: modal.pendingPlan })
+              : handleClose()
+          }
         />
       )}
       {modal?.type === 'billingChanged' && (
@@ -661,7 +664,11 @@ export function BillingModals({
           title='결제수단이 변경되었습니다'
           description={describeNewCard(summary.billingMethod.last4)}
           buttonText='확인'
-          onConfirm={handleClose}
+          onConfirm={() =>
+            modal.pendingPlan
+              ? onOpenModal({ type: 'subscribe', plan: modal.pendingPlan })
+              : handleClose()
+          }
         />
       )}
       {modal?.type === 'billingDelete' && (
@@ -683,7 +690,7 @@ export function BillingModals({
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
                 disabled={deleteBillingMethodMutation.isPending}
@@ -809,6 +816,13 @@ export function BillingModals({
       )}
       {modal?.type === 'creditConfirm' && (
         <ModalContent title='결제 내역' className='sm:w-[50rem]'>
+          <button
+            type='button'
+            onClick={handleClose}
+            aria-label='닫기'
+            className='absolute top-24 right-24 flex size-24 cursor-pointer items-center justify-center text-text-and-icon-default sm:top-40 sm:right-40'>
+            <IconX aria-hidden='true' className='size-24' />
+          </button>
           <div className='mt-32 flex flex-col gap-32'>
             <dl className='flex flex-col gap-12 rounded-12 bg-background-gray-default p-20 text-noto-body-sm-normal'>
               <div className='flex justify-between gap-12'>
@@ -820,7 +834,7 @@ export function BillingModals({
               <div className='flex justify-between gap-12'>
                 <dt className='text-text-and-icon-secondary'>결제 금액</dt>
                 <dd className='text-text-and-icon-primary'>
-                  {formatWon(modal.option.price)}
+                  {formatWonSuffix(modal.option.price)}
                 </dd>
               </div>
               <div className='flex justify-between gap-12'>
@@ -839,13 +853,17 @@ export function BillingModals({
                 color='gray'
                 size='lg'
                 variant='filled'
-                onClick={handleClose}
+                onClick={() => {
+                  setFormError(null)
+                  /* 선택한 상품·결제수단·입력값은 그대로 남아 있다 */
+                  onOpenModal({ type: 'creditPurchase' })
+                }}
                 className='h-44 w-full'>
-                취소
+                뒤로가기
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
                 disabled={
@@ -977,50 +995,15 @@ export function BillingModals({
         />
       )}
       {modal?.type === 'creditRefund' && (
-        <ConfirmModal
-          title='이 크레딧을 환불할까요?'
-          description='환불이 완료되면 해당 배치의 남은 크레딧이 회수되고, 결제하신 수단으로 환불됩니다. 결제 후 7일 이내에만 신청할 수 있습니다.'
-          confirmText='환불 신청'
-          isPending={refundCreditPurchaseMutation.isPending}
-          onCancel={handleClose}
-          onConfirm={async () => {
-            /* 구매하지 않은(구독 지급) 배치는 주문이 없어 환불 대상이 아니다.
-             * 버튼에서 이미 막지만 여기서도 확인한다. */
-            if (modal.batch.orderId === null) {
-              toast.error('구매한 크레딧만 환불할 수 있습니다.')
-              return
-            }
-            try {
-              await refundCreditPurchaseMutation.mutateAsync({
-                idempotencyKey: createIdempotencyKey(),
-                payload: { orderId: modal.batch.orderId },
-              })
-              onOpenModal({ type: 'creditRefunded' })
-            } catch (error) {
-              toast.error(getBillingErrorMessage(error, 'refundCredits'))
-            }
-          }}
-        />
-      )}
-      {modal?.type === 'creditRefunded' && (
-        <NoticeModal
-          title='환불 신청이 접수되었습니다'
-          description='결제수단에 따라 환불 완료까지 영업일 기준 3~5일이 걸릴 수 있습니다.'
-          buttonText='확인'
-          onConfirm={handleClose}
-        />
-      )}
-      {modal?.type === 'businessInfo' && (
-        <ModalContent
-          title={`${modal.documentType} 신청`}
-          description='발행에 필요한 사업자 정보를 입력해주세요.'
-          className='sm:w-[50rem]'>
+        <ModalContent title='환불 전 꼭 확인하세요' className='sm:w-[51.2rem]'>
           <div className='mt-32 flex flex-col gap-32'>
-            <BusinessInfoFields
-              value={businessInfo}
-              onChange={setBusinessInfo}
-            />
-            <FormErrorNotice message={formError} />
+            <ul className='flex list-disc flex-col gap-4 pl-20 text-noto-body-sm-normal text-text-and-icon-secondary'>
+              <li>결제한 수단으로 환불이 진행됩니다.</li>
+              <li>
+                환불 완료 후 최종 입금까지 영업일 기준 최대 7일이 소요됩니다.
+              </li>
+              <li>환불 신청 후 취소가 불가능하오니 신중하게 결정해 주세요.</li>
+            </ul>
             <div className='grid grid-cols-2 gap-12'>
               <Button
                 type='button'
@@ -1033,57 +1016,139 @@ export function BillingModals({
               </Button>
               <Button
                 type='button'
-                color='primary'
+                color='secondary'
                 size='lg'
                 variant='filled'
-                disabled={
-                  !isBusinessInfoComplete(businessInfo) ||
-                  saveBusinessInfoMutation.isPending ||
-                  requestTaxInvoiceMutation.isPending ||
-                  requestCashReceiptMutation.isPending
+                onClick={() =>
+                  onOpenModal({
+                    type: 'creditRefundConfirm',
+                    batch: modal.batch,
+                  })
                 }
-                onClick={async () => {
-                  const { orderId, documentType } = modal
-                  setFormError(null)
-                  try {
-                    /* 발행은 저장된 사업자 정보를 쓰므로 먼저 저장한다.
-                     * 값 정리는 API 계층이 맡는다. */
-                    await saveBusinessInfoMutation.mutateAsync(businessInfo)
-
-                    if (documentType === '세금계산서') {
-                      await requestTaxInvoiceMutation.mutateAsync(orderId)
-                      onOpenModal({ type: 'taxInvoiceRequested' })
-                      return
-                    }
-
-                    /* 사업자등록번호를 함께 받으므로 지출증빙으로 신청한다. */
-                    await requestCashReceiptMutation.mutateAsync({
-                      orderId,
-                      receiptType: 'CORPORATE',
-                    })
-                    onOpenModal({ type: 'cashReceiptRequested' })
-                  } catch (error) {
-                    setFormError(
-                      getBillingErrorMessage(
-                        error,
-                        documentType === '세금계산서'
-                          ? 'issueTaxInvoice'
-                          : 'issueCashReceipt'
-                      )
-                    )
-                  }
-                }}
                 className='h-44 w-full'>
-                신청하기
+                다음
               </Button>
             </div>
+          </div>
+        </ModalContent>
+      )}
+      {modal?.type === 'creditRefundConfirm' && (
+        <ConfirmModal
+          title='정말 환불하시겠어요?'
+          description='환불 신청 후 취소가 불가능하오니 신중하게 결정해 주세요.'
+          confirmText='환불하기'
+          isPending={refundCreditPurchaseMutation.isPending}
+          onCancel={handleClose}
+          onConfirm={async () => {
+            /* 구매하지 않은(구독 지급) 배치는 주문이 없어 환불 대상이 아니다.
+             * 버튼에서 이미 막지만 여기서도 확인한다. */
+            if (modal.batch.orderId === null) {
+              onOpenModal({ type: 'creditRefundDenied' })
+              return
+            }
+            try {
+              await refundCreditPurchaseMutation.mutateAsync({
+                idempotencyKey: createIdempotencyKey(),
+                payload: { orderId: modal.batch.orderId },
+              })
+              onOpenModal({ type: 'creditRefunded' })
+            } catch (error) {
+              /* 7일 경과·사용분은 버튼 단계에서 다 알 수 없다(사용 여부는
+               * 서버만 안다). 서버가 거절하면 시안의 환불 불가 안내를 띄운다. */
+              if (
+                isAxiosError(error) &&
+                error.response?.data?.error?.code ===
+                  'CREDIT_REFUND_409_NOT_ALLOWED'
+              ) {
+                onOpenModal({ type: 'creditRefundDenied' })
+                return
+              }
+              toast.error(getBillingErrorMessage(error, 'refundCredits'))
+            }
+          }}
+        />
+      )}
+      {modal?.type === 'creditRefunded' && (
+        <NoticeModal
+          title='환불이 완료되었습니다.'
+          buttonText='홈으로 이동하기'
+          onConfirm={() => {
+            handleClose()
+            router.push('/')
+          }}
+        />
+      )}
+      {modal?.type === 'creditRefundDenied' && (
+        <NoticeModal
+          title='환불이 불가능합니다'
+          description='회사의 이용약관에 따라 환불 시점이 결제 후 7일 이내이며, 해당 결제 지급분 미사용했을 시에만 환불할 수 있습니다.'
+          buttonText='확인'
+          onConfirm={handleClose}
+        />
+      )}
+      {modal?.type === 'businessInfo' && (
+        <ModalContent
+          title={`${modal.documentType} 신청`}
+          description='영업일 기준 7일 이내 발급되며, 등록된 이메일로 발송됩니다.'
+          className='sm:w-[50rem]'>
+          <div className='mt-32 flex flex-col gap-32'>
+            <BusinessInfoFields
+              value={businessInfo}
+              onChange={setBusinessInfo}
+            />
+            <FormErrorNotice message={formError} />
+            <Button
+              type='button'
+              color='secondary'
+              size='lg'
+              variant='filled'
+              disabled={
+                !isBusinessInfoComplete(businessInfo) ||
+                saveBusinessInfoMutation.isPending ||
+                requestTaxInvoiceMutation.isPending ||
+                requestCashReceiptMutation.isPending
+              }
+              onClick={async () => {
+                const { orderId, documentType } = modal
+                setFormError(null)
+                try {
+                  /* 발행은 저장된 사업자 정보를 쓰므로 먼저 저장한다.
+                   * 값 정리는 API 계층이 맡는다. */
+                  await saveBusinessInfoMutation.mutateAsync(businessInfo)
+
+                  if (documentType === '세금계산서') {
+                    await requestTaxInvoiceMutation.mutateAsync(orderId)
+                    onOpenModal({ type: 'taxInvoiceRequested' })
+                    return
+                  }
+
+                  /* 사업자등록번호를 함께 받으므로 지출증빙으로 신청한다. */
+                  await requestCashReceiptMutation.mutateAsync({
+                    orderId,
+                    receiptType: 'CORPORATE',
+                  })
+                  onOpenModal({ type: 'cashReceiptRequested' })
+                } catch (error) {
+                  setFormError(
+                    getBillingErrorMessage(
+                      error,
+                      documentType === '세금계산서'
+                        ? 'issueTaxInvoice'
+                        : 'issueCashReceipt'
+                    )
+                  )
+                }
+              }}
+              className='h-44 w-full'>
+              신청하기
+            </Button>
           </div>
         </ModalContent>
       )}
       {modal?.type === 'cashReceiptRequested' && (
         <NoticeModal
           title='현금영수증 신청 완료'
-          description='영업일 기준 3일 이내 발급되며, 등록된 이메일로 발송됩니다.'
+          description='영업일 기준 7일 이내 발급되며, 등록된 이메일로 발송됩니다.'
           buttonText='확인'
           onConfirm={handleClose}
         />
@@ -1091,7 +1156,7 @@ export function BillingModals({
       {modal?.type === 'taxInvoiceRequested' && (
         <NoticeModal
           title='세금계산서 신청 완료'
-          description='영업일 기준 3일 이내 발급되며, 등록된 이메일로 발송됩니다.'
+          description='영업일 기준 7일 이내 발급되며, 등록된 이메일로 발송됩니다.'
           buttonText='확인'
           onConfirm={handleClose}
         />
@@ -1153,7 +1218,7 @@ function NoticeModal({
       className='sm:w-[50rem]'>
       <Button
         type='button'
-        color='primary'
+        color='secondary'
         size='lg'
         variant='filled'
         onClick={onConfirm}
@@ -1196,7 +1261,7 @@ function ConfirmModal({
         </Button>
         <Button
           type='button'
-          color='primary'
+          color='secondary'
           size='lg'
           variant='filled'
           disabled={isPending}
@@ -1238,7 +1303,7 @@ function CreditOptionCard({
       </span>
       <div className='flex flex-col items-center'>
         <strong className='text-ibm-heading-lg-bold text-brand-primary'>
-          {formatWon(option.price).replace('₩', '')}
+          {formatWonSuffix(option.price)}
         </strong>
         {option.originalPrice && (
           <span className='text-noto-caption-md-normal text-text-and-icon-disabled line-through'>
@@ -1247,7 +1312,7 @@ function CreditOptionCard({
         )}
       </div>
       <span className='text-noto-label-md-normal text-text-and-icon-secondary'>
-        {formatWon(option.pricePerCredit).replace('₩', '')}/개
+        {formatWonSuffix(option.pricePerCredit)}/개
       </span>
     </button>
   )
@@ -1347,6 +1412,13 @@ const BUSINESS_INFO_FIELDS: {
     /* 서버 검증이 \d{10}이라 하이픈을 받지 않는다. */
     sanitize: (value) => value.replace(/\D/g, '').slice(0, 10),
   },
+  {
+    key: 'contactEmail',
+    label: '이메일',
+    required: true,
+    inputMode: 'email',
+    autoComplete: 'email',
+  },
   { key: 'name', label: '상호명', autoComplete: 'organization' },
   { key: 'representativeName', label: '대표자명', autoComplete: 'name' },
   {
@@ -1355,13 +1427,6 @@ const BUSINESS_INFO_FIELDS: {
     inputMode: 'tel',
     autoComplete: 'tel',
     sanitize: (value) => value.replace(/\D/g, '').slice(0, 11),
-  },
-  {
-    key: 'contactEmail',
-    label: '이메일',
-    required: true,
-    inputMode: 'email',
-    autoComplete: 'email',
   },
 ]
 
@@ -1377,17 +1442,12 @@ function BusinessInfoFields({
       {BUSINESS_INFO_FIELDS.map((field) => {
         const inputId = `billing-business-${field.key}`
         return (
-          <label
-            key={field.key}
-            htmlFor={inputId}
-            className='flex flex-col gap-6'>
-            <span className='text-noto-body-xs-bold text-text-and-icon-primary'>
+          <label key={field.key} htmlFor={inputId} className='flex flex-col'>
+            {/* 시안은 입력란에 라벨 없이 placeholder만 둔다. 스크린리더는
+             * placeholder를 라벨로 읽지 않으므로 라벨을 시각적으로만 숨긴다. */}
+            <span className='sr-only'>
               {field.label}
-              {field.required && (
-                <span className='ml-4 font-normal text-text-and-icon-secondary'>
-                  (필수)
-                </span>
-              )}
+              {field.required && ' (필수)'}
             </span>
             <input
               id={inputId}
@@ -1403,7 +1463,7 @@ function BusinessInfoFields({
                     : event.target.value,
                 })
               }
-              placeholder={field.label}
+              placeholder={`${field.label}${field.required ? '(필수)' : ''}`}
               autoComplete={field.autoComplete}
               spellCheck={field.key === 'contactEmail' ? false : undefined}
               className='h-44 w-full min-w-0 rounded-6 border border-stroke-border-gray-stronger bg-white px-16 text-noto-label-md-normal text-text-and-icon-primary placeholder:text-text-and-icon-disabled focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20 focus-visible:outline-none'

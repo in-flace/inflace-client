@@ -20,10 +20,10 @@ export type BillingIntent =
   | {
       flow: 'registerBillingMethod'
       payer: PaymentCustomer
-      /* 구독 모달에서 넘어왔으면 카드 등록 뒤 구독까지 이어서 한다 */
+      /* 구독 모달에서 넘어왔으면 등록을 마친 뒤 그 모달로 돌아간다 */
       pendingPlanCode: BillingPlanCode | null
     }
-  | { flow: 'changeBillingMethod' }
+  | { flow: 'changeBillingMethod'; pendingPlanCode: BillingPlanCode | null }
   | { flow: 'creditCheckout'; orderId: number }
 
 export type BillingFlow = BillingIntent['flow']
@@ -93,16 +93,18 @@ export function parseBillingIntent(
     return { status: 'expired', flow }
   }
 
+  const planCode = value.pendingPlanCode
+  const pendingPlanCode =
+    planCode === 'PRO' || planCode === 'EARLY_BIRD' ? planCode : null
+
   if (flow === 'registerBillingMethod') {
     if (!isPayer(value.payer)) return { status: 'none' }
-    const planCode = value.pendingPlanCode
     return {
       status: 'active',
       intent: {
         flow,
         payer: value.payer,
-        pendingPlanCode:
-          planCode === 'PRO' || planCode === 'EARLY_BIRD' ? planCode : null,
+        pendingPlanCode,
         savedAt: value.savedAt,
       },
     }
@@ -116,7 +118,10 @@ export function parseBillingIntent(
     }
   }
 
-  return { status: 'active', intent: { flow, savedAt: value.savedAt } }
+  return {
+    status: 'active',
+    intent: { flow, pendingPlanCode, savedAt: value.savedAt },
+  }
 }
 
 /* 결제창을 열기 직전에 await 없이 부른다. 모바일은 호출 직후 문서가

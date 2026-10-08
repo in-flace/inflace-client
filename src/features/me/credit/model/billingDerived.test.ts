@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   formatDate,
   formatWon,
+  formatWonSuffix,
+  getNextMonthlyBillingDate,
   getExpiringCredits,
   getNearestExpiryDate,
   getRemainingCredits,
@@ -81,8 +83,9 @@ describe('billingDerived', () => {
   it('금액과 날짜를 화면 표기 형식으로 변환한다', () => {
     expect(formatWon(29000)).toBe('₩29,000')
     expect(formatWon(-12000)).toBe('-₩12,000')
-    expect(formatDate('2026-08-09')).toBe('2026.08.09')
+    expect(formatDate('2026-08-09')).toBe('2026-08-09')
     expect(formatDate(null)).toBe('-')
+    expect(formatWonSuffix(9900)).toBe('9,900원')
   })
 
   it('환불된 배치를 제외하고 남은 크레딧을 계산한다', () => {
@@ -103,5 +106,21 @@ describe('billingDerived', () => {
         creditBatches.map((batch) => ({ ...batch, usedCredits: 99 }))
       )
     ).toBeNull()
+  })
+})
+
+describe('getNextMonthlyBillingDate', () => {
+  it('다음 달 같은 날이다', () => {
+    expect(getNextMonthlyBillingDate(new Date(2026, 7, 25))).toBe('2026-09-25')
+  })
+
+  it('다음 달에 같은 날이 없으면 말일이다 — 서버 규칙과 같다', () => {
+    expect(getNextMonthlyBillingDate(new Date(2026, 0, 31))).toBe('2026-02-28')
+    expect(getNextMonthlyBillingDate(new Date(2028, 0, 31))).toBe('2028-02-29')
+    expect(getNextMonthlyBillingDate(new Date(2026, 2, 31))).toBe('2026-04-30')
+  })
+
+  it('12월이면 다음 해 1월이다', () => {
+    expect(getNextMonthlyBillingDate(new Date(2026, 11, 15))).toBe('2027-01-15')
   })
 })

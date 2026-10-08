@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQueryClient } from '@tanstack/react-query'
+import { isAxiosError } from 'axios'
 import { toast } from 'sonner'
 import AiInsightIcon from '@/shared/assets/ai-strategy-insight.svg'
 
@@ -22,8 +24,30 @@ import { ScrollToTopButton } from '@/shared/ui/scroll-to-top'
 
 const MAX_SELECTED = 10
 
+/* 키워드 검색은 서버가 1회에 1크레딧을 쓴다(키워드 없는 기본 피드는 무료).
+ * 거절되면 결과 영역이 조용히 비어 보이므로 사유와 갈 곳을 알려준다. */
+const CREDIT_REJECTIONS: Record<
+  string,
+  { title: string; description: string; label: string; href: string }
+> = {
+  CREDIT_400_INSUFFICIENT: {
+    title: '보유 크레딧이 부족합니다.',
+    description: '키워드 검색 1회에 1크레딧이 사용됩니다.',
+    label: '크레딧 구매',
+    href: '/me/credit?tab=credit',
+  },
+  /* 무료 회원은 구매해 둔 크레딧이 없으면 키워드 검색을 할 수 없다 */
+  AUTH_403: {
+    title: '키워드 검색은 구독자 전용 기능입니다.',
+    description: '플랜을 구독하면 크레딧이 매월 지급됩니다.',
+    label: '구독하기',
+    href: '/me/credit?tab=subscription',
+  },
+}
+
 export function CompetitorPage() {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { isLoggedIn, isInitializing } = useAuth()
   const openLoginModal = useLoginModal((s) => s.open)
 
@@ -48,8 +72,35 @@ export function CompetitorPage() {
   /* 상세 검색 영역 열림 상태 — 분석 완료 시 자동 닫기 위해 페이지에서 관리 (기본 펼침) */
   const [isDetailOpen, setIsDetailOpen] = useState(true)
 
-  const { data, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useBrandCollaborations({ filter: appliedFilter })
+  const {
+    data,
+    error,
+    dataUpdatedAt,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useBrandCollaborations({ filter: appliedFilter })
+
+  useEffect(() => {
+    const code = isAxiosError(error) ? error.response?.data?.error?.code : null
+    const rejection = typeof code === 'string' ? CREDIT_REJECTIONS[code] : null
+    if (!rejection) return
+    toast.error(rejection.title, {
+      description: rejection.description,
+      action: {
+        label: rejection.label,
+        onClick: () => router.push(rejection.href),
+      },
+    })
+  }, [error, router])
+
+  /* 키워드 검색이 성공하면 크레딧이 줄었을 수 있다. 결제 요약은 5분간 캐시되므로
+   * 바로 크레딧 탭에 가도 줄어든 잔액이 보이게 낡은 것으로 표시해 둔다. */
+  const isKeywordSearch = appliedFilter.includeKeywords.length > 0
+  useEffect(() => {
+    if (!isKeywordSearch || !dataUpdatedAt) return
+    void queryClient.invalidateQueries({ queryKey: ['billing'] })
+  }, [isKeywordSearch, dataUpdatedAt, queryClient])
 
   const videos = data?.pages.flatMap((page) => page.content) ?? []
   const hasResults = videos.length > 0
