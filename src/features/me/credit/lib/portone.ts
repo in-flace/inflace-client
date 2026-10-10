@@ -13,7 +13,6 @@ export type PaymentCustomer = {
 
 type IssueBillingKeyParams = {
   issueName: string
-  displayAmount?: number
   customer: PaymentCustomer
 }
 
@@ -142,7 +141,6 @@ function toPortOneCustomer(customer: PaymentCustomer) {
 
 export async function issueCardBillingKey({
   issueName,
-  displayAmount,
   customer,
 }: IssueBillingKeyParams): Promise<BillingKeyIssueResult> {
   const portOneCustomer = toPortOneCustomer(customer)
@@ -183,8 +181,12 @@ export async function issueCardBillingKey({
     billingKeyMethod: 'CARD',
     issueId: createId('bill'),
     issueName,
-    displayAmount,
-    currency: displayAmount ? 'KRW' : undefined,
+    /* 금액을 아예 빼면 이니시스 PC 표준결제창이 열려 주민번호 입력과 공동인증서
+     * 본인확인을 요구한다. 0원이라도 넣으면 생년월일만 받는 간편 빌링창으로 간다
+     * (2026-10-10 실제 결제창으로 확인). 카드 등록 자체로는 돈이 빠지지 않으므로
+     * 0원으로 표시한다. 모바일은 금액과 상관없이 간편 빌링창이다. */
+    displayAmount: 0,
+    currency: 'KRW',
     customer: portOneCustomer,
     /* 모바일 결제창은 서비스 제공 기간(range·interval 중 하나)을 필수로 요구한다.
      * 빠지면 AT_LEAST_ONE_REQUIRED로 창이 열리기도 전에 거부된다(QA #78).
