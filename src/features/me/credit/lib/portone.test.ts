@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import * as PortOne from '@portone/browser-sdk/v2'
 import { issueCardBillingKey, requestOneTimeCardPayment } from './portone'
+
+vi.mock('@portone/browser-sdk/v2', () => ({
+  requestIssueBillingKey: vi.fn(async () => ({
+    transactionType: 'ISSUE_BILLING_KEY',
+    billingKey: 'billing-key-real',
+  })),
+  requestPayment: vi.fn(),
+}))
 
 const payer = {
   fullName: '홍길동',
@@ -11,6 +20,35 @@ const payer = {
 describe('portone adapter', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+    vi.clearAllMocks()
+  })
+
+  /* 금액을 빼면 이니시스 PC 표준결제창(주민번호 + 공동인증서)이 열린다.
+   * 0원이라도 KRW와 함께 보내야 간편 빌링창으로 간다. 실제 결제창으로 확인한
+   * 요청 모양을 여기서 고정해, 금액이 다시 빠지는 회귀를 막는다. */
+  it('실결제에서 카드 등록은 금액 0원과 통화를 함께 보낸다', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MOCK_ENABLED', 'false')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_STORE_ID', 'store-test')
+    vi.stubEnv('NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY', 'channel-key-billing')
+    vi.stubGlobal('window', { location: { origin: 'https://inflace.test' } })
+
+    const result = await issueCardBillingKey({
+      issueName: '인플레이스 결제수단 등록',
+      customer: payer,
+    })
+
+    expect(result).toEqual({ billingKey: 'billing-key-real', isMock: false })
+    expect(PortOne.requestIssueBillingKey).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storeId: 'store-test',
+        channelKey: 'channel-key-billing',
+        displayAmount: 0,
+        currency: 'KRW',
+        offerPeriod: { interval: '1m' },
+        redirectUrl: 'https://inflace.test/me/credit?tab=billing-method',
+      })
+    )
   })
 
   it('mock 환경에서는 외부 결제창 없이 빌링키를 발급한다', async () => {
