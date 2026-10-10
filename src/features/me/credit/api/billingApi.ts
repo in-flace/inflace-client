@@ -275,7 +275,10 @@ function toCreditBatches(
       /* 서버 규칙(CreditRefundTransactionService)을 따른다. 구매분이고,
        * 결제 후 7일 이내이며, 아직 환불되지 않은 배치만 신청할 수 있다.
        * 사용 여부 등 나머지 조건은 서버가 최종 판정한다. */
+      /* 서버는 구독으로 매월 지급한 배치에도 구독 주문 번호를 붙여 준다.
+       * 주문 번호만 보고 열면 그 주문으로 환불을 요청해 PAYMENT_404가 난다. */
       refundable:
+        isPurchasedCredit &&
         batch.orderId !== null &&
         refundedAt === null &&
         isWithinRefundPeriod(batch.grantedAt),
@@ -339,6 +342,34 @@ function toSubscription(overview: SubscriptionOverviewResponse): Subscription {
   }
 }
 
+/* 서버는 포트원의 카드 발급사 코드를 그대로 준다. 화면에는 한글 이름을 쓰고,
+ * 목록에 없는 값은 받은 그대로 보여준다. */
+const CARD_ISSUER_LABELS: Record<string, string> = {
+  KOOKMIN_CARD: 'KB국민카드',
+  SHINHAN_CARD: '신한카드',
+  SAMSUNG_CARD: '삼성카드',
+  HYUNDAI_CARD: '현대카드',
+  LOTTE_CARD: '롯데카드',
+  HANA_CARD: '하나카드',
+  WOORI_CARD: '우리카드',
+  BC_CARD: 'BC카드',
+  NH_CARD: 'NH농협카드',
+  CITI_CARD: '씨티카드',
+  SUHYUP_CARD: '수협카드',
+  GWANGJU_CARD: '광주카드',
+  JEONBUK_CARD: '전북카드',
+  JEJU_CARD: '제주카드',
+  KAKAO_BANK: '카카오뱅크',
+  K_BANK: '케이뱅크',
+  TOSS_BANK: '토스뱅크',
+  KOREA_DEVELOPMENT_BANK: 'KDB산업은행',
+  KFCC: '새마을금고',
+  SHINHYUP: '신협',
+  EPOST: '우체국',
+  SAVINGS_BANK_KOREA: '저축은행',
+  MIRAE_ASSET_SECURITIES: '미래에셋증권',
+}
+
 function toBillingMethod(paymentMethod: PaymentMethodResponse | null) {
   if (!paymentMethod) {
     return {
@@ -350,12 +381,16 @@ function toBillingMethod(paymentMethod: PaymentMethodResponse | null) {
     }
   }
 
-  const digits = paymentMethod.maskedCardNumber.replace(/\D/g, '')
+  /* 이니시스는 앞 6자리와 맨 끝 1자리만 보여준다(451842*********0). 가려진
+   * 자리를 지우고 숫자만 모으면 앞자리가 끝자리처럼 섞이므로, 구분자만 빼고
+   * 마지막 네 칸을 가려진 그대로 쓴다(***0). */
+  const last4 = paymentMethod.maskedCardNumber.replace(/[\s-]/g, '').slice(-4)
   return {
     status: 'registered' as const,
     id: String(paymentMethod.paymentMethodId),
-    brand: paymentMethod.cardIssuer,
-    last4: digits.slice(-4) || paymentMethod.maskedCardNumber.slice(-4),
+    brand:
+      CARD_ISSUER_LABELS[paymentMethod.cardIssuer] ?? paymentMethod.cardIssuer,
+    last4,
     updatedAt: toDate(paymentMethod.issuedAt),
   }
 }

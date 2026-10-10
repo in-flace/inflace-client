@@ -20,6 +20,8 @@ describe('fetchBillingSummary', () => {
   })
 
   it('거래 이력으로 연장 상태를 복원하고 결제 관련 이력만 노출한다', async () => {
+    /* 두 배치 모두 결제 후 7일 안이다. 기간이 아니라 유형으로 환불이 갈리는지 본다 */
+    vi.useFakeTimers({ now: new Date('2026-08-20T12:00:00'), toFake: ['Date'] })
     getMock.mockImplementation((url: string) => {
       if (url === '/subscriptions/plans') {
         return Promise.resolve(
@@ -61,7 +63,8 @@ describe('fetchBillingSummary', () => {
               },
               {
                 userCreditId: 2,
-                orderId: null,
+                /* 실제 서버는 구독 지급 배치에도 구독 주문 번호를 붙여 준다 */
+                orderId: 3001,
                 productName: '월 구독 지급',
                 initialAmount: 3,
                 remainingAmount: 3,
@@ -141,8 +144,9 @@ describe('fetchBillingSummary', () => {
           apiResponse({
             paymentMethodId: 7,
             methodType: 'CARD',
-            cardIssuer: '현대카드',
-            maskedCardNumber: '****-****-****-5588',
+            cardIssuer: 'HYUNDAI_CARD',
+            /* 이니시스 형식: 앞 6자리와 맨 끝 1자리만 보인다 */
+            maskedCardNumber: '451842*********0',
             issuedAt: '2026-08-02T00:00:00',
           })
         )
@@ -183,10 +187,11 @@ describe('fetchBillingSummary', () => {
       type: 'subscription',
       expiryDate: null,
     })
-    /* 환불은 구매분에만 열린다. 구독으로 지급된 배치는 주문이 없어 막힌다.
-     * 두 배치 모두 결제한 지 7일이 지나 기간 조건에서도 걸린다. */
+    /* 환불은 구매분에만 열린다. 구독 지급 배치는 주문 번호가 있어도 막아야 한다.
+     * 열리면 구독 주문으로 환불을 요청해 서버가 PAYMENT_404를 준다. */
     expect(summary.creditBatches[0].orderId).toBe(2001)
-    expect(summary.creditBatches[1].orderId).toBeNull()
+    expect(summary.creditBatches[0].refundable).toBe(true)
+    expect(summary.creditBatches[1].orderId).toBe(3001)
     expect(summary.creditBatches[1].refundable).toBe(false)
     expect(summary.creditOptions[0]).toMatchObject({
       originalPrice: 4600,
@@ -201,8 +206,10 @@ describe('fetchBillingSummary', () => {
       status: 'registered',
       id: '7',
       brand: '현대카드',
-      last4: '5588',
+      /* 숫자만 모으면 앞자리가 섞여 8420이 된다. 보이는 그대로 끝 네 칸을 쓴다 */
+      last4: '***0',
     })
+    vi.useRealTimers()
   })
 })
 
