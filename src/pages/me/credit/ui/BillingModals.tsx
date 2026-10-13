@@ -731,10 +731,15 @@ export function BillingModals({
           className='sm:w-[min(100rem,calc(100vw-4.8rem))]'>
           <div className='mt-32 flex flex-col gap-32'>
             <div className='grid grid-cols-1 gap-24 md:grid-cols-3 md:gap-16'>
-              {summary.creditOptions.map((option) => (
+              {summary.creditOptions.map((option, index) => (
                 <CreditOptionCard
                   key={option.id}
                   option={option}
+                  tierClassName={
+                    CREDIT_OPTION_TIER_BG[
+                      Math.min(index, CREDIT_OPTION_TIER_BG.length - 1)
+                    ]
+                  }
                   selected={option.id === selectedOptionId}
                   onSelect={() => setSelectedOptionId(option.id)}
                 />
@@ -1274,12 +1279,22 @@ function ConfirmModal({
   )
 }
 
+/* 시안은 묶음이 클수록 배경이 진해진다. 선택 여부와 상관없이 고정이고,
+ * 선택은 테두리로만 표시한다(QA #89). */
+const CREDIT_OPTION_TIER_BG = [
+  'bg-background-gray-default',
+  'bg-primitive-brand-vivid-75',
+  'bg-primitive-brand-vivid-100',
+]
+
 function CreditOptionCard({
   option,
+  tierClassName,
   selected,
   onSelect,
 }: {
   option: CreditPurchaseOption
+  tierClassName: string
   selected: boolean
   onSelect: () => void
 }) {
@@ -1288,10 +1303,11 @@ function CreditOptionCard({
       type='button'
       onClick={onSelect}
       className={cn(
-        'relative flex h-[15.8rem] flex-col items-center justify-center gap-12 rounded-6 border p-16 text-center focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+        'relative flex h-[15.8rem] flex-col items-center justify-center gap-12 rounded-6 p-16 text-center focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:ring-offset-2 focus-visible:outline-none',
+        tierClassName,
         selected
-          ? 'border-stroke-border-gray-default bg-[rgba(90,68,242,0.08)]'
-          : 'border-stroke-border-gray-default bg-background-gray-default'
+          ? 'border-3 border-brand-primary'
+          : 'border border-stroke-border-gray-default'
       )}>
       {option.badge && (
         <span className='absolute top-[-1.3rem] right-0 rounded-4 bg-feedback-error px-12 py-2 text-noto-title-sm-bold text-white'>
